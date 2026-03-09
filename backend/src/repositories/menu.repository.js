@@ -26,6 +26,8 @@ const getMenuItems = async (type, category) => {
         query += ` WHERE ` + conditions.join(" AND ");
     }
 
+    query += ` ORDER BY menu_items.name ASC`;
+
     const result = await db.query(query, values);
 
     return result.rows;

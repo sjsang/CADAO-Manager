@@ -5,7 +5,7 @@ const MenuItem = ({ item }) => {
                 <img
                     src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${item.image_url}`}
                     alt={item.name}
-                    className="h-60 mx-auto object-cover"
+                    className="h-60 min-w-fit mx-auto object-cover"
                 />
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-lg font-bold text-orange-600">
                     {Number(item.price).toLocaleString('vi-VN')}đ
