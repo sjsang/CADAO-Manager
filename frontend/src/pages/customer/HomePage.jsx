@@ -10,7 +10,7 @@ const HomePage = () => {
         <>
             <Header activePage={"home"} />
 
-            <section className="h-150 w-7xl mx-auto mt-24 flex items-center justify-between">
+            <section className="h-150 w-7xl mx-auto mt-20 flex items-center justify-between">
                 <div className="text-white w-1/2 flex flex-col gap-6">
                     <h1 className="text-5xl font-bold">Cadao Restaurant & Café</h1>
                     <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, Ca Dao tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
@@ -23,7 +23,7 @@ const HomePage = () => {
                         onClick={() => navigate("/menu")}
                         className="w-fit px-6 py-3 bg-yellow-500 text-black font-semibold rounded-full hover:bg-yellow-400 transition cursor-pointer"
                     >
-                        Gọi món ngay
+                        Chọn món ngay
                     </div>
                 </div>
                 <img src="/spiner.png" alt="spiner" className="h-full animate-[spin_180s_linear_infinite]" />

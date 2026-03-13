@@ -23,83 +23,144 @@ CREATE TABLE menu_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Bàn
-CREATE TABLE tables (
-    id SERIAL PRIMARY KEY,
-    table_number INT NOT NULL UNIQUE,
-    capacity INT DEFAULT 4, -- Sức chứa
-    status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'reserved', 'out_of_service'))
-);
-
--- 5. Nhân viên/Người dùng
+-- 4. Nhân viên
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name VARCHAR(150),
     phone_number VARCHAR(20),
-    role VARCHAR(20) DEFAULT 'cashier',
-    is_active BOOLEAN DEFAULT TRUE
+    role VARCHAR(20) NOT NULL
+        CHECK (role IN ('admin', 'staff', 'shipper')),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Hóa đơn (Orders)
+-- 5. Khách hàng 
+CREATE TABLE customers (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    phone_number VARCHAR(20) NOT NULL,
+    email VARCHAR(150) UNIQUE,
+    password_hash TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. Phường
+CREATE TABLE wards (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) UNIQUE NOT NULL,
+    shipping_fee NUMERIC(12,2) NOT NULL CHECK (shipping_fee >= 0)
+);
+
+-- 7. Địa chỉ khách hàng
+CREATE TABLE customer_addresses (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL
+        REFERENCES customers(id) ON DELETE CASCADE,
+    address_line TEXT NOT NULL,
+    ward_id INT NOT NULL
+        REFERENCES wards(id),
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Đơn hàng
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    table_id INT NOT NULL REFERENCES tables(id),
-    user_id INT REFERENCES users(id), -- Nhân viên phục vụ/tạo đơn
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+    order_code VARCHAR(20) UNIQUE NOT NULL,
+
+    customer_id INT
+        REFERENCES customers(id),
+
+    staff_id INT
+        REFERENCES users(id),
+
+    shipper_id INT
+        REFERENCES users(id),
+
+    delivery_full_name VARCHAR(150) NOT NULL,
+    delivery_phone VARCHAR(20) NOT NULL,
+    delivery_address TEXT NOT NULL,
+    delivery_ward_name VARCHAR(150) NOT NULL,
+
+    shipping_fee NUMERIC(12,2) DEFAULT 0 CHECK (shipping_fee >= 0),
+    subtotal NUMERIC(12,2) DEFAULT 0 CHECK (subtotal >= 0),
+    discount_amount NUMERIC(12,2) DEFAULT 0 CHECK (discount_amount >= 0),
     total_amount NUMERIC(12,2) DEFAULT 0 CHECK (total_amount >= 0),
+
+    status VARCHAR(30) DEFAULT 'pending'
+        CHECK (status IN (
+            'pending',
+            'confirmed',
+            'preparing',
+            'shipping',
+            'completed',
+            'cancelled'
+        )),
+
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT -- Ghi chú chung (ví dụ: khách dị ứng hành)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Chi tiết món trong đơn
+-- 9. Chi tiết đơn hàng
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
-    order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    menu_item_id INT NOT NULL REFERENCES menu_items(id),
+    order_id INT NOT NULL
+        REFERENCES orders(id) ON DELETE CASCADE,
+    menu_item_id INT NOT NULL
+        REFERENCES menu_items(id),
     quantity INT NOT NULL CHECK (quantity > 0),
-    price NUMERIC(12,2) NOT NULL CHECK (price >= 0), -- Giá lúc bán
-    note TEXT -- Ghi chú món (ví dụ: ít đường, không cay)
+    price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+    note TEXT
 );
 
--- 8. Thanh toán
+-- 10. Thanh toán
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
-    order_id INT NOT NULL UNIQUE REFERENCES orders(id),
-    method VARCHAR(50) CHECK (method IN ('cash', 'card', 'transfer', 'e-wallet')),
+    order_id INT NOT NULL UNIQUE
+        REFERENCES orders(id) ON DELETE CASCADE,
+
+    method VARCHAR(50)
+        CHECK (method IN ('cash', 'card', 'transfer', 'e-wallet')),
+
+    payment_status VARCHAR(20) DEFAULT 'pending'
+        CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
-    paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    transaction_code VARCHAR(100),
+
+    paid_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Thêm dữ liệu
-INSERT INTO menu_types (name) VALUES ('Món ăn');
-INSERT INTO menu_types (name) VALUES ('Món uống');
+-- 11. Vouchers
+CREATE TABLE vouchers (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
 
-INSERT INTO categories (name, menu_type_id) VALUES ('Món kho', 1);
-INSERT INTO categories (name, menu_type_id) VALUES ('Cà phê', 2);
+    discount_percent INT
+        CHECK (discount_percent BETWEEN 0 AND 100),
 
-INSERT INTO menu_items (name, price, category_id) VALUES ('Ba rọi kho tiêu', 55000, 1);
-INSERT INTO menu_items (name, price, category_id) VALUES ('Cà phê sữa', 33000, 2);
+    discount_amount NUMERIC(12,2),
 
-SELECT
-	mi.name,
-	mi.price,
-	c.name AS "Danh mục",
-	mt.name AS "Loại"
-FROM menu_items mi
-JOIN categories c ON mi.category_id = c.id
-JOIN menu_types mt ON c.menu_type_id = mt.id;
+    min_order_value NUMERIC(12,2) DEFAULT 0,
+    max_discount NUMERIC(12,2),
 
+    expiry_date TIMESTAMP,
+    usage_limit INT,
+    used_count INT DEFAULT 0,
 
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-
-
-
-
-
-
-
-
-
-
+-- 12. Order - Voucher
+CREATE TABLE order_vouchers (
+    order_id INT PRIMARY KEY
+        REFERENCES orders(id) ON DELETE CASCADE,
+    voucher_id INT NOT NULL
+        REFERENCES vouchers(id)
+);

@@ -2,9 +2,9 @@ const menuService = require("../services/menu.service");
 
 const getMenuItems = async (req, res) => {
     try {
-        const { type, category } = req.query;
+        const { type, category, search, sort } = req.query;
 
-        const data = await menuService.getMenuItems(type, category);
+        const data = await menuService.getMenuItems(type, category, search, sort);
 
         res.json(data);
     } catch (err) {

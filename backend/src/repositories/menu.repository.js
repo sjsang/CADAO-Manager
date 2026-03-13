@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-const getMenuItems = async (type, category) => {
+const getMenuItems = async (type, category, search, sort) => {
 
     let query = `
         SELECT menu_items.*
@@ -22,14 +22,30 @@ const getMenuItems = async (type, category) => {
         conditions.push(`categories.name = $${values.length}`);
     }
 
+    if (search) {
+        values.push(`%${search}%`);
+        conditions.push(`menu_items.name ILIKE $${values.length}`);
+    }
+
     if (conditions.length > 0) {
         query += ` WHERE ` + conditions.join(" AND ");
     }
 
-    query += ` ORDER BY menu_items.name ASC`;
+    switch (sort) {
+        case "price_asc":
+            query += ` ORDER BY menu_items.price ASC`;
+            break;
+        case "price_desc":
+            query += ` ORDER BY menu_items.price DESC`;
+            break;
+        case "name_desc":
+            query += ` ORDER BY menu_items.name DESC`;
+            break;
+        default:
+            query += ` ORDER BY menu_items.name ASC`;
+    }
 
     const result = await db.query(query, values);
-
     return result.rows;
 };
 

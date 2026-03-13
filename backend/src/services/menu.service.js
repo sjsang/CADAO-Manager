@@ -2,8 +2,8 @@ const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
 const menuRepository = require("../repositories/menu.repository");
 
-const getMenuItems = async (type, category) => {
-    return await menuRepository.getMenuItems(type, category);
+const getMenuItems = async (type, category, search, sort) => {
+    return await menuRepository.getMenuItems(type, category, search, sort);
 }
 
 const getMenuItemById = async (id) => {

@@ -12,6 +12,9 @@ const MenuPage = () => {
     const [selectedType, setSelectedType] = useState('Món ăn');
     const [selectedCategory, setSelectedCategory] = useState(null);
 
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState("name_asc");
+
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -28,7 +31,13 @@ const MenuPage = () => {
     useEffect(() => {
         const fetchMenuItems = async () => {
             try {
-                const response = await menuApi.getAll(selectedType, selectedCategory);
+                const response = await menuApi.getAll({
+                    type: selectedType,
+                    category: selectedCategory,
+                    search: searchTerm,
+                    sort: sortOrder
+                });
+
                 setMenuItems(response.data);
             } catch (error) {
                 console.error("Failed to fetch menu items:", error);
@@ -36,7 +45,7 @@ const MenuPage = () => {
         };
 
         fetchMenuItems();
-    }, [selectedType, selectedCategory]);
+    }, [selectedType, selectedCategory, searchTerm, sortOrder]);
 
     const handleCategorySelect = (categoryName) => {
         setSelectedCategory(categoryName);
@@ -44,6 +53,7 @@ const MenuPage = () => {
 
     const handleTypeSelect = (type) => {
         setSelectedType(type);
+        setSelectedCategory(null);
     };
 
     const menuTypes = [
@@ -56,8 +66,9 @@ const MenuPage = () => {
             <Header activePage={"menu"} />
 
             <div className="max-w-7xl mx-auto flex gap-8 py-10 text-white">
+
                 <div className="w-1/5 pr-8">
-                    <div className="sticky top-28 flex flex-col gap-8">
+                    <div className="fixed top-34 flex flex-col gap-8">
                         {menuTypes.map(type => (
                             <CategorySection
                                 key={type.id}
@@ -73,6 +84,28 @@ const MenuPage = () => {
                 </div>
 
                 <div className="flex-1">
+
+                    <div className="flex gap-3 mb-6">
+                        <input
+                            type="text"
+                            placeholder="Tìm món..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none"
+                        />
+
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="p-3 rounded-lg bg-gray-800 focus:outline-none"
+                        >
+                            <option value="name_asc">Tên: A → Z</option>
+                            <option value="name_desc">Tên: Z → A</option>
+                            <option value="price_asc">Giá: tăng dần</option>
+                            <option value="price_desc">Giá: giảm dần</option>
+                        </select>
+                    </div>
+
                     {menuItems.length > 0 ? (
                         <div className="grid grid-cols-3 gap-6">
                             {menuItems.map(item => (
@@ -80,8 +113,8 @@ const MenuPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center mt-80 text-gray-400">
-                            <p className="text-xl">Danh mục tạm trống.</p>
+                        <div className="flex flex-col items-center justify-center mt-40 text-gray-400">
+                            <p className="text-xl">Không tìm thấy món phù hợp.</p>
                         </div>
                     )}
                 </div>
@@ -90,4 +123,4 @@ const MenuPage = () => {
     );
 }
 
-export default MenuPage
+export default MenuPage;

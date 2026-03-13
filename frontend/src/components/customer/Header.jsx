@@ -50,9 +50,9 @@ const Header = ({ activePage }) => {
 
                         <li>
                             <a
-                                onClick={() => navigate("/order")}
-                                className={`cursor-pointer ${activePage === "order" ? activeClass : "hover:text-yellow-500 transition"}`}>
-                                Phiếu gọi món
+                                onClick={() => navigate("/cart")}
+                                className={`cursor-pointer ${activePage === "cart" ? activeClass : "hover:text-yellow-500 transition"}`}>
+                                Giỏ hàng
                             </a>
                         </li>
 
