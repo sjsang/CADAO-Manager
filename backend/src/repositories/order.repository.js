@@ -1,5 +1,16 @@
 const db = require('../config/db');
-const { createPayment } = require('./payment.repository');
+const { getPaymentByOrderId, createPayment } = require('./payment.repository');
+
+const getOrdersByCustomerId = async (customerId) => {
+    const query = `
+        SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
+               o.total_amount, o.status
+        FROM orders o
+        WHERE o.customer_id = $1 AND o.status != 'cart'
+    `;
+    const result = await db.query(query, [customerId]);
+    return result.rows;
+};
 
 const generateOrderCode = () => {
     const date = new Date();
@@ -116,7 +127,7 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
 const getOrderByOrderCode = async (orderCode) => {
     const orderQuery = `
         SELECT o.id, o.order_code, o.customer_id, o.delivery_full_name, o.delivery_phone, o.delivery_address,
-                o.delivery_ward_name, o.shipping_fee, o.subtotal, o.discount_amount, o.total_amount, o.notes,
+                o.delivery_ward_name, o.shipping_fee, o.subtotal, o.discount_amount, o.total_amount, o.status, o.notes,
                 json_agg(json_build_object(
                     'name', mi.name,
                     'quantity', oi.quantity,
@@ -129,12 +140,26 @@ const getOrderByOrderCode = async (orderCode) => {
         WHERE o.order_code = $1
         GROUP BY o.id
     `;
+
     const result = await db.query(orderQuery, [orderCode]);
-    return result.rows[0];
+    const order = result.rows[0];
+    if (order) {
+        const payment = await getPaymentByOrderId(order.id);
+        order.payment = payment;
+    }
+    return order;
+};
+
+const cancelOrder = async (orderCode) => {
+    const query = `UPDATE orders SET status='cancelled' WHERE order_code=$1 RETURNING id`;
+    const result = await db.query(query, [orderCode]);
+    return result.rowCount > 0 ? result.rows[0].id : null;
 };
 
 module.exports = {
+    getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
-    confirmOrder
+    confirmOrder,
+    cancelOrder
 };

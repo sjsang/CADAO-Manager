@@ -91,7 +91,7 @@ const Header = ({ activePage }) => {
                         <li>
                             {loggedInUser
                                 ? <a
-                                    onClick={() => navigate("/me")}
+                                    onClick={() => navigate("/profile")}
                                     className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
                                 >
                                     {loggedInUser}

@@ -7,6 +7,8 @@ import CartPage from './pages/customer/CartPage'
 import CustomerRegis from './pages/auth/CustomerRegis'
 import CustomerLogin from './pages/auth/CustomerLogin'
 import CheckoutPage from './pages/customer/CheckoutPage'
+import ProfilePage from './pages/customer/ProfilePage'
+import OrderDetailPage from './pages/customer/OrderDetailPage'
 
 const App = () => {
   return (
@@ -17,9 +19,11 @@ const App = () => {
       <Route path="/contact" element={<ContactUsPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout/:orderCode" element={<CheckoutPage />} />
+      <Route path="/orders/:orderCode" element={<OrderDetailPage />} />
 
       <Route path="/register" element={<CustomerRegis />} />
       <Route path="/login" element={<CustomerLogin />} />
+      <Route path="/profile" element={<ProfilePage />} />
     </Routes>
   );
 }

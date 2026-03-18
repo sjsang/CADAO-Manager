@@ -155,12 +155,12 @@ const CartPage = () => {
                                     <p className="text-sm text-gray-400">Đơn giá</p>
                                     <p className="text-lg">{Number(item.price).toLocaleString('vi-VN')}đ</p>
                                 </div>
-                                <button className="ml-auto cursor-pointer text-orange-500"
+                                <button className="ml-auto cursor-pointer hover:underline text-orange-500"
                                     onClick={() => handleUpdateClick(item)}
                                 >
                                     Cập nhật
                                 </button>
-                                <button className="cursor-pointer text-red-500"
+                                <button className="cursor-pointer hover:underline text-red-500"
                                     onClick={() => handleDelete(item.menu_item_id)}
                                 >
                                     Xóa

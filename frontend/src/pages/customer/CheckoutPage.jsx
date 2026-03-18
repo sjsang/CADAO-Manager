@@ -65,6 +65,7 @@ const CheckoutPage = () => {
     return (
         <div>
             <Header />
+
             <div className="w-7xl mx-auto py-8 text-white">
                 {orderDetails ? (
                     <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
