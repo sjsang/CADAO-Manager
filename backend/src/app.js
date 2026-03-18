@@ -5,6 +5,7 @@ const categoryRoutes = require("./routes/category.routes");
 const menuTypeRoutes = require("./routes/menu_type.routes");
 const cartRoutes = require("./routes/cart.routes");
 const authRoutes = require("./routes/auth.routes");
+const orderRoutes = require("./routes/order.routes");
 
 const app = express();
 app.use(cors());
@@ -16,5 +17,6 @@ app.use("/api/category", categoryRoutes);
 app.use("/api/menu-type", menuTypeRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/orders", orderRoutes);
 
 module.exports = app;

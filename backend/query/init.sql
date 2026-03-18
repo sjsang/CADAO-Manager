@@ -90,8 +90,9 @@ CREATE TABLE orders (
     discount_amount NUMERIC(12,2) DEFAULT 0 CHECK (discount_amount >= 0),
     total_amount NUMERIC(12,2) DEFAULT 0 CHECK (total_amount >= 0),
 
-    status VARCHAR(30) DEFAULT 'pending'
+    status VARCHAR(30) DEFAULT 'cart'
         CHECK (status IN (
+            'cart',
             'pending',
             'confirmed',
             'preparing',
@@ -105,7 +106,7 @@ CREATE TABLE orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 9. Chi tiết đơn hàng
+-- 8. Chi tiết đơn hàng
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL
@@ -117,7 +118,7 @@ CREATE TABLE order_items (
     note TEXT
 );
 
--- 10. Thanh toán
+-- 9. Thanh toán
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL UNIQUE
@@ -136,7 +137,7 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 11. Vouchers
+-- 10. Vouchers
 CREATE TABLE vouchers (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -157,7 +158,7 @@ CREATE TABLE vouchers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. Order - Voucher
+-- 11. Order - Voucher
 CREATE TABLE order_vouchers (
     order_id INT PRIMARY KEY
         REFERENCES orders(id) ON DELETE CASCADE,
@@ -182,7 +183,18 @@ CREATE TABLE cart_items (
     menu_item_id INT NOT NULL 
         REFERENCES menu_items(id),
     quantity INT NOT NULL CHECK (quantity > 0),
+	note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE(cart_id, menu_item_id)
+);
+
+-- 15. Token
+CREATE TABLE user_tokens (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL
+        REFERENCES customers(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

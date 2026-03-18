@@ -6,6 +6,7 @@ import ContactUsPage from './pages/customer/ContactUsPage'
 import CartPage from './pages/customer/CartPage'
 import CustomerRegis from './pages/auth/CustomerRegis'
 import CustomerLogin from './pages/auth/CustomerLogin'
+import CheckoutPage from './pages/customer/CheckoutPage'
 
 const App = () => {
   return (
@@ -15,6 +16,7 @@ const App = () => {
       <Route path="/about" element={<AboutUsPage />} />
       <Route path="/contact" element={<ContactUsPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout/:orderCode" element={<CheckoutPage />} />
 
       <Route path="/register" element={<CustomerRegis />} />
       <Route path="/login" element={<CustomerLogin />} />

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import authApi from '../../api/auth.Api';
+import authApi from '../../api/authApi';
 
 const CustomerRegis = () => {
     const navigate = useNavigate();

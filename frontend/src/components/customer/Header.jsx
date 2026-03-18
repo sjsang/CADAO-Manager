@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import authApi from "../../api/auth.Api";
+import authApi from "../../api/authApi";
 
 const Header = ({ activePage }) => {
     const navigate = useNavigate();

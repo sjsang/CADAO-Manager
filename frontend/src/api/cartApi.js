@@ -16,6 +16,10 @@ const cartApi = {
     deleteCartItem: (data) => {
         const url = "/cart";
         return axiosClient.delete(url, { data });
+    },
+    deleteAllCartItems: () => {
+        const url = "/cart/all";
+        return axiosClient.delete(url);
     }
 }
 

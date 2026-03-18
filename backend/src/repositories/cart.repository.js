@@ -1,14 +1,34 @@
 const db = require("../config/db");
 
 const getCartItems = async (userId) => {
-    let query = `SELECT cart_items.*, menu_items.name, menu_items.image_url, menu_items.price
-                 FROM cart_items
-                    JOIN menu_items ON cart_items.menu_item_id = menu_items.id
-                 WHERE cart_items.cart_id = (
-                     SELECT id FROM carts WHERE customer_id = $1
-                 )`;
-    const result = await db.query(query, [userId]);
-    return result.rows;
+    const itemsQuery = `
+        SELECT
+            ci.id,
+            ci.menu_item_id,
+            mi.name,
+            mi.image_url,
+            mi.price,
+            ci.quantity,
+            ci.note
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        JOIN menu_items mi ON ci.menu_item_id = mi.id
+        WHERE c.customer_id = $1
+    `;
+    const itemsResult = await db.query(itemsQuery, [userId]);
+    const items = itemsResult.rows;
+
+    const totalQuery = `
+        SELECT SUM(ci.quantity * mi.price) AS total_cart
+        FROM cart_items ci
+        JOIN carts c ON ci.cart_id = c.id
+        JOIN menu_items mi ON ci.menu_item_id = mi.id
+        WHERE c.customer_id = $1
+    `;
+    const totalResult = await db.query(totalQuery, [userId]);
+    const totalCart = totalResult.rows[0].total_cart || 0;
+
+    return { items, totalCart };
 };
 
 const addCartItem = async (userId, menuItemId, quantity, note) => {
@@ -59,9 +79,18 @@ const deleteCartItem = async (userId, menuItemId) => {
     await db.query(query, [userId, menuItemId]);
 };
 
+const deleteAllCartItems = async (userId) => {
+    let query = `DELETE FROM cart_items
+                 WHERE cart_id = (
+                        SELECT id FROM carts WHERE customer_id = $1
+                    )`;
+    await db.query(query, [userId]);
+};
+
 module.exports = {
     getCartItems,
     addCartItem,
     updateCartItem,
     deleteCartItem,
+    deleteAllCartItems,
 };

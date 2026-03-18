@@ -1,15 +1,5 @@
 const db = require("../config/db");
 
-// CREATE TABLE customers (
-//     id SERIAL PRIMARY KEY,
-//     full_name VARCHAR(150) NOT NULL,
-//     phone_number VARCHAR(20) NOT NULL,
-//     email VARCHAR(150) UNIQUE,
-//     password_hash TEXT,
-//     is_active BOOLEAN DEFAULT TRUE,
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-// );
-
 const registerCustomer = async (customerData) => {
     const { full_name, phone_number, email, password_hash } = customerData;
     const query = `INSERT INTO customers (full_name, phone_number, email, password_hash)
