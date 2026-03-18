@@ -21,17 +21,24 @@ const CustomerLogin = () => {
     };
 
     return (
-        <div className='text-white'>
-            <h1>Customer Login Page</h1>
-            {/* Login form goes here */}
-            <button onClick={() => navigate('/register')}>Don't have an account? Register here</button>
-
-
-            <form onSubmit={handleLogin}>
-                <input type="email" name="email" placeholder='Email' />
-                <input type="password" name="password" placeholder='Password' />
-                <button type='submit'>Login</button>
+        <div className='flex flex-col items-center justify-center text-white h-screen gap-4'>
+            <h1 className='text-2xl font-bold'>Đăng nhập</h1>
+            <form onSubmit={handleLogin} className='flex flex-col gap-4 w-80'>
+                <input
+                    type="email"
+                    name="email"
+                    placeholder='Email'
+                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                />
+                <input
+                    type="password"
+                    name="password"
+                    placeholder='Mật khẩu'
+                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                />
+                <button type='submit' className='bg-blue-500 text-white p-2 rounded'>Đăng nhập</button>
             </form>
+            <button onClick={() => navigate('/register')} className='text-blue-500'>Chưa có tài khoản? Đăng ký tại đây</button>
         </div>
     );
 }

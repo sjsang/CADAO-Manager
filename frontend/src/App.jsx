@@ -10,9 +10,16 @@ import CheckoutPage from './pages/customer/CheckoutPage'
 import ProfilePage from './pages/customer/ProfilePage'
 import OrderDetailPage from './pages/customer/OrderDetailPage'
 
+import AdminLogin from './pages/auth/AdminLogin'
+import Dashboard from './pages/admin/Dashboard'
+import OrderManager from './pages/admin/OrderManager'
+import MenuManager from './pages/admin/MenuManager'
+import CustomerManager from './pages/admin/CustomerManager'
+
 const App = () => {
   return (
     <Routes>
+      {/* Customer Routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/menu" element={<MenuPage />} />
       <Route path="/about" element={<AboutUsPage />} />
@@ -24,6 +31,13 @@ const App = () => {
       <Route path="/register" element={<CustomerRegis />} />
       <Route path="/login" element={<CustomerLogin />} />
       <Route path="/profile" element={<ProfilePage />} />
+
+      {/* Admin Routes */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin" element={<Dashboard />} />
+      <Route path="/admin/orders" element={<OrderManager />} />
+      <Route path="/admin/menu" element={<MenuManager />} />
+      <Route path="/admin/customers" element={<CustomerManager />} />
     </Routes>
   );
 }
