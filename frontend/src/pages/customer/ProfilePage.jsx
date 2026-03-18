@@ -1,6 +1,7 @@
 import Header from "../../components/customer/Header";
 import authApi from "../../api/authApi";
 import orderApi from "../../api/orderApi";
+import customerApi from "../../api/customerApi";
 import { getStatusText } from "../../functions/formatOrderFields";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,15 +65,13 @@ const ProfilePage = () => {
     };
 
     const handleSaveClick = async () => {
-        // try {
-        //     await customerApi.update(profile);
-        //     setIsEditing(false);
-        //     alert("Cập nhật thông tin thành công!");
-        // } catch (error) {
-        //     console.error("Failed to update profile:", error);
-        //     alert("Cập nhật thông tin thất bại!");
-        // }
-        setIsEditing(false);
+        try {
+            const { full_name, email, phone_number } = profile;
+            await customerApi.update({ name: full_name, email, phone: phone_number });
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+        }
     };
 
     return (

@@ -7,6 +7,7 @@ const getOrdersByCustomerId = async (customerId) => {
                o.total_amount, o.status
         FROM orders o
         WHERE o.customer_id = $1 AND o.status != 'cart'
+        ORDER BY o.created_at DESC
     `;
     const result = await db.query(query, [customerId]);
     return result.rows;
