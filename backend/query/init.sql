@@ -164,3 +164,25 @@ CREATE TABLE order_vouchers (
     voucher_id INT NOT NULL
         REFERENCES vouchers(id)
 );
+
+-- 13. Giỏ hàng
+CREATE TABLE carts (
+    id SERIAL PRIMARY KEY,
+    customer_id INT UNIQUE
+        REFERENCES customers(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 14. Chi tiết giỏ hàng
+CREATE TABLE cart_items (
+    id SERIAL PRIMARY KEY,
+    cart_id INT NOT NULL 
+        REFERENCES carts(id) ON DELETE CASCADE,
+    menu_item_id INT NOT NULL 
+        REFERENCES menu_items(id),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(cart_id, menu_item_id)
+);

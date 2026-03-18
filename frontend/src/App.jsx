@@ -4,6 +4,8 @@ import MenuPage from './pages/customer/MenuPage'
 import AboutUsPage from './pages/customer/AboutUsPage'
 import ContactUsPage from './pages/customer/ContactUsPage'
 import CartPage from './pages/customer/CartPage'
+import CustomerRegis from './pages/auth/CustomerRegis'
+import CustomerLogin from './pages/auth/CustomerLogin'
 
 const App = () => {
   return (
@@ -13,6 +15,9 @@ const App = () => {
       <Route path="/about" element={<AboutUsPage />} />
       <Route path="/contact" element={<ContactUsPage />} />
       <Route path="/cart" element={<CartPage />} />
+
+      <Route path="/register" element={<CustomerRegis />} />
+      <Route path="/login" element={<CustomerLogin />} />
     </Routes>
   );
 }

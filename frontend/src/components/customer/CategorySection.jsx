@@ -15,15 +15,15 @@ const CategorySection = ({
         <div>
             <h3
                 onClick={() => {
-                    onSelectType(type.value);
+                    onSelectType(type.name);
                     onSelectCategory(null);
                 }}
-                className={`font-bold text-xl mb-4 cursor-pointer transition-colors ${selectedType === type.value
-                        ? "text-yellow-500"
-                        : "hover:text-yellow-500"
+                className={`font-bold text-xl mb-4 cursor-pointer transition-colors ${selectedType === type.name
+                    ? "text-yellow-500"
+                    : "hover:text-yellow-500"
                     }`}
             >
-                {type.label}
+                {type.name}
             </h3>
 
             <div className="flex flex-col gap-2 pl-2">
@@ -31,12 +31,12 @@ const CategorySection = ({
                     <div
                         key={category.id}
                         onClick={() => {
-                            onSelectType(type.value);
+                            onSelectType(type.name);
                             onSelectCategory(category.name);
                         }}
                         className={`px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 ${selectedCategory === category.name
-                                ? "bg-yellow-500 text-black font-medium"
-                                : "hover:bg-yellow-100 hover:text-black"
+                            ? "bg-yellow-500 text-black font-medium"
+                            : "hover:bg-yellow-100 hover:text-black"
                             }`}
                     >
                         {category.name}

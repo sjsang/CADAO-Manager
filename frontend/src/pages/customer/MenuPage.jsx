@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react"
 import menuApi from "../../api/menuApi"
 import categoryApi from "../../api/categoryApi"
+import menuTypeApi from "../../api/menu_typeApi"
 import Header from "../../components/customer/Header";
 import MenuItem from "../../components/customer/MenuItem";
 import CategorySection from "../../components/customer/CategorySection";
 
 const MenuPage = () => {
+    const [menuTypes, setMenuTypes] = useState([]);
     const [categories, setCategories] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
 
@@ -14,6 +16,19 @@ const MenuPage = () => {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("name_asc");
+
+    useEffect(() => {
+        const fetchMenuTypes = async () => {
+            try {
+                const response = await menuTypeApi.getAll();
+                setMenuTypes(response.data);
+            } catch (error) {
+                console.error("Failed to fetch menu types:", error);
+            }
+        };
+
+        fetchMenuTypes();
+    }, []);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -55,11 +70,6 @@ const MenuPage = () => {
         setSelectedType(type);
         setSelectedCategory(null);
     };
-
-    const menuTypes = [
-        { id: 1, label: "Món Ăn", value: "Món ăn" },
-        { id: 2, label: "Món Uống", value: "Món uống" }
-    ];
 
     return (
         <>

@@ -4,10 +4,10 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 const menuController = require("../controllers/menu.controller");
 
-router.get("/menu", menuController.getMenuItems);
-router.get("/menu/:id", menuController.getMenuItemById);
-router.post("/menu", upload.single("image"), menuController.createMenuItem);
-router.put("/menu/:id", upload.single("image"), menuController.updateMenuItem);
-router.delete("/menu/:id", menuController.deleteMenuItem);
+router.get("/", menuController.getMenuItems);
+router.get("/:id", menuController.getMenuItemById);
+router.post("/", upload.single("image"), menuController.createMenuItem);
+router.put("/:id", upload.single("image"), menuController.updateMenuItem);
+router.delete("/:id", menuController.deleteMenuItem);
 
 module.exports = router;

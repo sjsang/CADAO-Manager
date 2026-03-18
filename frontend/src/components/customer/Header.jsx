@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import authApi from "../../api/auth.Api";
 
 const Header = ({ activePage }) => {
     const navigate = useNavigate();
 
     const activeClass = 'text-yellow-500';
 
+    const [loggedInUser, setLoggedInUser] = useState('');
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
@@ -23,6 +25,20 @@ const Header = ({ activePage }) => {
             window.removeEventListener("scroll", handleScroll);
         };
     }, []);
+
+    useEffect(() => {
+        const fetchLoggedInUser = async () => {
+            try {
+                const response = await authApi.me();
+                setLoggedInUser(response.data.full_name);
+            } catch (error) {
+                console.error("Failed to fetch logged in user:", error);
+            }
+        }
+
+        fetchLoggedInUser();
+    }, []);
+
 
     return (
         <header className={`w-full text-white sticky top-0 left-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-gray-900 shadow-lg' : 'bg-transparent'}`}>
@@ -73,12 +89,19 @@ const Header = ({ activePage }) => {
                         </li>
 
                         <li>
-                            <a
-                                onClick={() => navigate("/login")}
-                                className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
-                            >
-                                Đăng nhập
-                            </a>
+                            {loggedInUser
+                                ? <a
+                                    onClick={() => navigate("/me")}
+                                    className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
+                                >
+                                    {loggedInUser}
+                                </a>
+                                : <a
+                                    onClick={() => navigate("/login")}
+                                    className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
+                                >
+                                    Đăng nhập
+                                </a>}
                         </li>
                     </ul>
                 </nav>
