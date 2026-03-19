@@ -15,6 +15,7 @@ import Dashboard from './pages/admin/Dashboard'
 import OrderManager from './pages/admin/OrderManager'
 import MenuManager from './pages/admin/MenuManager'
 import CustomerManager from './pages/admin/CustomerManager'
+import StaffManager from './pages/admin/StaffManager'
 
 const App = () => {
   return (
@@ -38,6 +39,7 @@ const App = () => {
       <Route path="/admin/orders" element={<OrderManager />} />
       <Route path="/admin/menu" element={<MenuManager />} />
       <Route path="/admin/customers" element={<CustomerManager />} />
+      <Route path="/admin/staff" element={<StaffManager />} />
     </Routes>
   );
 }

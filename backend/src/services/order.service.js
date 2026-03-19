@@ -1,5 +1,9 @@
 const orderRepository = require("../repositories/order.repository");
 
+const getAllOrders = async (search) => {
+    return await orderRepository.getAllOrders(search);
+};
+
 const getOrdersByCustomerId = async (customerId) => {
     return await orderRepository.getOrdersByCustomerId(customerId);
 };
@@ -26,6 +30,7 @@ const cancelOrder = async (orderCode) => {
 };
 
 module.exports = {
+    getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,

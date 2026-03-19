@@ -6,7 +6,8 @@ const orderApi = {
     getByOrderCode: (orderCode) => axiosClient.get(`/orders/${orderCode}`),
     confirm: (orderCode, payload, paymentMethod) =>
         axiosClient.post(`/orders/${orderCode}/confirm`, { ...payload, paymentMethod }),
-    cancel: (orderCode) => axiosClient.post(`/orders/${orderCode}/cancel`)
+    cancel: (orderCode) => axiosClient.post(`/orders/${orderCode}/cancel`),
+    getAllOrders: (search) => axiosClient.get(`/orders/all?search=${encodeURIComponent(search)}`)
 };
 
 export default orderApi;

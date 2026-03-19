@@ -1,6 +1,22 @@
 const db = require('../config/db');
 const { getPaymentByOrderId, createPayment } = require('./payment.repository');
 
+const getAllOrders = async (search) => {
+    let query = `
+    SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
+           o.total_amount, o.status
+    FROM orders o
+`;
+    const params = [];
+    if (search) {
+        query += ` WHERE o.order_code ILIKE $1 OR o.delivery_full_name ILIKE $1`;
+        params.push(`%${search}%`);
+    }
+    query += ` ORDER BY o.created_at DESC`;
+    const result = await db.query(query, params);
+    return result.rows;
+};
+
 const getOrdersByCustomerId = async (customerId) => {
     const query = `
         SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
@@ -158,6 +174,7 @@ const cancelOrder = async (orderCode) => {
 };
 
 module.exports = {
+    getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,

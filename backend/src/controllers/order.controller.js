@@ -1,5 +1,16 @@
 const orderService = require("../services/order.service");
 
+const getAllOrders = async (req, res) => {
+    try {
+        const search = req.query.search || "";
+        const result = await orderService.getAllOrders(search);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        console.error("Error fetching orders:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch orders" });
+    }
+};
+
 const getOrdersByCustomerId = async (req, res) => {
     try {
         const customerId = req.user.id;
@@ -64,6 +75,7 @@ const cancelOrder = async (req, res) => {
 
 
 module.exports = {
+    getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
