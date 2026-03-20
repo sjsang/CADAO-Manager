@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const customerController = require("../controllers/customer.controller");
-const { authenticate } = require("../middlewares/auth.middleware");
+const { authenticate, requireRole } = require("../middlewares/auth.middleware");
 
-router.put("/update", authenticate, customerController.updateCustomer);
+router.get("/", authenticate, requireRole("admin"), customerController.getCustomers);
+router.put("/me", authenticate, requireRole("customer"), customerController.updateCustomer);
 
 module.exports = router;

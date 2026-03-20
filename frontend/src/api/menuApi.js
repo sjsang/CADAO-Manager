@@ -1,7 +1,7 @@
 import axiosClient from './axiosClient';
 
 const menuApi = {
-    getAll: (params) => axiosClient.get('/menu', {
+    getAll: (params) => axiosClient.get('/menus', {
         params
     }),
 };

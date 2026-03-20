@@ -49,9 +49,17 @@ const ProfilePage = () => {
     const handleLogout = async () => {
         try {
             await authApi.logout();
-            navigate("/login");
+            sessionStorage.removeItem("token");
+            navigate("/auth/login");
         } catch (error) {
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                sessionStorage.removeItem("token");
+                navigate("/auth/login");
+                return;
+            }
+
             console.error("Failed to logout:", error);
+            alert("Không thể đăng xuất ngay lúc này. Vui lòng thử lại.");
         }
     };
 

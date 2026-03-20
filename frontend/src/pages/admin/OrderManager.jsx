@@ -1,10 +1,12 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
+import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const OrderManager = () => {
     const [orders, setOrders] = useState([]);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -23,51 +25,108 @@ const OrderManager = () => {
         fetchOrders();
     }, [search]);
 
+    const displayedOrders = useMemo(() => {
+        if (statusFilter === "all") {
+            return orders;
+        }
+
+        return orders.filter((order) => order.status === statusFilter);
+    }, [orders, statusFilter]);
+
+    const statusClass = (status) => {
+        const map = {
+            pending: "bg-amber-50 text-amber-700 border border-amber-200",
+            confirmed: "bg-sky-50 text-sky-700 border border-sky-200",
+            preparing: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+            shipping: "bg-violet-50 text-violet-700 border border-violet-200",
+            completed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+            cancelled: "bg-rose-50 text-rose-700 border border-rose-200"
+        };
+
+        return map[status] || "bg-slate-100 text-slate-700 border border-slate-200";
+    };
+
     return (
-        <div className="flex">
+        <div className="flex min-h-screen bg-slate-100">
 
             <SideBarMenu activePage="orders" />
 
             <div className="flex-1">
-                <div className="bg-gray-100 min-h-full p-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="flex-1 text-2xl font-bold text-gray-700 mb-4">Quản lý đơn hàng</h2>
+                <AdminHeader
+                    title="Quản lý đơn hàng"
+                    subtitle="Theo dõi trạng thái xử lý và thông tin giao nhận theo thời gian thực."
+                />
 
-                        <div className="flex-1 flex gap-3 mb-6">
+                <div className="min-h-full p-6">
+                    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                             <input
                                 type="text"
                                 placeholder="Tìm đơn hàng..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="flex-1 p-3 rounded-lg bg-white focus:outline-none"
+                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             />
+
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Tất cả trạng thái</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="preparing">Preparing</option>
+                                <option value="shipping">Shipping</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
                         </div>
                     </div>
-                    {orders.map((order) => (
-                        <div key={order.id} className="flex items-center gap-4 p-4 bg-white rounded-lg mb-3">
-                            <div className="w-50">
-                                <p className="text-gray-500">Mã đơn hàng:</p>
-                                <h2 className="text-lg">{order.order_code}</h2>
-                            </div>
-                            <div className="w-100 ml-auto">
-                                <p className="text-gray-500">Tên khách hàng:</p>
-                                <p className="text-lg">{order.delivery_full_name}</p>
-                            </div>
-                            <div className="w-35 ml-auto">
-                                <p className="text-gray-500">Tổng tiền:</p>
-                                <p className="text-lg">{Number(order.total_amount).toLocaleString('vi-VN')}đ</p>
-                            </div>
-                            <div className="w-35 ml-auto">
-                                <p className="text-gray-500">Trạng thái:</p>
-                                <p className="text-lg">{order.status}</p>
-                            </div>
-                            <div className="ml-auto">
-                                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                                    Xem chi tiết
-                                </button>
-                            </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Mã đơn</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Khách hàng</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">SĐT</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Địa chỉ</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tổng tiền</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-slate-100 bg-white">
+                                    {displayedOrders.map((order, index) => (
+                                        <tr key={`${order.order_code}-${index}`} className="hover:bg-slate-50">
+                                            <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-slate-800">{order.order_code}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_phone || "-"}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_address || "-"}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{Number(order.total_amount || 0).toLocaleString("vi-VN")}đ</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass(order.status)}`}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+
+                                    {displayedOrders.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                                                Không có đơn hàng phù hợp bộ lọc.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+                                </tbody>
+                            </table>
                         </div>
-                    ))}
+                    </div>
                 </div>
             </div>
         </div>

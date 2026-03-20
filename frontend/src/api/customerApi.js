@@ -1,8 +1,12 @@
 import axiosClient from './axiosClient';
 
 const customerApi = {
+    getCustomers: () => {
+        const url = '/customers';
+        return axiosClient.get(url);
+    },
     update: (data) => {
-        const url = '/customer/update';
+        const url = '/customers/me';
         return axiosClient.put(url, data);
     }
 }

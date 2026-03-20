@@ -73,12 +73,26 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+const updateOrderStatus = async (req, res) => {
+    const { status, ...payload } = req.body;
+
+    if (status === "confirmed") {
+        req.body = payload;
+        return confirmOrder(req, res);
+    }
+
+    if (status === "cancelled") {
+        return cancelOrder(req, res);
+    }
+
+    return res.status(400).json({ success: false, message: "Unsupported status" });
+};
+
 
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
-    confirmOrder,
-    cancelOrder
+    updateOrderStatus
 };

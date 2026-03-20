@@ -2,20 +2,24 @@ import axiosClient from './axiosClient';
 
 const authApi = {
     register: (data) => {
-        const url = '/auth/register';
+        const url = '/auth/customers';
         return axiosClient.post(url, data);
     },
     login: (data) => {
-        const url = '/auth/login';
+        const url = '/auth/sessions';
         return axiosClient.post(url, data);
     },
     logout: () => {
-        const url = '/auth/logout';
-        return axiosClient.post(url);
+        const url = '/auth/sessions/current';
+        return axiosClient.delete(url);
     },
     me: () => {
-        const url = '/auth/me';
+        const url = '/auth/sessions/current';
         return axiosClient.get(url);
+    },
+    adminLogin: (data) => {
+        const url = '/auth/admin/sessions';
+        return axiosClient.post(url, data);
     }
 }
 

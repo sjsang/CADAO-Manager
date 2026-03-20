@@ -28,6 +28,25 @@ const Header = ({ activePage }) => {
 
     useEffect(() => {
         const fetchLoggedInUser = async () => {
+            const token = sessionStorage.getItem("token");
+
+            if (!token) {
+                setLoggedInUser("");
+                return;
+            }
+
+            try {
+                const payload = JSON.parse(atob(token.split(".")[1]));
+
+                if (payload?.role !== "customer") {
+                    setLoggedInUser("");
+                    return;
+                }
+            } catch {
+                setLoggedInUser("");
+                return;
+            }
+
             try {
                 const response = await authApi.me();
                 setLoggedInUser(response.data.full_name);
@@ -58,7 +77,7 @@ const Header = ({ activePage }) => {
 
                         <li>
                             <a
-                                onClick={() => navigate("/menu")}
+                                onClick={() => navigate("/menus")}
                                 className={`cursor-pointer ${activePage === "menu" ? activeClass : "hover:text-yellow-500 transition"}`}>
                                 Thực đơn
                             </a>
@@ -66,7 +85,7 @@ const Header = ({ activePage }) => {
 
                         <li>
                             <a
-                                onClick={() => navigate("/cart")}
+                                onClick={() => navigate("/cart-items")}
                                 className={`cursor-pointer ${activePage === "cart" ? activeClass : "hover:text-yellow-500 transition"}`}>
                                 Giỏ hàng
                             </a>
@@ -91,13 +110,13 @@ const Header = ({ activePage }) => {
                         <li>
                             {loggedInUser
                                 ? <a
-                                    onClick={() => navigate("/profile")}
+                                    onClick={() => navigate("/customers/me")}
                                     className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
                                 >
                                     {loggedInUser}
                                 </a>
                                 : <a
-                                    onClick={() => navigate("/login")}
+                                    onClick={() => navigate("/auth/login")}
                                     className="bg-yellow-500 hover:bg-yellow-300 transition px-4 py-2 rounded text-black cursor-pointer"
                                 >
                                     Đăng nhập

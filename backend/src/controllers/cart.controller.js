@@ -26,7 +26,8 @@ const addCartItem = async (req, res) => {
 const updateCartItem = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { menuItemId, quantity, note } = req.body;
+        const menuItemId = req.params.menuItemId || req.body.menuItemId;
+        const { quantity, note } = req.body;
         await cartService.updateCartItem(userId, menuItemId, quantity, note);
         res.json({ message: "Cart item updated successfully" });
     } catch (err) {
@@ -38,7 +39,7 @@ const updateCartItem = async (req, res) => {
 const deleteCartItem = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { menuItemId } = req.body;
+        const menuItemId = req.params.menuItemId || req.body.menuItemId;
         await cartService.deleteCartItem(userId, menuItemId);
         res.json({ message: "Cart item deleted successfully" });
     } catch (err) {

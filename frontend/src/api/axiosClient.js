@@ -25,7 +25,10 @@ axiosClient.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
             sessionStorage.removeItem("token");
-            window.location.href = "/login";
+            const isAdminPath = window.location.pathname.startsWith("/admin");
+            const isAdminRequest = String(error.config?.url || "").includes("/auth/admin");
+            const shouldRedirectToAdminLogin = isAdminPath || isAdminRequest;
+            window.location.href = shouldRedirectToAdminLogin ? "/admin/login" : "/auth/login";
         }
         return Promise.reject(error);
     }

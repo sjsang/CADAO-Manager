@@ -1,5 +1,11 @@
 const db = require("../config/db");
 
+const loginAdmin = async (username) => {
+    const query = `SELECT * FROM users WHERE username = $1 AND is_active = TRUE`;
+    const result = await db.query(query, [username]);
+    return result.rows[0] || null;
+};
+
 const registerCustomer = async (customerData) => {
     const { full_name, phone_number, email, password_hash } = customerData;
     const query = `INSERT INTO customers (full_name, phone_number, email, password_hash)
@@ -29,5 +35,6 @@ const getCustomerById = async (id) => {
 module.exports = {
     registerCustomer,
     loginCustomer,
+    loginAdmin,
     getCustomerById
 };

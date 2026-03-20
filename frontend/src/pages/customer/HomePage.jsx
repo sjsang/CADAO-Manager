@@ -20,7 +20,7 @@ const HomePage = () => {
                         Khám phá thực đơn đa dạng của chúng tôi, từ những món ăn truyền thống đậm đà hương vị đến những sáng tạo độc đáo, tất cả đều được chế biến từ những nguyên liệu tươi ngon nhất, mang đến trải nghiệm ẩm thực khó quên cho mọi thực khách.
                     </p>
                     <div
-                        onClick={() => navigate("/menu")}
+                        onClick={() => navigate("/menus")}
                         className="w-fit px-6 py-3 bg-yellow-500 text-black font-semibold rounded-full hover:bg-yellow-400 transition cursor-pointer"
                     >
                         Chọn món ngay

@@ -1,13 +1,13 @@
 import axiosClient from './axiosClient';
 
 const orderApi = {
-    getByCustomerId: () => axiosClient.get(`/orders`),
+    getByCustomerId: () => axiosClient.get(`/orders/me`),
     create: (orderData) => axiosClient.post('/orders', orderData),
     getByOrderCode: (orderCode) => axiosClient.get(`/orders/${orderCode}`),
     confirm: (orderCode, payload, paymentMethod) =>
-        axiosClient.post(`/orders/${orderCode}/confirm`, { ...payload, paymentMethod }),
-    cancel: (orderCode) => axiosClient.post(`/orders/${orderCode}/cancel`),
-    getAllOrders: (search) => axiosClient.get(`/orders/all?search=${encodeURIComponent(search)}`)
+        axiosClient.patch(`/orders/${orderCode}/status`, { ...payload, paymentMethod, status: "confirmed" }),
+    cancel: (orderCode) => axiosClient.patch(`/orders/${orderCode}/status`, { status: "cancelled" }),
+    getAllOrders: (search) => axiosClient.get(`/orders?search=${encodeURIComponent(search)}`)
 };
 
 export default orderApi;

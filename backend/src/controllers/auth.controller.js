@@ -1,5 +1,22 @@
 const authService = require('../services/auth.service');
 
+const loginAdmin = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const token = await authService.loginAdmin(username, password);
+        if (!token) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+        res.json({
+            message: "Login successful",
+            token: token
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 const registerCustomer = async (req, res) => {
     try {
         const { full_name, phone_number, email, password } = req.body;
@@ -55,6 +72,7 @@ const getCustomerById = async (req, res) => {
 }
 
 module.exports = {
+    loginAdmin,
     registerCustomer,
     loginCustomer,
     logoutCustomer,

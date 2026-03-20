@@ -31,6 +31,28 @@ const authenticate = async (req, res, next) => {
     }
 };
 
+const requireRole = (role) => {
+    return (req, res, next) => {
+        if (req.user?.role !== role) {
+            return res.sendStatus(403);
+        }
+
+        next();
+    };
+};
+
+const requireAnyRole = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user?.role)) {
+            return res.sendStatus(403);
+        }
+
+        next();
+    };
+};
+
 module.exports = {
-    authenticate
+    authenticate,
+    requireRole,
+    requireAnyRole
 }

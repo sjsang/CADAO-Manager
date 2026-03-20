@@ -55,7 +55,7 @@ const CartPage = () => {
 
     const handleModalSubmit = async ({ quantity, note }) => {
         try {
-            await cartApi.updateCartItem({ menuItemId: modalItem.menu_item_id, quantity, note });
+            await cartApi.updateCartItem(modalItem.menu_item_id, { quantity, note });
             setCartItems(cartItems.map(item =>
                 item.menu_item_id === modalItem.menu_item_id
                     ? { ...item, quantity, note }
@@ -81,7 +81,7 @@ const CartPage = () => {
             };
             const response = await orderApi.create(orderData);
             const orderCode = response.data.data.orderCode;
-            navigate(`/checkout/${orderCode}`);
+            navigate(`/orders/${orderCode}/checkout`);
         } catch (error) {
             console.error("Failed to create order:", error);
         }
@@ -100,7 +100,7 @@ const CartPage = () => {
 
     const handleDelete = async (menuItemId) => {
         try {
-            await cartApi.deleteCartItem({ menuItemId });
+            await cartApi.deleteCartItem(menuItemId);
             setCartItems(cartItems.filter(item => item.menu_item_id !== menuItemId));
         } catch (error) {
             console.error("Failed to delete cart item:", error);

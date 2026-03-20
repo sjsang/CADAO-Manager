@@ -192,8 +192,10 @@ CREATE TABLE cart_items (
 -- 15. Token
 CREATE TABLE user_tokens (
     id SERIAL PRIMARY KEY,
-    customer_id INT NOT NULL
+    customer_id INT
         REFERENCES customers(id) ON DELETE CASCADE,
+    user_id INT
+        REFERENCES users(id) ON DELETE CASCADE,
     token TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

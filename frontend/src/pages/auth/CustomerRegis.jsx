@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import authApi from '../../api/authApi';
 
 const CustomerRegis = () => {
@@ -15,56 +15,95 @@ const CustomerRegis = () => {
                 email: formData.get('email'),
                 password: formData.get('password')
             });
-            navigate('/login');
+            navigate('/auth/login');
         } catch (error) {
             console.error("Registration failed:", error);
         }
     };
 
     return (
-        // <div className='text-white'>
-        //     <h1>Customer Registration Page</h1>
-        //     {/* Registration form goes here */}
-        //     <button onClick={() => navigate('/login')}>Already have an account? Login here</button>
+        <div className='relative flex min-h-screen items-center justify-center px-4 py-8 text-white'>
+            <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(45,212,191,0.22),transparent_40%),radial-gradient(circle_at_82%_90%,rgba(6,182,212,0.22),transparent_35%)]' />
 
-        //     <form onSubmit={handleRegister}>
-        //         <input type="text" name="full_name" placeholder='Full Name' />
-        //         <input type="text" name="phone_number" placeholder='Phone Number' />
-        //         <input type="email" name="email" placeholder='Email' />
-        //         <input type="password" name="password" placeholder='Password' />
-        //         <button type='submit'>Register</button>
-        //     </form>
-        // </div>
-        <div className='flex flex-col items-center justify-center text-white h-screen gap-4'>
-            <h1 className='text-2xl font-bold'>Đăng ký</h1>
-            <form onSubmit={handleRegister} className='flex flex-col gap-4 w-80'>
-                <input
-                    type="text"
-                    name="full_name"
-                    placeholder='Họ và tên'
-                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-                <input
-                    type="text"
-                    name="phone_number"
-                    placeholder='Số điện thoại'
-                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-                <input
-                    type="email"
-                    name="email"
-                    placeholder='Email'
-                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-                <input
-                    type="password"
-                    name="password"
-                    placeholder='Mật khẩu'
-                    className='p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-                <button type='submit' className='bg-green-500 text-white p-2 rounded'>Đăng ký</button>
-            </form>
-            <button onClick={() => navigate('/login')} className='text-blue-500'>Đã có tài khoản? Đăng nhập tại đây</button>
+            <div className='relative w-full max-w-md rounded-2xl border border-white/20 bg-slate-900/70 p-7 shadow-[0_20px_60px_rgba(2,6,23,0.55)] backdrop-blur-lg sm:p-8'>
+                <Link
+                    to='/'
+                    aria-label='Quay về trang chủ'
+                    className='absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-slate-900/80 text-2xl leading-none text-white transition hover:scale-105 hover:border-teal-300 hover:text-teal-200'
+                >
+                    ×
+                </Link>
+                <p className='mb-2 text-xs tracking-[0.24em] text-teal-300/80 uppercase'>CADAO Membership</p>
+                <h1 className='mb-1 text-3xl font-extrabold text-white'>Tạo tài khoản</h1>
+                <p className='mb-6 text-sm text-slate-300'>Đăng ký nhanh để đặt món, theo dõi đơn hàng và lưu thông tin giao hàng.</p>
+
+                <form onSubmit={handleRegister} className='flex flex-col gap-4'>
+                    <div className='space-y-1'>
+                        <label htmlFor='full_name' className='text-sm font-medium text-slate-200'>Họ và tên</label>
+                        <input
+                            id='full_name'
+                            type='text'
+                            name='full_name'
+                            placeholder='Nguyen Van A'
+                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40'
+                        />
+                    </div>
+
+                    <div className='space-y-1'>
+                        <label htmlFor='phone_number' className='text-sm font-medium text-slate-200'>Số điện thoại</label>
+                        <input
+                            id='phone_number'
+                            type='text'
+                            name='phone_number'
+                            placeholder='09xx xxx xxx'
+                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40'
+                        />
+                    </div>
+
+                    <div className='space-y-1'>
+                        <label htmlFor='email' className='text-sm font-medium text-slate-200'>Email</label>
+                        <input
+                            id='email'
+                            type='email'
+                            name='email'
+                            placeholder='you@example.com'
+                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40'
+                        />
+                    </div>
+
+                    <div className='space-y-1'>
+                        <label htmlFor='password' className='text-sm font-medium text-slate-200'>Mật khẩu</label>
+                        <input
+                            id='password'
+                            type='password'
+                            name='password'
+                            placeholder='••••••••'
+                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/40'
+                        />
+                    </div>
+
+                    <button
+                        type='submit'
+                        className='mt-2 rounded-xl bg-linear-to-r from-teal-500 to-cyan-500 px-4 py-2.5 font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 hover:from-teal-400 hover:to-cyan-400'
+                    >
+                        Đăng ký
+                    </button>
+                </form>
+
+                <div className='mt-5 space-y-2 text-sm'>
+                    <button
+                        onClick={() => navigate('/auth/login')}
+                        className='text-cyan-300 transition-colors hover:text-cyan-200'
+                    >
+                        Đã có tài khoản? Đăng nhập tại đây
+                    </button>
+                    <div>
+                        <Link to='/admin/login' className='text-teal-300 transition-colors hover:text-teal-200'>
+                            Tài khoản nhân viên? Đi tới đăng nhập quản trị
+                        </Link>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

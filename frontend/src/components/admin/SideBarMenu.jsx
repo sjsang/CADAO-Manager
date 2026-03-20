@@ -3,38 +3,51 @@ import { useNavigate } from "react-router-dom";
 const SideBarMenu = ({ activePage }) => {
     const navigate = useNavigate();
 
-    const activeClass = "text-blue-500 font-bold";
+    const itemClass = "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-slate-300 transition hover:bg-slate-800 hover:text-white";
+    const activeClass = "bg-blue-600/20 text-blue-300 font-semibold border border-blue-500/30";
+    const dotClass = "inline-block h-2 w-2 rounded-full";
 
     return (
-        <div className="sticky top-0 w-64 h-screen bg-gray-100 p-4">
+        <aside className="sticky top-0 h-screen w-64 border-r border-slate-800 bg-slate-950 p-4">
+            <div className="mb-6 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-3">
+                <p className="text-xs tracking-[0.22em] text-slate-500 uppercase">CADAO</p>
+                <h2 className="mt-1 text-lg font-bold text-white">Admin Workspace</h2>
+                <p className="mt-1 text-xs text-slate-400">Quản trị vận hành nhà hàng</p>
+            </div>
+
             <ul className="space-y-2">
                 <li
-                    className={`px-3 py-2 cursor-pointer ${activePage === "dashboard" ? activeClass : ""}`}
-                    onClick={() => navigate("/admin")}>
-                    Tổng quang
+                    className={`${itemClass} ${activePage === "dashboard" ? activeClass : ""}`}
+                    onClick={() => navigate("/admin/dashboard")}>
+                    <span className={`${dotClass} bg-cyan-400`} />
+                    Tổng quan
                 </li>
                 <li
-                    className={`px-3 py-2 cursor-pointer ${activePage === "orders" ? activeClass : ""}`}
+                    className={`${itemClass} ${activePage === "orders" ? activeClass : ""}`}
                     onClick={() => navigate("/admin/orders")}>
+                    <span className={`${dotClass} bg-emerald-400`} />
                     Đơn hàng
                 </li>
                 <li
-                    className={`px-3 py-2 cursor-pointer ${activePage === "menu" ? activeClass : ""}`}
-                    onClick={() => navigate("/admin/menu")}>
+                    className={`${itemClass} ${activePage === "menu" ? activeClass : ""}`}
+                    onClick={() => navigate("/admin/menus")}>
+                    <span className={`${dotClass} bg-amber-400`} />
                     Thực đơn
                 </li>
                 <li
-                    className={`px-3 py-2 cursor-pointer ${activePage === "customers" ? activeClass : ""}`}
+                    className={`${itemClass} ${activePage === "customers" ? activeClass : ""}`}
                     onClick={() => navigate("/admin/customers")}>
+                    <span className={`${dotClass} bg-violet-400`} />
                     Khách hàng
                 </li>
                 <li
-                    className={`px-3 py-2 cursor-pointer ${activePage === "staff" ? activeClass : ""}`}
-                    onClick={() => navigate("/admin/staff")}>
+                    className={`${itemClass} ${activePage === "staff" ? activeClass : ""}`}
+                    onClick={() => navigate("/admin/users")}>
+                    <span className={`${dotClass} bg-rose-400`} />
                     Nhân viên
                 </li>
             </ul>
-        </div>
+        </aside>
     )
 }
 
