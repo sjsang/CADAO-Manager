@@ -74,7 +74,6 @@ const MenuManager = () => {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên món</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Mô tả</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Giá</th>
@@ -86,15 +85,6 @@ const MenuManager = () => {
                                     {menuItems.map((item, index) => (
                                         <tr key={item.id} className="hover:bg-slate-50">
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">
-                                                <div className="h-12 w-16 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-                                                    <img
-                                                        src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${item.image_url}`}
-                                                        alt={item.name}
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                </div>
-                                            </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.name}</td>
                                             <td className="max-w-xs px-4 py-3 text-sm text-slate-700">{item.description || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(item.price || 0).toLocaleString("vi-VN")}đ</td>
