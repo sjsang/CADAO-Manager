@@ -19,6 +19,7 @@ import MenuCreate from './pages/admin/MenuCreate'
 import MenuDetail from './pages/admin/MenuDetail'
 import CustomerManager from './pages/admin/CustomerManager'
 import StaffManager from './pages/admin/StaffManager'
+import WardManager from './pages/admin/WardManager'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -82,6 +83,7 @@ const App = () => {
       <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><StaffManager /></AdminRoute>} />
+      <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
     </Routes>
   );
 }

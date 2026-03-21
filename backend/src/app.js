@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const orderRoutes = require("./routes/order.routes");
 const customerRoutes = require("./routes/customer.routes");
 const userRoutes = require("./routes/user.routes");
+const wardRoutes = require("./routes/ward.routes");
 
 const app = express();
 app.use(cors());
@@ -22,5 +23,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/wards", wardRoutes);
 
 module.exports = app;

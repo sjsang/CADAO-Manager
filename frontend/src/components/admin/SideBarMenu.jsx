@@ -35,6 +35,12 @@ const SideBarMenu = ({ activePage }) => {
                     Khách hàng
                 </li>
                 <li
+                    className={`${itemClass} ${activePage === "wards" ? activeClass : ""}`}
+                    onClick={() => navigate("/admin/wards")}>
+                    <span className={`${dotClass} bg-teal-400`} />
+                    Phường
+                </li>
+                <li
                     className={`${itemClass} ${activePage === "staff" ? activeClass : ""}`}
                     onClick={() => navigate("/admin/users")}>
                     <span className={`${dotClass} bg-rose-400`} />
