@@ -9,5 +9,6 @@ router.get("/", authenticate, requireRole("admin"), orderController.getAllOrders
 router.get("/me", authenticate, requireRole("customer"), orderController.getOrdersByCustomerId);
 router.get("/:orderCode", authenticate, requireAnyRole("customer", "admin"), orderController.getOrderByOrderCode);
 router.patch("/:orderCode/status", authenticate, requireRole("customer"), orderController.updateOrderStatus);
+router.patch("/:orderCode/admin-status", authenticate, requireRole("admin"), orderController.updateOrderStatusByAdmin);
 
 module.exports = router;

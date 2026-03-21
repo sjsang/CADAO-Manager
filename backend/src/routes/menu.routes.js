@@ -8,6 +8,5 @@ router.get("/", menuController.getMenuItems);
 router.get("/:id", menuController.getMenuItemById);
 router.post("/", upload.single("image"), menuController.createMenuItem);
 router.put("/:id", upload.single("image"), menuController.updateMenuItem);
-router.delete("/:id", menuController.deleteMenuItem);
 
 module.exports = router;

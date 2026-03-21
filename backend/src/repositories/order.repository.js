@@ -1,6 +1,28 @@
 const db = require('../config/db');
 const { getPaymentByOrderId, createPayment } = require('./payment.repository');
 
+const createOrderStatusHistory = async (orderId, fromStatus, toStatus, changedBy = null, note = null) => {
+    const query = `
+        INSERT INTO order_status_history (order_id, from_status, to_status, changed_by, note)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+    `;
+    const result = await db.query(query, [orderId, fromStatus, toStatus, changedBy, note]);
+    return result.rows[0];
+};
+
+const getOrderStatusHistoryByOrderId = async (orderId) => {
+    const query = `
+        SELECT osh.*, u.username, u.full_name
+        FROM order_status_history osh
+        LEFT JOIN users u ON osh.changed_by = u.id
+        WHERE osh.order_id = $1
+        ORDER BY osh.created_at ASC, osh.id ASC
+    `;
+    const result = await db.query(query, [orderId]);
+    return result.rows;
+};
+
 const getAllOrders = async (search) => {
     let query = `
     SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
@@ -56,7 +78,8 @@ const createOrUpdateOrder = async (customerId, orderData) => {
             orderId = existingOrderRes.rows[0].id;
             await db.query(
                 `UPDATE orders SET delivery_full_name=$1, delivery_phone=$2, delivery_address=$3,
-         delivery_ward_name=$4, shipping_fee=$5, subtotal=$6, discount_amount=$7, total_amount=$8, notes=$9
+         delivery_ward_name=$4, shipping_fee=$5, subtotal=$6, discount_amount=$7, total_amount=$8, notes=$9,
+         updated_at=CURRENT_TIMESTAMP
          WHERE id=$10`,
                 [
                     orderData.deliveryFullName,
@@ -96,6 +119,8 @@ const createOrUpdateOrder = async (customerId, orderData) => {
                 ]
             );
             orderId = orderResult.rows[0].id;
+
+            await createOrderStatusHistory(orderId, null, 'cart', null, null);
         }
 
         const itemQuery = `INSERT INTO order_items (order_id, menu_item_id, quantity, price, note)
@@ -121,8 +146,17 @@ const createOrUpdateOrder = async (customerId, orderData) => {
 };
 
 const confirmOrder = async (orderCode, orderData, paymentMethod) => {
+    const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
+
+    if (currentOrderResult.rowCount === 0) {
+        throw new Error('Order not found');
+    }
+
+    const currentOrder = currentOrderResult.rows[0];
+
     const orderQuery = `UPDATE orders SET status='pending', delivery_full_name=$1, delivery_phone=$2, delivery_address=$3,
-        delivery_ward_name=$4, shipping_fee=$5, subtotal=$6, discount_amount=$7, total_amount=$8, notes=$9
+        delivery_ward_name=$4, shipping_fee=$5, subtotal=$6, discount_amount=$7, total_amount=$8, notes=$9,
+        updated_at=CURRENT_TIMESTAMP
         WHERE order_code=$10 RETURNING id, order_code`;
     const orderResult = await db.query(orderQuery, [
         orderData.delivery_full_name,
@@ -138,6 +172,9 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
     ]);
     const orderId = orderResult.rows[0].id;
     const paymentResult = await createPayment(orderId, paymentMethod, orderData.total_amount);
+
+    await createOrderStatusHistory(orderId, currentOrder.status, 'pending', null, null);
+
     return { orderId: orderResult.rows[0].id, paymentId: paymentResult.id };
 };
 
@@ -145,6 +182,7 @@ const getOrderByOrderCode = async (orderCode) => {
     const orderQuery = `
         SELECT o.id, o.order_code, o.customer_id, o.delivery_full_name, o.delivery_phone, o.delivery_address,
                 o.delivery_ward_name, o.shipping_fee, o.subtotal, o.discount_amount, o.total_amount, o.status, o.notes,
+                o.created_at, o.updated_at,
                 json_agg(json_build_object(
                     'name', mi.name,
                     'quantity', oi.quantity,
@@ -162,15 +200,49 @@ const getOrderByOrderCode = async (orderCode) => {
     const order = result.rows[0];
     if (order) {
         const payment = await getPaymentByOrderId(order.id);
+        const statusHistory = await getOrderStatusHistoryByOrderId(order.id);
         order.payment = payment;
+        order.status_history = statusHistory;
     }
     return order;
 };
 
 const cancelOrder = async (orderCode) => {
-    const query = `UPDATE orders SET status='cancelled' WHERE order_code=$1 RETURNING id`;
+    const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
+
+    if (currentOrderResult.rowCount === 0) {
+        return null;
+    }
+
+    const currentOrder = currentOrderResult.rows[0];
+
+    const query = `UPDATE orders SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE order_code=$1 RETURNING id`;
     const result = await db.query(query, [orderCode]);
-    return result.rowCount > 0 ? result.rows[0].id : null;
+
+    if (result.rowCount > 0) {
+        await createOrderStatusHistory(result.rows[0].id, currentOrder.status, 'cancelled', null, 'Khách hàng hủy đơn');
+        return result.rows[0].id;
+    }
+
+    return null;
+};
+
+const updateOrderStatus = async (orderCode, status, changedBy = null, note = null) => {
+    const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
+
+    if (currentOrderResult.rowCount === 0) {
+        return null;
+    }
+
+    const currentOrder = currentOrderResult.rows[0];
+    const query = `UPDATE orders SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE order_code=$2 RETURNING id, order_code, status`;
+    const result = await db.query(query, [status, orderCode]);
+
+    if (result.rows[0]) {
+        await createOrderStatusHistory(result.rows[0].id, currentOrder.status, status, changedBy, note);
+    }
+
+    return result.rows[0] || null;
 };
 
 module.exports = {
@@ -179,5 +251,8 @@ module.exports = {
     createOrUpdateOrder,
     getOrderByOrderCode,
     confirmOrder,
-    cancelOrder
+    cancelOrder,
+    updateOrderStatus,
+    createOrderStatusHistory,
+    getOrderStatusHistoryByOrderId
 };

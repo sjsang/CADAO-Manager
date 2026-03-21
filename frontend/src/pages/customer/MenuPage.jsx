@@ -50,7 +50,8 @@ const MenuPage = () => {
                     type: selectedType,
                     category: selectedCategory,
                     search: searchTerm,
-                    sort: sortOrder
+                    sort: sortOrder,
+                    available: true
                 });
 
                 setMenuItems(response.data);

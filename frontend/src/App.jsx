@@ -13,7 +13,10 @@ import OrderDetailPage from './pages/customer/OrderDetailPage'
 import AdminLogin from './pages/auth/AdminLogin'
 import Dashboard from './pages/admin/Dashboard'
 import OrderManager from './pages/admin/OrderManager'
+import AdminOrderDetail from './pages/admin/AdminOrderDetail'
 import MenuManager from './pages/admin/MenuManager'
+import MenuCreate from './pages/admin/MenuCreate'
+import MenuDetail from './pages/admin/MenuDetail'
 import CustomerManager from './pages/admin/CustomerManager'
 import StaffManager from './pages/admin/StaffManager'
 
@@ -73,7 +76,10 @@ const App = () => {
       <Route path="/admin/login" element={<AdminLoginRoute />} />
       <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
       <Route path="/admin/orders" element={<AdminRoute><OrderManager /></AdminRoute>} />
+      <Route path="/admin/orders/:orderCode" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
       <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
+      <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
+      <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><StaffManager /></AdminRoute>} />
     </Routes>

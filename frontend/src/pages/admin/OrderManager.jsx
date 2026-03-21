@@ -2,8 +2,10 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const OrderManager = () => {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -57,7 +59,7 @@ const OrderManager = () => {
                     subtitle="Theo dõi trạng thái xử lý và thông tin giao nhận theo thời gian thực."
                 />
 
-                <div className="min-h-full p-6">
+                <div className="p-6">
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                             <input
@@ -101,7 +103,11 @@ const OrderManager = () => {
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {displayedOrders.map((order, index) => (
-                                        <tr key={`${order.order_code}-${index}`} className="hover:bg-slate-50">
+                                        <tr
+                                            key={`${order.order_code}-${index}`}
+                                            className="cursor-pointer hover:bg-slate-50"
+                                            onClick={() => navigate(`/admin/orders/${order.order_code}`)}
+                                        >
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{order.order_code}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name}</td>

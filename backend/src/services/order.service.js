@@ -1,5 +1,14 @@
 const orderRepository = require("../repositories/order.repository");
 
+const ADMIN_STATUS_TRANSITIONS = {
+    pending: ["confirmed", "cancelled"],
+    confirmed: ["preparing", "cancelled"],
+    preparing: ["shipping", "cancelled"],
+    shipping: ["completed"],
+    completed: [],
+    cancelled: []
+};
+
 const getAllOrders = async (search) => {
     return await orderRepository.getAllOrders(search);
 };
@@ -29,11 +38,37 @@ const cancelOrder = async (orderCode) => {
     }
 };
 
+const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note) => {
+    const order = await orderRepository.getOrderByOrderCode(orderCode);
+
+    if (!order) {
+        throw new Error("Order not found");
+    }
+
+    const currentStatus = order.status;
+    const allowedStatuses = ADMIN_STATUS_TRANSITIONS[currentStatus] || [];
+
+    if (!allowedStatuses.includes(nextStatus)) {
+        throw new Error(`Cannot update order from ${currentStatus} to ${nextStatus}`);
+    }
+
+    const resolvedNote = nextStatus === "cancelled" && typeof note === "string"
+        ? note.trim()
+        : null;
+
+    if (nextStatus === "cancelled" && !resolvedNote) {
+        throw new Error("Cancel reason is required");
+    }
+
+    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote);
+};
+
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
     confirmOrder,
-    cancelOrder
+    cancelOrder,
+    updateOrderStatusByAdmin
 };

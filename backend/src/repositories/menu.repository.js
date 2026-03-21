@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-const getMenuItems = async (type, category, search, sort) => {
+const getMenuItems = async (type, category, search, sort, available) => {
 
     let query = `
         SELECT menu_items.*
@@ -25,6 +25,11 @@ const getMenuItems = async (type, category, search, sort) => {
     if (search) {
         values.push(`%${search}%`);
         conditions.push(`menu_items.name ILIKE $${values.length}`);
+    }
+
+    if (available !== null && available !== undefined) {
+        values.push(available);
+        conditions.push(`menu_items.is_available = $${values.length}`);
     }
 
     if (conditions.length > 0) {
@@ -59,17 +64,17 @@ const getMenuItemById = async (id) => {
     return result.rows[0];
 }
 
-const createMenuItem = async (name, description, price, categoryId, imageUrl) => {
+const createMenuItem = async (name, description, price, categoryId, imageUrl, isAvailable) => {
     const query = `
-        INSERT INTO menu_items (name, description, price, category_id, image_url)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO menu_items (name, description, price, category_id, image_url, is_available)
+        VALUES ($1, $2, $3, $4, $5, COALESCE($6, TRUE))
         RETURNING *
     `;
-    const result = await db.query(query, [name, description, price, categoryId, imageUrl]);
+    const result = await db.query(query, [name, description, price, categoryId, imageUrl, isAvailable]);
     return result.rows[0];
 };
 
-const updateMenuItem = async (id, name, description, price, categoryId, imageUrl) => {
+const updateMenuItem = async (id, name, description, price, categoryId, imageUrl, isAvailable) => {
     const query = `
         UPDATE menu_items
         SET 
@@ -77,21 +82,12 @@ const updateMenuItem = async (id, name, description, price, categoryId, imageUrl
             description = COALESCE($2, description),
             price = COALESCE($3, price),
             category_id = COALESCE($4, category_id),
-            image_url = COALESCE($5, image_url)
-        WHERE id = $6
+            image_url = COALESCE($5, image_url),
+            is_available = COALESCE($6, is_available)
+        WHERE id = $7
         RETURNING *
     `;
-    const result = await db.query(query, [name, description, price, categoryId, imageUrl, id]);
-    return result.rows[0];
-};
-
-const deleteMenuItem = async (id) => {
-    const query = `
-        DELETE FROM menu_items
-        WHERE id = $1
-        RETURNING *
-    `;
-    const result = await db.query(query, [id]);
+    const result = await db.query(query, [name, description, price, categoryId, imageUrl, isAvailable, id]);
     return result.rows[0];
 };
 
@@ -99,6 +95,5 @@ module.exports = {
     getMenuItems,
     getMenuItemById,
     createMenuItem,
-    updateMenuItem,
-    deleteMenuItem
+    updateMenuItem
 };

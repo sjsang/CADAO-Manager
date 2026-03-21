@@ -7,7 +7,8 @@ const orderApi = {
     confirm: (orderCode, payload, paymentMethod) =>
         axiosClient.patch(`/orders/${orderCode}/status`, { ...payload, paymentMethod, status: "confirmed" }),
     cancel: (orderCode) => axiosClient.patch(`/orders/${orderCode}/status`, { status: "cancelled" }),
-    getAllOrders: (search) => axiosClient.get(`/orders?search=${encodeURIComponent(search)}`)
+    getAllOrders: (search) => axiosClient.get(`/orders?search=${encodeURIComponent(search)}`),
+    updateStatusByAdmin: (orderCode, status, note) => axiosClient.patch(`/orders/${orderCode}/admin-status`, { status, note })
 };
 
 export default orderApi;

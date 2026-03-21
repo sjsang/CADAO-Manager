@@ -88,11 +88,26 @@ const updateOrderStatus = async (req, res) => {
     return res.status(400).json({ success: false, message: "Unsupported status" });
 };
 
+const updateOrderStatusByAdmin = async (req, res) => {
+    try {
+        const orderCode = req.params.orderCode;
+        const { status, note } = req.body;
+        const adminId = req.user?.id || null;
+
+        const result = await orderService.updateOrderStatusByAdmin(orderCode, status, adminId, note);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        console.error("Error updating order status by admin:", error);
+        res.status(400).json({ success: false, message: error.message || "Failed to update order status" });
+    }
+};
+
 
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
-    updateOrderStatus
+    updateOrderStatus,
+    updateOrderStatusByAdmin
 };

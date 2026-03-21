@@ -9,12 +9,6 @@ const SideBarMenu = ({ activePage }) => {
 
     return (
         <aside className="sticky top-0 h-screen w-64 border-r border-slate-800 bg-slate-950 p-4">
-            <div className="mb-6 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-3">
-                <p className="text-xs tracking-[0.22em] text-slate-500 uppercase">CADAO</p>
-                <h2 className="mt-1 text-lg font-bold text-white">Admin Workspace</h2>
-                <p className="mt-1 text-xs text-slate-400">Quản trị vận hành nhà hàng</p>
-            </div>
-
             <ul className="space-y-2">
                 <li
                     className={`${itemClass} ${activePage === "dashboard" ? activeClass : ""}`}

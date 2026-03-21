@@ -200,3 +200,14 @@ CREATE TABLE user_tokens (
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 16. Lịch sử thay đổi trạng thái đơn hàng
+CREATE TABLE order_status_history (
+    id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    from_status VARCHAR(30),
+    to_status VARCHAR(30) NOT NULL,
+    changed_by INT REFERENCES users(id),
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

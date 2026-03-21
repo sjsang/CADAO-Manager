@@ -2,8 +2,11 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import menuApi from "../../api/menuApi";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const MenuManager = () => {
+    const navigate = useNavigate();
+
     const [menuItems, setMenuItems] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -40,7 +43,7 @@ const MenuManager = () => {
                     subtitle="Cập nhật tình trạng món ăn, giá bán và hình ảnh hiển thị."
                 />
 
-                <div className="min-h-full p-6">
+                <div className="p-6">
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                             <input
@@ -61,6 +64,13 @@ const MenuManager = () => {
                                 <option value="price_asc">Giá: tăng dần</option>
                                 <option value="price_desc">Giá: giảm dần</option>
                             </select>
+
+                            <button
+                                className="rounded-lg bg-blue-500 p-3 text-white hover:bg-blue-600"
+                                onClick={() => navigate("/admin/menus/add")}
+                            >
+                                Thêm món
+                            </button>
                         </div>
 
                         <p className="mt-3 text-sm text-slate-500">
@@ -74,6 +84,7 @@ const MenuManager = () => {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên món</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Mô tả</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Giá</th>
@@ -83,8 +94,27 @@ const MenuManager = () => {
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {menuItems.map((item, index) => (
-                                        <tr key={item.id} className="hover:bg-slate-50">
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-slate-50 cursor-pointer"
+                                            onClick={() => navigate(`/admin/menus/${item.id}`)}
+                                        >
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                            <td>
+                                                {item.image_url ? (
+                                                    <div className="h-15 w-25">
+                                                        <img
+                                                            src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${item.image_url}`}
+                                                            alt={item.name}
+                                                            className="h-full mx-auto object-cover"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex h-15 w-25 items-center justify-center rounded bg-slate-100 text-sm text-slate-400">
+                                                        Không có ảnh
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.name}</td>
                                             <td className="max-w-xs px-4 py-3 text-sm text-slate-700">{item.description || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(item.price || 0).toLocaleString("vi-VN")}đ</td>

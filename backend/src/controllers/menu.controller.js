@@ -2,9 +2,9 @@ const menuService = require("../services/menu.service");
 
 const getMenuItems = async (req, res) => {
     try {
-        const { type, category, search, sort } = req.query;
+        const { type, category, search, sort, available } = req.query;
 
-        const data = await menuService.getMenuItems(type, category, search, sort);
+        const data = await menuService.getMenuItems(type, category, search, sort, available);
 
         res.json(data);
     } catch (err) {
@@ -26,9 +26,9 @@ const getMenuItemById = async (req, res) => {
 
 const createMenuItem = async (req, res) => {
     try {
-        const { name, description, price, categoryId } = req.body;
+        const { name, description, price, categoryId, isAvailable } = req.body;
         const imageFile = req.file;
-        const data = await menuService.createMenuItem(name, description, price, categoryId, imageFile);
+        const data = await menuService.createMenuItem(name, description, price, categoryId, isAvailable, imageFile);
         res.status(201).json(data);
     } catch (err) {
         console.error(err);
@@ -39,20 +39,9 @@ const createMenuItem = async (req, res) => {
 const updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, categoryId } = req.body;
+        const { name, description, price, categoryId, isAvailable } = req.body;
         const imageFile = req.file;
-        const data = await menuService.updateMenuItem(id, name, description, price, categoryId, imageFile);
-        res.json(data);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
-const deleteMenuItem = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const data = await menuService.deleteMenuItem(id);
+        const data = await menuService.updateMenuItem(id, name, description, price, categoryId, isAvailable, imageFile);
         res.json(data);
     } catch (err) {
         console.error(err);
@@ -64,6 +53,5 @@ module.exports = {
     getMenuItems,
     getMenuItemById,
     createMenuItem,
-    updateMenuItem,
-    deleteMenuItem
+    updateMenuItem
 };
