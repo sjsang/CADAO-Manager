@@ -1,6 +1,8 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import menuApi from "../../api/menuApi";
+import menuTypeApi from "../../api/menu_typeApi";
+import categoryApi from "../../api/categoryApi";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,17 +10,78 @@ const MenuManager = () => {
     const navigate = useNavigate();
 
     const [menuItems, setMenuItems] = useState([]);
+    const [menuTypes, setMenuTypes] = useState([]);
+    const [categories, setCategories] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
+    const [typeFilter, setTypeFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [availabilityFilter, setAvailabilityFilter] = useState("all");
     const [sortOrder, setSortOrder] = useState("name_asc");
+
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const [menuTypesRes, categoriesRes] = await Promise.all([
+                    menuTypeApi.getAll(),
+                    categoryApi.getAll()
+                ]);
+
+                setMenuTypes(menuTypesRes.data || []);
+                setCategories(categoriesRes.data || []);
+            } catch (error) {
+                console.error("Failed to fetch menu filter options:", error);
+            }
+        };
+
+        fetchFilterOptions();
+    }, []);
+
+    const categoryOptions = useMemo(() => {
+        if (typeFilter === "all") {
+            return categories;
+        }
+
+        const selectedType = menuTypes.find((type) => String(type.name) === String(typeFilter));
+        if (!selectedType) {
+            return [];
+        }
+
+        return categories.filter((category) => Number(category.menu_type_id) === Number(selectedType.id));
+    }, [categories, menuTypes, typeFilter]);
+
+    useEffect(() => {
+        if (categoryFilter === "all") {
+            return;
+        }
+
+        const stillValid = categoryOptions.some((category) => String(category.name) === String(categoryFilter));
+        if (!stillValid) {
+            setCategoryFilter("all");
+        }
+    }, [categoryOptions, categoryFilter]);
 
     useEffect(() => {
         const fetchMenuItems = async () => {
             try {
-                const response = await menuApi.getAll({
+                const params = {
                     search: searchTerm,
                     sort: sortOrder
-                });
+                };
+
+                if (typeFilter !== "all") {
+                    params.type = typeFilter;
+                }
+
+                if (categoryFilter !== "all") {
+                    params.category = categoryFilter;
+                }
+
+                if (availabilityFilter !== "all") {
+                    params.available = availabilityFilter;
+                }
+
+                const response = await menuApi.getAll(params);
 
                 setMenuItems(response.data);
             } catch (error) {
@@ -27,11 +90,21 @@ const MenuManager = () => {
         };
 
         fetchMenuItems();
-    }, [searchTerm, sortOrder]);
+    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, sortOrder]);
 
     const availableCount = useMemo(() => {
         return menuItems.filter((item) => item.is_available).length;
     }, [menuItems]);
+
+    const unavailableCount = Math.max(0, menuItems.length - availableCount);
+
+    const resetFilters = () => {
+        setSearchTerm("");
+        setTypeFilter("all");
+        setCategoryFilter("all");
+        setAvailabilityFilter("all");
+        setSortOrder("name_asc");
+    };
 
     return (
         <div className="flex min-h-screen bg-slate-100">
@@ -45,14 +118,46 @@ const MenuManager = () => {
 
                 <div className="p-6">
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
                             <input
                                 type="text"
                                 placeholder="Tìm món..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                className="flex-1 min-w-55 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             />
+
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Loại món: Tất cả</option>
+                                {menuTypes.map((type) => (
+                                    <option key={type.id} value={type.name}>{type.name}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Danh mục: Tất cả</option>
+                                {categoryOptions.map((category) => (
+                                    <option key={category.id} value={category.name}>{category.name}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={availabilityFilter}
+                                onChange={(e) => setAvailabilityFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Trạng thái: Tất cả</option>
+                                <option value="true">Có sẵn</option>
+                                <option value="false">Hết hàng</option>
+                            </select>
 
                             <select
                                 value={sortOrder}
@@ -66,6 +171,13 @@ const MenuManager = () => {
                             </select>
 
                             <button
+                                className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-700 transition hover:bg-slate-50"
+                                onClick={resetFilters}
+                            >
+                                Xóa lọc
+                            </button>
+
+                            <button
                                 className="rounded-lg bg-blue-500 p-3 text-white hover:bg-blue-600"
                                 onClick={() => navigate("/admin/menus/add")}
                             >
@@ -73,9 +185,17 @@ const MenuManager = () => {
                             </button>
                         </div>
 
-                        <p className="mt-3 text-sm text-slate-500">
-                            Tổng món: <span className="font-semibold text-slate-700">{menuItems.length}</span> | Có sẵn: <span className="font-semibold text-emerald-600">{availableCount}</span>
-                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
+                                Tổng món: <strong>{menuItems.length}</strong>
+                            </span>
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
+                                Có sẵn: <strong>{availableCount}</strong>
+                            </span>
+                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
+                                Hết hàng: <strong>{unavailableCount}</strong>
+                            </span>
+                        </div>
                     </div>
 
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -86,7 +206,6 @@ const MenuManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên món</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Mô tả</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Giá</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                     </tr>
@@ -116,7 +235,6 @@ const MenuManager = () => {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.name}</td>
-                                            <td className="max-w-xs px-4 py-3 text-sm text-slate-700">{item.description || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(item.price || 0).toLocaleString("vi-VN")}đ</td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.is_available ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
