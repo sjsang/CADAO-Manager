@@ -17,6 +17,23 @@ const updateCustomer = async (id, name, email, phone) => {
     return await customerRepository.updateCustomer(id, name, email, phone);
 };
 
+const updateCustomerByAdmin = async (id, { full_name, phone_number, email, password }) => {
+    let password_hash = null;
+    if (password && String(password).length > 0) {
+        if (String(password).length < 6) {
+            throw new Error('PASSWORD_TOO_SHORT');
+        }
+        password_hash = await bcrypt.hash(String(password), 10);
+    }
+
+    return await customerRepository.updateCustomerByAdmin(id, {
+        full_name: String(full_name || '').trim(),
+        phone_number: String(phone_number || '').trim(),
+        email: email ? String(email).trim() : '',
+        password_hash
+    });
+};
+
 // Address Management
 const getCustomerAddresses = async (customerId) => {
     return await customerRepository.getCustomerAddresses(customerId);
@@ -58,6 +75,7 @@ module.exports = {
     getCustomers,
     createCustomerByAdmin,
     updateCustomer,
+    updateCustomerByAdmin,
     getCustomerAddresses,
     addCustomerAddress,
     updateCustomerAddress,

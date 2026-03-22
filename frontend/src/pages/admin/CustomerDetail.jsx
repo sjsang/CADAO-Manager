@@ -44,12 +44,19 @@ const CustomerDetail = () => {
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editForm, setEditForm] = useState({ full_name: "", phone_number: "", email: "", password: "" });
 
     useEffect(() => {
         const fetchCustomer = async () => {
             try {
                 const res = await customerApi.getCustomerById(id);
-                setCustomer(res.data?.data || null);
+                const data = res.data?.data || null;
+                setCustomer(data);
+                if (data) {
+                    setEditForm({ full_name: data.full_name || "", phone_number: data.phone_number || "", email: data.email || "", password: "" });
+                }
             } catch (error) {
                 console.error("Error fetching customer detail:", error);
             } finally {
@@ -71,6 +78,38 @@ const CustomerDetail = () => {
             console.error("Error toggling status:", error);
         } finally {
             setToggling(false);
+        }
+    };
+
+    const handleEditOpen = () => {
+        setEditForm({ full_name: customer.full_name || "", phone_number: customer.phone_number || "", email: customer.email || "", password: "" });
+        setIsEditing(true);
+    };
+
+    const handleEditSave = async () => {
+        if (!editForm.full_name.trim() || !editForm.phone_number.trim()) {
+            alert("Họ tên và số điện thoại không được để trống.");
+            return;
+        }
+        if (editForm.password && editForm.password.length < 6) {
+            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            return;
+        }
+        setSaving(true);
+        try {
+            const res = await customerApi.updateCustomerByAdmin(id, {
+                full_name: editForm.full_name.trim(),
+                phone_number: editForm.phone_number.trim(),
+                email: editForm.email.trim(),
+                password: editForm.password || undefined
+            });
+            setCustomer((prev) => ({ ...prev, ...res.data?.data }));
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error saving customer:", error);
+            alert(error.response?.data?.message || "Không thể lưu thay đổi.");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -111,24 +150,94 @@ const CustomerDetail = () => {
                                         <span className={`rounded-full px-3 py-1 text-xs font-medium ${customer.is_active ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
                                             {customer.is_active ? "Đang hoạt động" : "Đã khóa"}
                                         </span>
+                                        {!isEditing && (
+                                            <button
+                                                onClick={handleEditOpen}
+                                                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                                            >
+                                                Chỉnh sửa
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleToggleStatus}
                                             disabled={toggling}
                                             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${customer.is_active
-                                                    ? "bg-rose-600 text-white hover:bg-rose-700"
-                                                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                ? "bg-rose-600 text-white hover:bg-rose-700"
+                                                : "bg-emerald-600 text-white hover:bg-emerald-700"
                                                 }`}
                                         >
                                             {toggling ? "Đang xử lý..." : customer.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
                                         </button>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                    <InfoRow label="Họ và tên" value={customer.full_name} />
-                                    <InfoRow label="Số điện thoại" value={customer.phone_number} />
-                                    <InfoRow label="Email" value={customer.email} />
-                                    <InfoRow label="Ngày tạo tài khoản" value={formatDate(customer.created_at)} />
-                                </div>
+
+                                {isEditing ? (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Họ và tên <span className="text-rose-500">*</span></label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.full_name}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Số điện thoại <span className="text-rose-500">*</span></label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.phone_number}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+                                                <input
+                                                    type="email"
+                                                    value={editForm.email}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mật khẩu mới <span className="text-slate-400">(để trống nếu không đổi)</span></label>
+                                                <input
+                                                    type="password"
+                                                    value={editForm.password}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                                                    placeholder="Ít nhất 6 ký tự"
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-3 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditing(false)}
+                                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                            >
+                                                Hủy
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={handleEditSave}
+                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                                            >
+                                                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        <InfoRow label="Họ và tên" value={customer.full_name} />
+                                        <InfoRow label="Số điện thoại" value={customer.phone_number} />
+                                        <InfoRow label="Email" value={customer.email} />
+                                        <InfoRow label="Ngày tạo tài khoản" value={formatDate(customer.created_at)} />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Addresses */}

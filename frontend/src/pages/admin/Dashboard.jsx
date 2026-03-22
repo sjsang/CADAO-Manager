@@ -5,6 +5,7 @@ import orderApi from "../../api/orderApi";
 import menuApi from "../../api/menuApi";
 import customerApi from "../../api/customerApi";
 import userApi from "../../api/userApi";
+import { getStatusText } from "../../functions/formatOrderFields";
 
 const Dashboard = () => {
     const [orders, setOrders] = useState([]);
@@ -118,7 +119,7 @@ const Dashboard = () => {
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{order.order_code}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(order.total_amount || 0).toLocaleString("vi-VN")}đ</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{order.status}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{getStatusText(order.status)}</td>
                                         </tr>
                                     ))}
                                     {orders.length === 0 ? (

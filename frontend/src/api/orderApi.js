@@ -12,6 +12,7 @@ const orderApi = {
         axiosClient.patch(`/orders/${orderCode}/admin-status`, { status, note, shipperId: shipperId || undefined }),
     getShippers: () => axiosClient.get('/orders/shippers'),
     getMyDeliveries: () => axiosClient.get('/orders/my-deliveries'),
+    getMyDeliveryHistory: () => axiosClient.get('/orders/my-deliveries/history'),
     completeDelivery: (orderCode) => axiosClient.patch(`/orders/${orderCode}/shipper-complete`)
 };
 

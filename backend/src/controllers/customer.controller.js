@@ -60,6 +60,33 @@ const updateCustomer = async (req, res) => {
     }
 };
 
+const updateCustomerByAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { full_name, phone_number, email, password } = req.body;
+
+        if (!full_name || !phone_number) {
+            return res.status(400).json({ success: false, message: 'Họ tên và số điện thoại không được để trống' });
+        }
+
+        const customer = await customerService.updateCustomerByAdmin(id, { full_name, phone_number, email, password });
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Khách hàng không tồn tại' });
+        }
+
+        res.status(200).json({ success: true, data: customer });
+    } catch (error) {
+        if (error?.message === 'PASSWORD_TOO_SHORT') {
+            return res.status(400).json({ success: false, message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+        }
+        if (error?.code === '23505') {
+            return res.status(409).json({ success: false, message: 'Email đã tồn tại' });
+        }
+        console.error('Error updating customer by admin:', error);
+        res.status(500).json({ success: false, message: 'Failed to update customer' });
+    }
+};
+
 // Address Management
 const getAddresses = async (req, res) => {
     try {
@@ -175,6 +202,7 @@ module.exports = {
     getCustomers,
     createCustomerByAdmin,
     updateCustomer,
+    updateCustomerByAdmin,
     getAddresses,
     addAddress,
     updateAddress,

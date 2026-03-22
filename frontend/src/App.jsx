@@ -21,6 +21,7 @@ import CustomerManager from './pages/admin/CustomerManager'
 import CustomerDetail from './pages/admin/CustomerDetail'
 import StaffManager from './pages/admin/StaffManager'
 import StaffDetail from './pages/admin/StaffDetail'
+import StaffProfile from './pages/admin/StaffProfile'
 import WardManager from './pages/admin/WardManager'
 import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
 
@@ -59,6 +60,11 @@ const isShipper = () => {
   return payload?.role === 'shipper';
 };
 
+const isStaff = () => {
+  const payload = getTokenPayload();
+  return payload?.role === 'staff';
+};
+
 const AdminRoute = ({ children }) => {
   if (!isAdminAuthenticated()) {
     return <Navigate to="/admin/login" replace />;
@@ -77,6 +83,14 @@ const OrderManagerRoute = ({ children }) => {
 
 const ShipperRoute = ({ children }) => {
   if (!isShipper()) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return children;
+};
+
+const StaffRoute = ({ children }) => {
+  if (!hasPortalAccess()) {
     return <Navigate to="/admin/login" replace />;
   }
 
@@ -128,6 +142,8 @@ const App = () => {
       <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><StaffManager /></AdminRoute>} />
       <Route path="/admin/users/:id" element={<AdminRoute><StaffDetail /></AdminRoute>} />
+      <Route path="/admin/profile" element={<StaffRoute><StaffProfile /></StaffRoute>} />
+      <Route path="/profile" element={<StaffRoute><StaffProfile /></StaffRoute>} />
       <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
       <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
     </Routes>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
+import { getStatusText } from "../../functions/formatOrderFields";
 
 const ROLE_BADGE = {
     admin: "border border-rose-200 bg-rose-50 text-rose-700",
@@ -61,12 +62,19 @@ const StaffDetail = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editForm, setEditForm] = useState({ full_name: "", phone_number: "", role: "staff", password: "" });
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const res = await userApi.getUserById(id);
-                setUser(res.data?.data || null);
+                const data = res.data?.data || null;
+                setUser(data);
+                if (data) {
+                    setEditForm({ full_name: data.full_name || "", phone_number: data.phone_number || "", role: data.role || "staff", password: "" });
+                }
             } catch (error) {
                 console.error("Error fetching user detail:", error);
             } finally {
@@ -89,6 +97,38 @@ const StaffDetail = () => {
             alert(error?.response?.data?.message || "Không thể cập nhật trạng thái nhân viên.");
         } finally {
             setToggling(false);
+        }
+    };
+
+    const handleEditOpen = () => {
+        setEditForm({ full_name: user.full_name || "", phone_number: user.phone_number || "", role: user.role || "staff", password: "" });
+        setIsEditing(true);
+    };
+
+    const handleEditSave = async () => {
+        if (!editForm.role) {
+            alert("Vai trò không được để trống.");
+            return;
+        }
+        if (editForm.password && editForm.password.length < 6) {
+            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            return;
+        }
+        setSaving(true);
+        try {
+            const res = await userApi.updateUser(id, {
+                full_name: editForm.full_name.trim() || null,
+                phone_number: editForm.phone_number.trim() || null,
+                role: editForm.role,
+                password: editForm.password || undefined
+            });
+            setUser((prev) => ({ ...prev, ...res.data?.data }));
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error saving user:", error);
+            alert(error.response?.data?.message || "Không thể lưu thay đổi.");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -126,6 +166,14 @@ const StaffDetail = () => {
                                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${user.is_active ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
                                             {user.is_active ? "Đang hoạt động" : "Đã khóa"}
                                         </span>
+                                        {!isEditing && (
+                                            <button
+                                                onClick={handleEditOpen}
+                                                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                                            >
+                                                Chỉnh sửa
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleToggleStatus}
                                             disabled={toggling}
@@ -136,13 +184,86 @@ const StaffDetail = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                    <InfoRow label="Username" value={user.username} />
-                                    <InfoRow label="Họ và tên" value={user.full_name} />
-                                    <InfoRow label="Số điện thoại" value={user.phone_number} />
-                                    <InfoRow label="Vai trò" value={ROLE_TEXT[user.role] || user.role} />
-                                    <InfoRow label="Ngày tạo" value={formatDateTime(user.created_at)} />
-                                </div>
+                                {isEditing ? (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Username</label>
+                                                <input
+                                                    type="text"
+                                                    value={user.username}
+                                                    disabled
+                                                    className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-400 cursor-not-allowed"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò <span className="text-rose-500">*</span></label>
+                                                <select
+                                                    value={editForm.role}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                >
+                                                    <option value="admin">Admin</option>
+                                                    <option value="staff">Nhân viên</option>
+                                                    <option value="shipper">Shipper</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Họ và tên</label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.full_name}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Số điện thoại</label>
+                                                <input
+                                                    type="text"
+                                                    value={editForm.phone_number}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                            <div className="space-y-1 sm:col-span-2">
+                                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mật khẩu mới <span className="text-slate-400">(để trống nếu không đổi)</span></label>
+                                                <input
+                                                    type="password"
+                                                    value={editForm.password}
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                                                    placeholder="Ít nhất 6 ký tự"
+                                                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-3 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditing(false)}
+                                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                            >
+                                                Hủy
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={handleEditSave}
+                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                                            >
+                                                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        <InfoRow label="Username" value={user.username} />
+                                        <InfoRow label="Họ và tên" value={user.full_name} />
+                                        <InfoRow label="Số điện thoại" value={user.phone_number} />
+                                        <InfoRow label="Vai trò" value={ROLE_TEXT[user.role] || user.role} />
+                                        <InfoRow label="Ngày tạo" value={formatDateTime(user.created_at)} />
+                                    </div>
+                                )}
                             </div>
 
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -179,7 +300,7 @@ const StaffDetail = () => {
                                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(order.total_amount)}</td>
                                                             <td className="px-4 py-3 text-sm">
                                                                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusInfo}`}>
-                                                                    {order.status}
+                                                                    {getStatusText(order.status)}
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(order.created_at)}</td>

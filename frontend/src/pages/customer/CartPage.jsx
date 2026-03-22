@@ -71,7 +71,7 @@ const CartPage = () => {
         try {
             if (!customerInfo?.address_id || !customerInfo?.address || !customerInfo?.ward_name) {
                 alert("Vui lòng thiết lập địa chỉ mặc định trước khi thanh toán.");
-                navigate("/customer/me");
+                navigate("/customers/me");
                 return;
             }
 

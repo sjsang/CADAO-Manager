@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SideBarMenu from "../../components/admin/SideBarMenu";
+import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
-import authApi from "../../api/authApi";
 
 const formatDateTime = (value) => {
     if (!value) return "-";
@@ -19,24 +20,19 @@ const formatDateTime = (value) => {
 const ShipperDeliveries = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
+    const [historyOrders, setHistoryOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [completing, setCompleting] = useState(null);
-
-    const token = sessionStorage.getItem("token");
-    let shipperName = "Shipper";
-    if (token) {
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            shipperName = payload?.full_name || payload?.username || "Shipper";
-        } catch {
-            shipperName = "Shipper";
-        }
-    }
+    const [activeTab, setActiveTab] = useState("shipping");
 
     const loadOrders = async () => {
         try {
-            const res = await orderApi.getMyDeliveries();
-            setOrders(res.data?.data || []);
+            const [shippingRes, historyRes] = await Promise.all([
+                orderApi.getMyDeliveries(),
+                orderApi.getMyDeliveryHistory()
+            ]);
+            setOrders(shippingRes.data?.data || []);
+            setHistoryOrders(historyRes.data?.data || []);
         } catch (error) {
             console.error("Failed to load deliveries:", error);
             if (error.response?.status === 401 || error.response?.status === 403) {
@@ -55,17 +51,6 @@ const ShipperDeliveries = () => {
         init();
     }, []);
 
-    const handleLogout = async () => {
-        try {
-            await authApi.logout();
-        } catch {
-            // ignore
-        } finally {
-            sessionStorage.removeItem("token");
-            navigate("/admin/login", { replace: true });
-        }
-    };
-
     const handleComplete = async (orderCode) => {
         const confirmed = window.confirm(`Xác nhận đã giao thành công đơn ${orderCode}?`);
         if (!confirmed) return;
@@ -73,7 +58,7 @@ const ShipperDeliveries = () => {
         setCompleting(orderCode);
         try {
             await orderApi.completeDelivery(orderCode);
-            setOrders((prev) => prev.filter((o) => o.order_code !== orderCode));
+            await loadOrders();
         } catch (error) {
             console.error("Failed to complete delivery:", error);
             alert(error.response?.data?.message || "Không thể cập nhật trạng thái. Vui lòng thử lại.");
@@ -82,105 +67,113 @@ const ShipperDeliveries = () => {
         }
     };
 
+    const statusBadgeClass = (status) => {
+        if (status === "completed") {
+            return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+        }
+        if (status === "cancelled") {
+            return "border border-rose-200 bg-rose-50 text-rose-700";
+        }
+        return "border border-violet-200 bg-violet-50 text-violet-700";
+    };
+
+    const statusText = (status) => {
+        if (status === "completed") return "Đã giao";
+        if (status === "cancelled") return "Đã hủy";
+        return "Đang giao";
+    };
+
+    const activeOrders = activeTab === "shipping" ? orders : historyOrders;
+
     return (
-        <div className="min-h-screen bg-slate-100">
-            {/* Header */}
-            <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-100/80 px-6 py-4 backdrop-blur">
-                <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs font-semibold tracking-[0.2em] text-violet-500 uppercase">CADAO Shipper</p>
-                            <h1 className="mt-1 text-2xl font-bold text-slate-800">Đơn hàng cần giao</h1>
-                            <p className="mt-1 text-sm text-slate-500">Danh sách các đơn hàng được phân công cho bạn.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="hidden rounded-full border border-violet-100 bg-violet-50 px-3 py-1 text-sm font-medium text-violet-700 sm:inline-block">
-                                {shipperName}
-                            </span>
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <div className="flex min-h-screen bg-slate-100">
+            <SideBarMenu activePage="orders" />
 
-            <main className="p-6">
-                {isLoading ? (
-                    <div className="flex items-center justify-center py-24 text-slate-500">Đang tải danh sách đơn hàng...</div>
-                ) : orders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-24 shadow-sm text-slate-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="text-lg font-semibold">Không có đơn hàng nào cần giao</p>
-                        <p className="text-sm">Tất cả đơn hàng được phân công đã hoàn thành.</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {orders.map((order) => (
-                            <div
-                                key={order.order_code}
-                                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col gap-4"
-                            >
-                                <div className="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Mã đơn</p>
-                                        <p className="mt-0.5 text-base font-bold text-slate-800">{order.order_code}</p>
-                                    </div>
-                                    <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                                        Đang giao
-                                    </span>
-                                </div>
+            <div className="flex-1">
+                <AdminHeader
+                    title="Đơn hàng cần giao"
+                    subtitle="Theo dõi đơn đang giao và cập nhật hoàn thành khi giao thành công."
+                />
 
-                                <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
-                                    <div className="flex gap-2">
-                                        <span className="w-28 shrink-0 font-medium text-slate-500">Người nhận</span>
-                                        <span className="text-slate-800">{order.delivery_full_name}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <span className="w-28 shrink-0 font-medium text-slate-500">Điện thoại</span>
-                                        <a href={`tel:${order.delivery_phone}`} className="font-medium text-violet-600 hover:underline">
-                                            {order.delivery_phone}
-                                        </a>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <span className="w-28 shrink-0 font-medium text-slate-500">Địa chỉ</span>
-                                        <span className="text-slate-800">{order.delivery_address}{order.delivery_ward_name ? `, ${order.delivery_ward_name}` : ""}</span>
-                                    </div>
-                                    {order.notes ? (
-                                        <div className="flex gap-2">
-                                            <span className="w-28 shrink-0 font-medium text-slate-500">Ghi chú</span>
-                                            <span className="text-slate-700 italic">{order.notes}</span>
-                                        </div>
-                                    ) : null}
-                                    <div className="flex gap-2">
-                                        <span className="w-28 shrink-0 font-medium text-slate-500">Tổng tiền</span>
-                                        <span className="font-semibold text-slate-800">{Number(order.total_amount || 0).toLocaleString("vi-VN")}đ</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <span className="w-28 shrink-0 font-medium text-slate-500">Đặt lúc</span>
-                                        <span className="text-slate-600">{formatDateTime(order.created_at)}</span>
-                                    </div>
-                                </div>
-
+                <main className="p-6">
+                    <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <p className="text-sm text-slate-500">
+                                {activeTab === "shipping" ? "Tổng số đơn đang giao:" : "Tổng số đơn lịch sử:"} <span className="font-semibold text-slate-800">{activeOrders.length}</span>
+                            </p>
+                            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                                 <button
                                     type="button"
-                                    disabled={completing === order.order_code}
-                                    onClick={() => handleComplete(order.order_code)}
-                                    className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                                    onClick={() => setActiveTab("shipping")}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${activeTab === "shipping" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
                                 >
-                                    {completing === order.order_code ? "Đang xử lý..." : "Đã giao thành công"}
+                                    Đơn cần giao ({orders.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab("history")}
+                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${activeTab === "history" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                                >
+                                    Lịch sử ({historyOrders.length})
                                 </button>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                )}
-            </main>
+
+                    {isLoading ? (
+                        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                            Đang tải danh sách đơn hàng...
+                        </div>
+                    ) : activeOrders.length === 0 ? (
+                        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+                            {activeTab === "shipping" ? "Không có đơn hàng nào cần giao." : "Chưa có đơn hàng trong lịch sử."}
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {activeOrders.map((order) => (
+                                <div key={order.order_code} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                    <div className="mb-4 flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mã đơn</p>
+                                            <p className="mt-1 text-base font-bold text-slate-800">{order.order_code}</p>
+                                        </div>
+                                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}>
+                                            {statusText(order.status)}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+                                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Người nhận:</span> {order.delivery_full_name || "-"}</p>
+                                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Số điện thoại:</span> {order.delivery_phone || "-"}</p>
+                                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Địa chỉ:</span> {order.delivery_address}{order.delivery_ward_name ? `, ${order.delivery_ward_name}` : ""}</p>
+                                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Tổng tiền:</span> {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ</p>
+                                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Đặt lúc:</span> {formatDateTime(order.created_at)}</p>
+                                        {activeTab === "history" ? (
+                                            <p className="text-sm text-slate-700"><span className="font-semibold text-slate-500">Hoàn tất lúc:</span> {formatDateTime(order.updated_at)}</p>
+                                        ) : null}
+                                        <p className="text-sm text-slate-700">
+                                            <span className="font-semibold text-slate-500">Ghi chú đơn hàng:</span> {order.notes || "-"}
+                                        </p>
+                                    </div>
+
+                                    {activeTab === "shipping" ? (
+                                        <div className="mt-4 flex justify-end">
+                                            <button
+                                                type="button"
+                                                disabled={completing === order.order_code}
+                                                onClick={() => handleComplete(order.order_code)}
+                                                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                                            >
+                                                {completing === order.order_code ? "Đang xử lý..." : "Đã giao"}
+                                            </button>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </main>
+            </div>
         </div>
     );
 };

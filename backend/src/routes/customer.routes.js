@@ -19,5 +19,6 @@ router.post("/", authenticate, requireRole("admin"), customerController.createCu
 router.get("/", authenticate, requireRole("admin"), customerController.getCustomers);
 router.get("/:id", authenticate, requireRole("admin"), customerController.getCustomerById);
 router.patch("/:id/toggle-status", authenticate, requireRole("admin"), customerController.toggleCustomerStatus);
+router.patch("/:id", authenticate, requireRole("admin"), customerController.updateCustomerByAdmin);
 
 module.exports = router;

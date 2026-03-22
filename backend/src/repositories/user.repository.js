@@ -31,6 +31,16 @@ const getUserById = async (id) => {
     return result.rows[0] || null;
 };
 
+const getMyProfile = async (id) => {
+    const query = `
+        SELECT id, username, full_name, phone_number, role, is_active, created_at
+        FROM users
+        WHERE id = $1
+    `;
+    const result = await db.query(query, [id]);
+    return result.rows[0] || null;
+};
+
 const toggleUserStatus = async (id) => {
     const query = `
         UPDATE users
@@ -39,6 +49,36 @@ const toggleUserStatus = async (id) => {
         RETURNING id, username, full_name, phone_number, role, is_active, created_at
     `;
     const result = await db.query(query, [id]);
+    return result.rows[0] || null;
+};
+
+const updateUser = async (id, { full_name, phone_number, role, password_hash }) => {
+    let query = `UPDATE users SET full_name=$1, phone_number=$2, role=$3`;
+    const params = [full_name, phone_number, role];
+
+    if (password_hash) {
+        params.push(password_hash);
+        query += `, password_hash=$${params.length}`;
+    }
+
+    params.push(id);
+    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, role, is_active, created_at`;
+    const result = await db.query(query, params);
+    return result.rows[0] || null;
+};
+
+const updateMyProfile = async (id, { full_name, phone_number, password_hash }) => {
+    let query = `UPDATE users SET full_name=$1, phone_number=$2`;
+    const params = [full_name, phone_number];
+
+    if (password_hash) {
+        params.push(password_hash);
+        query += `, password_hash=$${params.length}`;
+    }
+
+    params.push(id);
+    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, role, is_active, created_at`;
+    const result = await db.query(query, params);
     return result.rows[0] || null;
 };
 
@@ -72,5 +112,8 @@ module.exports = {
     createUserByAdmin,
     getUserById,
     toggleUserStatus,
+    updateUser,
+    getMyProfile,
+    updateMyProfile,
     getAssignedOrders
 };

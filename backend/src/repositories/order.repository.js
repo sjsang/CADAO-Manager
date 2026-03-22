@@ -243,7 +243,21 @@ const cancelOrder = async (orderCode) => {
     return null;
 };
 
-const updateOrderStatus = async (orderCode, status, changedBy = null, note = null, shipperId = null) => {
+const getDeliveryHistoryByShipperId = async (shipperId) => {
+    const query = `
+        SELECT o.order_code, o.delivery_full_name, o.delivery_phone,
+               o.delivery_address, o.delivery_ward_name,
+               o.total_amount, o.status, o.notes, o.created_at, o.updated_at
+        FROM orders o
+        WHERE o.shipper_id = $1
+          AND o.status IN ('completed', 'cancelled')
+        ORDER BY o.updated_at DESC, o.created_at DESC
+    `;
+    const result = await db.query(query, [shipperId]);
+    return result.rows;
+};
+
+const updateOrderStatus = async (orderCode, status, changedBy = null, changedByRole = null, note = null, shipperId = null) => {
     const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
 
     if (currentOrderResult.rowCount === 0) {
@@ -252,16 +266,26 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, note = nul
 
     const currentOrder = currentOrderResult.rows[0];
 
-    let query;
-    let params;
+    const setClauses = ["status=$1", "updated_at=CURRENT_TIMESTAMP"];
+    const params = [status];
 
     if (status === 'shipping' && shipperId) {
-        query = `UPDATE orders SET status=$1, shipper_id=$2, updated_at=CURRENT_TIMESTAMP WHERE order_code=$3 RETURNING id, order_code, status`;
-        params = [status, shipperId, orderCode];
-    } else {
-        query = `UPDATE orders SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE order_code=$2 RETURNING id, order_code, status`;
-        params = [status, orderCode];
+        params.push(shipperId);
+        setClauses.push(`shipper_id=$${params.length}`);
     }
+
+    if (changedByRole === 'staff' && changedBy) {
+        params.push(changedBy);
+        setClauses.push(`staff_id=$${params.length}`);
+    }
+
+    params.push(orderCode);
+    const query = `
+        UPDATE orders
+        SET ${setClauses.join(", ")}
+        WHERE order_code=$${params.length}
+        RETURNING id, order_code, status
+    `;
 
     const result = await db.query(query, params);
 
@@ -330,5 +354,6 @@ module.exports = {
     getOrderStatusHistoryByOrderId,
     getShippers,
     getOrdersByShipperId,
+    getDeliveryHistoryByShipperId,
     completeDelivery
 };

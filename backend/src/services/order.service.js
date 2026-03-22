@@ -42,7 +42,7 @@ const getShippers = async () => {
     return await orderRepository.getShippers();
 };
 
-const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note, shipperId = null) => {
+const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, changedByRole, note, shipperId = null) => {
     const order = await orderRepository.getOrderByOrderCode(orderCode);
 
     if (!order) {
@@ -68,11 +68,15 @@ const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note, 
         throw new Error("Vui lòng chọn người giao hàng");
     }
 
-    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote, shipperId);
+    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, changedByRole, resolvedNote, shipperId);
 };
 
 const getOrdersByShipperId = async (shipperId) => {
     return await orderRepository.getOrdersByShipperId(shipperId);
+};
+
+const getDeliveryHistoryByShipperId = async (shipperId) => {
+    return await orderRepository.getDeliveryHistoryByShipperId(shipperId);
 };
 
 const completeDelivery = async (orderCode, shipperId) => {
@@ -89,5 +93,6 @@ module.exports = {
     updateOrderStatusByAdmin,
     getShippers,
     getOrdersByShipperId,
+    getDeliveryHistoryByShipperId,
     completeDelivery
 };

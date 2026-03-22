@@ -39,6 +39,9 @@ const customerApi = {
     },
     toggleCustomerStatus: (id) => {
         return axiosClient.patch(`/customers/${id}/toggle-status`);
+    },
+    updateCustomerByAdmin: (id, data) => {
+        return axiosClient.patch(`/customers/${id}`, data);
     }
 }
 

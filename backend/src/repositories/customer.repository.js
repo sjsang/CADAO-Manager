@@ -28,6 +28,21 @@ const updateCustomer = async (id, name, email, phone) => {
     return result.rows[0];
 };
 
+const updateCustomerByAdmin = async (id, { full_name, phone_number, email, password_hash }) => {
+    let query = `UPDATE customers SET full_name=$1, phone_number=$2, email=NULLIF($3,'')`;
+    const params = [full_name, phone_number, email || ''];
+
+    if (password_hash) {
+        params.push(password_hash);
+        query += `, password_hash=$${params.length}`;
+    }
+
+    params.push(id);
+    query += ` WHERE id=$${params.length} RETURNING id, full_name, phone_number, email, is_active, created_at`;
+    const result = await db.query(query, params);
+    return result.rows[0] || null;
+};
+
 // Address Management
 const getCustomerAddresses = async (customerId) => {
     const query = `
@@ -134,6 +149,7 @@ module.exports = {
     getCustomers,
     createCustomerByAdmin,
     updateCustomer,
+    updateCustomerByAdmin,
     getCustomerAddresses,
     addCustomerAddress,
     updateCustomerAddress,

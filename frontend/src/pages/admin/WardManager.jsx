@@ -252,15 +252,7 @@ const WardManager = () => {
                                         disabled={isSubmitting}
                                         className="flex-1 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {isSubmitting ? "Đang lưu..." : editingWardId ? "Lưu thay đổi" : "Tạo phường"}
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={resetForm}
-                                        className="rounded-lg border border-slate-300 px-4 py-3 font-medium text-slate-700 transition hover:bg-slate-100"
-                                    >
-                                        Làm mới
+                                        {isSubmitting ? "Đang lưu..." : editingWardId ? "Lưu thay đổi" : "Thêm phường"}
                                     </button>
                                 </div>
                             </form>

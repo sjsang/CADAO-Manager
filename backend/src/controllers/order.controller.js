@@ -98,9 +98,10 @@ const updateOrderStatusByAdmin = async (req, res) => {
     try {
         const orderCode = req.params.orderCode;
         const { status, note, shipperId } = req.body;
-        const adminId = req.user?.id || null;
+        const changedBy = req.user?.id || null;
+        const changedByRole = req.user?.role || null;
 
-        const result = await orderService.updateOrderStatusByAdmin(orderCode, status, adminId, note, shipperId || null);
+        const result = await orderService.updateOrderStatusByAdmin(orderCode, status, changedBy, changedByRole, note, shipperId || null);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error updating order status by admin:", error);
@@ -126,6 +127,17 @@ const getMyDeliveries = async (req, res) => {
     } catch (error) {
         console.error("Error fetching shipper deliveries:", error);
         res.status(500).json({ success: false, message: "Failed to fetch deliveries" });
+    }
+};
+
+const getMyDeliveryHistory = async (req, res) => {
+    try {
+        const shipperId = req.user.id;
+        const result = await orderService.getDeliveryHistoryByShipperId(shipperId);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        console.error("Error fetching shipper delivery history:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch delivery history" });
     }
 };
 
@@ -156,5 +168,6 @@ module.exports = {
     updateOrderStatusByAdmin,
     getShippers,
     getMyDeliveries,
+    getMyDeliveryHistory,
     completeDelivery
 };

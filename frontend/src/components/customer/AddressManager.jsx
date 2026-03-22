@@ -149,14 +149,14 @@ const AddressManager = () => {
                             />
                         </div>
                         <div>
-                            <label className="text-gray-300 block mb-2">Phường/Xã</label>
+                            <label className="text-gray-300 block mb-2">Phường</label>
                             <select
                                 name="wardId"
                                 value={formData.wardId}
                                 onChange={handleInputChange}
                                 className="w-full p-2 rounded bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                <option value="">-- Chọn phường/xã --</option>
+                                <option value="">-- Chọn phường --</option>
                                 {wards.map(ward => (
                                     <option key={ward.id} value={ward.id}>
                                         {ward.name}
@@ -189,11 +189,10 @@ const AddressManager = () => {
                     {addresses.map(address => (
                         <div
                             key={address.id}
-                            className={`p-4 rounded border-l-4 ${
-                                address.is_default
+                            className={`p-4 rounded border-l-4 ${address.is_default
                                     ? 'bg-gray-700 border-l-green-500'
                                     : 'bg-gray-800 border-l-gray-600'
-                            }`}
+                                }`}
                         >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
