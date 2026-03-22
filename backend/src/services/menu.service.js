@@ -24,9 +24,17 @@ const parseBoolean = (value) => {
     return null;
 };
 
-const getMenuItems = async (type, category, search, sort, available) => {
+const getMenuItems = async ({ type, category, search, sort, available, page, limit }) => {
     const availableFilter = parseBoolean(available);
-    return await menuRepository.getMenuItems(type, category, search, sort, availableFilter);
+    return await menuRepository.getMenuItems({
+        type,
+        category,
+        search,
+        sort,
+        available: availableFilter,
+        page,
+        limit
+    });
 }
 
 const getMenuItemById = async (id) => {

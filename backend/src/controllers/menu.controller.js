@@ -2,11 +2,24 @@ const menuService = require("../services/menu.service");
 
 const getMenuItems = async (req, res) => {
     try {
-        const { type, category, search, sort, available } = req.query;
+        const { type, category, search, sort, available, page, limit } = req.query;
 
-        const data = await menuService.getMenuItems(type, category, search, sort, available);
+        const result = await menuService.getMenuItems({
+            type,
+            category,
+            search,
+            sort,
+            available,
+            page,
+            limit
+        });
 
-        res.json(data);
+        const hasPagination = page !== undefined || limit !== undefined;
+        if (hasPagination) {
+            return res.json({ data: result.data, pagination: result.pagination });
+        }
+
+        res.json(result);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Internal Server Error" });

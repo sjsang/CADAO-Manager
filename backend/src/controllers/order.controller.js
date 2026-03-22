@@ -6,10 +6,12 @@ const getAllOrders = async (req, res) => {
             search: String(req.query.search || "").trim(),
             status: String(req.query.status || "all").trim(),
             sortBy: String(req.query.sortBy || "created_at").trim(),
-            sortDir: String(req.query.sortDir || "desc").trim()
+            sortDir: String(req.query.sortDir || "desc").trim(),
+            page: Number(req.query.page || 1),
+            limit: Number(req.query.limit || 5)
         };
         const result = await orderService.getAllOrders(queryOptions);
-        res.status(200).json({ success: true, data: result });
+        res.status(200).json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) {
         console.error("Error fetching orders:", error);
         res.status(500).json({ success: false, message: "Failed to fetch orders" });

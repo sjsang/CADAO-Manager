@@ -20,11 +20,13 @@ const getWards = async (req, res) => {
         const queryOptions = {
             search: String(req.query.search || "").trim(),
             sortBy: String(req.query.sortBy || "name").trim(),
-            sortDir: String(req.query.sortDir || "asc").trim()
+            sortDir: String(req.query.sortDir || "asc").trim(),
+            page: Number(req.query.page || 1),
+            limit: Number(req.query.limit || 5)
         };
 
-        const wards = await wardService.getWards(queryOptions);
-        res.status(200).json({ success: true, data: wards });
+        const result = await wardService.getWards(queryOptions);
+        res.status(200).json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) {
         sendError(res, error, "Không thể lấy danh sách phường.");
     }

@@ -1,13 +1,16 @@
 const db = require("../config/db");
 
-const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = "created_at", sortDir = "desc" } = {}) => {
+const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = "created_at", sortDir = "desc", page = 1, limit = 5 } = {}) => {
     const values = [];
-    let query = `
-        SELECT id, username, full_name, phone_number, role, is_active, created_at
+    const conditions = [];
+
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 100) : 5;
+    const offset = (safePage - 1) * safeLimit;
+
+    let fromWhere = `
         FROM users
     `;
-
-    const conditions = [];
 
     if (search) {
         values.push(`%${search}%`);
@@ -25,8 +28,12 @@ const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = 
     }
 
     if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(" AND ")}`;
+        fromWhere += ` WHERE ${conditions.join(" AND ")}`;
     }
+
+    const countQuery = `SELECT COUNT(*)::int AS total ${fromWhere}`;
+    const countResult = await db.query(countQuery, values);
+    const totalItems = countResult.rows[0]?.total || 0;
 
     const sortMap = {
         created_at: "created_at",
@@ -36,10 +43,29 @@ const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = 
     };
     const safeSortBy = sortMap[sortBy] || "created_at";
     const safeSortDir = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
-    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
 
-    const result = await db.query(query, values);
-    return result.rows;
+    values.push(safeLimit);
+    const limitParam = values.length;
+    values.push(offset);
+    const offsetParam = values.length;
+
+    const dataQuery = `
+        SELECT id, username, full_name, phone_number, role, is_active, created_at
+        ${fromWhere}
+        ORDER BY ${safeSortBy} ${safeSortDir}
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+    `;
+
+    const result = await db.query(dataQuery, values);
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const createUserByAdmin = async (userData) => {

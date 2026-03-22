@@ -3,8 +3,11 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import menuApi from "../../api/menuApi";
 import menuTypeApi from "../../api/menu_typeApi";
 import categoryApi from "../../api/categoryApi";
+import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const PAGE_SIZE = 5;
 
 const MenuManager = () => {
     const navigate = useNavigate();
@@ -18,6 +21,8 @@ const MenuManager = () => {
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [availabilityFilter, setAvailabilityFilter] = useState("all");
     const [sortOrder, setSortOrder] = useState("name_asc");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
 
     useEffect(() => {
         const fetchFilterOptions = async () => {
@@ -66,7 +71,9 @@ const MenuManager = () => {
             try {
                 const params = {
                     search: searchTerm,
-                    sort: sortOrder
+                    sort: sortOrder,
+                    page,
+                    limit: PAGE_SIZE
                 };
 
                 if (typeFilter !== "all") {
@@ -82,14 +89,20 @@ const MenuManager = () => {
                 }
 
                 const response = await menuApi.getAll(params);
+                const data = response.data?.data || [];
 
-                setMenuItems(response.data);
+                setMenuItems(data);
+                setPagination(response.data?.pagination || { page, limit: PAGE_SIZE, totalItems: data.length, totalPages: 1 });
             } catch (error) {
                 console.error("Failed to fetch menu items:", error);
             }
         };
 
         fetchMenuItems();
+    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, sortOrder, page]);
+
+    useEffect(() => {
+        setPage(1);
     }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, sortOrder]);
 
     const availableCount = useMemo(() => {
@@ -218,7 +231,7 @@ const MenuManager = () => {
                                             className="hover:bg-slate-50 cursor-pointer"
                                             onClick={() => navigate(`/admin/menus/${item.id}`)}
                                         >
-                                            <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                             <td>
                                                 {item.image_url ? (
                                                     <div className="h-15 w-25">
@@ -254,6 +267,13 @@ const MenuManager = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <TablePagination
+                            page={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalItems={pagination.totalItems}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </div>
             </div>

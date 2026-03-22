@@ -17,7 +17,7 @@ const Dashboard = () => {
         const fetchDashboard = async () => {
             try {
                 const [ordersRes, menuRes, customersRes, usersRes] = await Promise.all([
-                    orderApi.getAllOrders(""),
+                    orderApi.getAllOrders({ page: 1, limit: 8, sortBy: "created_at", sortDir: "desc" }),
                     menuApi.getAll(),
                     customerApi.getCustomers(),
                     userApi.getUsers()

@@ -1,8 +1,11 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
-import { useEffect, useState } from "react";
+import TablePagination from "../../components/admin/TablePagination";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const PAGE_SIZE = 5;
 
 const CustomerManager = () => {
     const [customers, setCustomers] = useState([]);
@@ -10,7 +13,8 @@ const CustomerManager = () => {
     const [isActiveFilter, setIsActiveFilter] = useState("all");
     const [sortBy, setSortBy] = useState("created_at");
     const [sortDir, setSortDir] = useState("desc");
-    const [togglingId, setTogglingId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -27,9 +31,12 @@ const CustomerManager = () => {
                 search,
                 isActive: isActiveFilter,
                 sortBy,
-                sortDir
+                sortDir,
+                page,
+                limit: PAGE_SIZE
             });
             setCustomers(response.data?.data || []);
+            setPagination(response.data?.pagination || { page, limit: PAGE_SIZE, totalItems: (response.data?.data || []).length, totalPages: 1 });
         } catch (error) {
             console.error("Error fetching customers:", error);
         }
@@ -37,7 +44,17 @@ const CustomerManager = () => {
 
     useEffect(() => {
         fetchCustomers();
+    }, [search, isActiveFilter, sortBy, sortDir, page]);
+
+    useEffect(() => {
+        setPage(1);
     }, [search, isActiveFilter, sortBy, sortDir]);
+
+    const activeCount = useMemo(() => {
+        return customers.filter((customer) => customer.is_active).length;
+    }, [customers]);
+
+    const lockedCount = Math.max(0, customers.length - activeCount);
 
     const formatDate = (value) => {
         if (!value) {
@@ -45,23 +62,6 @@ const CustomerManager = () => {
         }
 
         return new Date(value).toLocaleDateString("vi-VN");
-    };
-
-    const handleToggleStatus = async (customer) => {
-        if (togglingId) return;
-        setTogglingId(customer.id);
-        try {
-            const res = await customerApi.toggleCustomerStatus(customer.id);
-            const updated = res.data?.data;
-            setCustomers((prev) =>
-                prev.map((c) => (c.id === updated.id ? { ...c, is_active: updated.is_active } : c))
-            );
-            fetchCustomers();
-        } catch (error) {
-            console.error("Error toggling customer status:", error);
-        } finally {
-            setTogglingId(null);
-        }
     };
 
     const resetCreateForm = () => {
@@ -121,23 +121,14 @@ const CustomerManager = () => {
                 />
 
                 <main className="p-6">
-                    <div className="mb-4 flex items-center justify-end">
-                        <button
-                            onClick={() => setIsCreateOpen(true)}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                        >
-                            Thêm khách hàng
-                        </button>
-                    </div>
-
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
                             <input
                                 type="text"
                                 placeholder="Tìm khách hàng theo tên, số điện thoại, email..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                className="flex-1 min-w-55 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             />
 
                             <select
@@ -168,6 +159,25 @@ const CustomerManager = () => {
                                 <option value="desc">Giảm dần</option>
                                 <option value="asc">Tăng dần</option>
                             </select>
+
+                            <button
+                                onClick={() => setIsCreateOpen(true)}
+                                className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                            >
+                                Thêm khách hàng
+                            </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
+                                Tổng khách hàng: <strong>{pagination.totalItems}</strong>
+                            </span>
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
+                                Đang hoạt động: <strong>{activeCount}</strong>
+                            </span>
+                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
+                                Đã khóa: <strong>{lockedCount}</strong>
+                            </span>
                         </div>
                     </div>
 
@@ -182,14 +192,17 @@ const CustomerManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Email</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày tạo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {customers.map((customer, index) => (
-                                        <tr key={customer.id} className="hover:bg-slate-50">
-                                            <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                        <tr
+                                            key={customer.id}
+                                            className="cursor-pointer hover:bg-slate-50"
+                                            onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                                        >
+                                            <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{customer.full_name || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{customer.phone_number || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{customer.email || "-"}</td>
@@ -199,32 +212,12 @@ const CustomerManager = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{formatDate(customer.created_at)}</td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => navigate(`/admin/customers/${customer.id}`)}
-                                                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-                                                    >
-                                                        Chi tiết
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleToggleStatus(customer)}
-                                                        disabled={togglingId === customer.id}
-                                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${customer.is_active
-                                                            ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                                            }`}
-                                                    >
-                                                        {togglingId === customer.id ? "..." : customer.is_active ? "Khóa" : "Mở khóa"}
-                                                    </button>
-                                                </div>
-                                            </td>
                                         </tr>
                                     ))}
 
                                     {customers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có khách hàng phù hợp.
                                             </td>
                                         </tr>
@@ -232,6 +225,13 @@ const CustomerManager = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <TablePagination
+                            page={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalItems={pagination.totalItems}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </main>
 

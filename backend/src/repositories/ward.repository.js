@@ -1,16 +1,23 @@
 const db = require("../config/db");
 
-const getWards = async ({ search = "", sortBy = "name", sortDir = "asc" } = {}) => {
+const getWards = async ({ search = "", sortBy = "name", sortDir = "asc", page = 1, limit = 5 } = {}) => {
     const values = [];
-    let query = `
-        SELECT id, name, shipping_fee
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 100) : 5;
+    const offset = (safePage - 1) * safeLimit;
+
+    let fromWhere = `
         FROM wards
     `;
 
     if (search) {
         values.push(`%${search}%`);
-        query += ` WHERE name ILIKE $${values.length}`;
+        fromWhere += ` WHERE name ILIKE $${values.length}`;
     }
+
+    const countQuery = `SELECT COUNT(*)::int AS total ${fromWhere}`;
+    const countResult = await db.query(countQuery, values);
+    const totalItems = countResult.rows[0]?.total || 0;
 
     const sortMap = {
         name: "name",
@@ -18,10 +25,29 @@ const getWards = async ({ search = "", sortBy = "name", sortDir = "asc" } = {}) 
     };
     const safeSortBy = sortMap[sortBy] || "name";
     const safeSortDir = String(sortDir).toLowerCase() === "desc" ? "DESC" : "ASC";
-    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
+
+    values.push(safeLimit);
+    const limitParam = values.length;
+    values.push(offset);
+    const offsetParam = values.length;
+
+    const query = `
+        SELECT id, name, shipping_fee
+        ${fromWhere}
+        ORDER BY ${safeSortBy} ${safeSortDir}
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+    `;
 
     const result = await db.query(query, values);
-    return result.rows;
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const createWard = async (name, shippingFee) => {

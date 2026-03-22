@@ -207,7 +207,7 @@ const MenuCreate = () => {
 
                             <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                                 {previewUrl ? (
-                                    <img src={previewUrl} alt="Xem trước món ăn" className="h-56 w-full object-cover" />
+                                    <img src={previewUrl} alt="Ảnh món ăn" className="w-full aspect-square object-contain" />
                                 ) : (
                                     <div className="flex h-56 items-center justify-center text-sm text-slate-500">
                                         Chưa có ảnh xem trước

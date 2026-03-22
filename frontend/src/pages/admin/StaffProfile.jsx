@@ -203,6 +203,7 @@ const StaffProfile = () => {
                                 <InfoRow label="Họ và tên" value={profile.full_name} />
                                 <InfoRow label="Số điện thoại" value={profile.phone_number} />
                                 <InfoRow label="Trạng thái" value={profile.is_active ? "Đang hoạt động" : "Đã khóa"} />
+                                <InfoRow label="Ngày tạo" value={new Date(profile.created_at).toLocaleString()} />
                             </div>
                         )}
                     </section>

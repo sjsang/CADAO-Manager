@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import AdminHeader from "../../components/admin/AdminHeader";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import wardApi from "../../api/wardApi";
+import TablePagination from "../../components/admin/TablePagination";
+
+const PAGE_SIZE = 5;
 
 const initialFormData = {
     name: "",
@@ -17,6 +20,8 @@ const WardManager = () => {
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("name");
     const [sortDir, setSortDir] = useState("asc");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     const [formData, setFormData] = useState(initialFormData);
     const [editingWardId, setEditingWardId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -32,10 +37,13 @@ const WardManager = () => {
             const response = await wardApi.getWards({
                 search,
                 sortBy,
-                sortDir
+                sortDir,
+                page,
+                limit: PAGE_SIZE
             });
 
             setWards(response.data?.data || []);
+            setPagination(response.data?.pagination || { page, limit: PAGE_SIZE, totalItems: (response.data?.data || []).length, totalPages: 1 });
         } catch (error) {
             setFeedback({
                 type: "error",
@@ -48,6 +56,10 @@ const WardManager = () => {
 
     useEffect(() => {
         fetchWards({ showLoading: true });
+    }, [search, sortBy, sortDir, page]);
+
+    useEffect(() => {
+        setPage(1);
     }, [search, sortBy, sortDir]);
 
     const averageShippingFee = useMemo(() => {
@@ -259,6 +271,13 @@ const WardManager = () => {
                                     >
                                         {isSubmitting ? "Đang lưu..." : editingWardId ? "Lưu thay đổi" : "Thêm phường"}
                                     </button>
+                                    {editingWardId ? (
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 font-medium text-slate-700 transition hover:bg-slate-50"
+                                        >Hủy</button>
+                                    ) : null}
                                 </div>
                             </form>
                         </article>
@@ -291,7 +310,7 @@ const WardManager = () => {
 
                                         {!isLoading && wards.map((ward, index) => (
                                             <tr key={ward.id} className="hover:bg-slate-50">
-                                                <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                                <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{ward.name}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{formatCurrency(ward.shipping_fee)}</td>
                                                 <td className="px-4 py-3 text-sm">
@@ -325,6 +344,15 @@ const WardManager = () => {
                                     </tbody>
                                 </table>
                             </div>
+
+                            {!isLoading ? (
+                                <TablePagination
+                                    page={pagination.page}
+                                    totalPages={pagination.totalPages}
+                                    totalItems={pagination.totalItems}
+                                    onPageChange={setPage}
+                                />
+                            ) : null}
                         </article>
                     </section>
                 </main>

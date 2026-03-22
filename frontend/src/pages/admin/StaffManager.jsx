@@ -1,8 +1,11 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
-import { useEffect, useState } from "react";
+import TablePagination from "../../components/admin/TablePagination";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const PAGE_SIZE = 5;
 
 const ROLE_OPTIONS = [
     { value: "admin", label: "Admin" },
@@ -29,7 +32,8 @@ const StaffManager = () => {
     const [isActiveFilter, setIsActiveFilter] = useState("all");
     const [sortBy, setSortBy] = useState("created_at");
     const [sortDir, setSortDir] = useState("desc");
-    const [togglingId, setTogglingId] = useState(null);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -48,9 +52,12 @@ const StaffManager = () => {
                 role: roleFilter,
                 isActive: isActiveFilter,
                 sortBy,
-                sortDir
+                sortDir,
+                page,
+                limit: PAGE_SIZE
             });
             setUsers(response.data?.data || []);
+            setPagination(response.data?.pagination || { page, limit: PAGE_SIZE, totalItems: (response.data?.data || []).length, totalPages: 1 });
         } catch (error) {
             console.error("Error fetching users:", error);
         }
@@ -58,7 +65,17 @@ const StaffManager = () => {
 
     useEffect(() => {
         fetchUsers();
+    }, [search, roleFilter, isActiveFilter, sortBy, sortDir, page]);
+
+    useEffect(() => {
+        setPage(1);
     }, [search, roleFilter, isActiveFilter, sortBy, sortDir]);
+
+    const activeCount = useMemo(() => {
+        return users.filter((user) => user.is_active).length;
+    }, [users]);
+
+    const lockedCount = Math.max(0, users.length - activeCount);
 
     const formatDate = (value) => {
         if (!value) {
@@ -76,25 +93,6 @@ const StaffManager = () => {
             role: "staff",
             password: ""
         });
-    };
-
-    const handleToggleStatus = async (user) => {
-        if (togglingId) return;
-        setTogglingId(user.id);
-
-        try {
-            const res = await userApi.toggleUserStatus(user.id);
-            const updated = res.data?.data;
-            setUsers((prev) =>
-                prev.map((u) => (u.id === updated.id ? { ...u, is_active: updated.is_active } : u))
-            );
-            fetchUsers();
-        } catch (error) {
-            console.error("Error toggling user status:", error);
-            alert(error?.response?.data?.message || "Không thể cập nhật trạng thái nhân viên.");
-        } finally {
-            setTogglingId(null);
-        }
     };
 
     const handleCreateUser = async (e) => {
@@ -145,23 +143,14 @@ const StaffManager = () => {
                 />
 
                 <main className="p-6">
-                    <div className="mb-4 flex items-center justify-end">
-                        <button
-                            onClick={() => setIsCreateOpen(true)}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                        >
-                            Thêm nhân viên
-                        </button>
-                    </div>
-
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
                             <input
                                 type="text"
                                 placeholder="Tìm nhân viên theo tài khoản, tên, vai trò..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                className="flex-1 min-w-55 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                             />
 
                             <select
@@ -204,6 +193,25 @@ const StaffManager = () => {
                                 <option value="desc">Giảm dần</option>
                                 <option value="asc">Tăng dần</option>
                             </select>
+
+                            <button
+                                onClick={() => setIsCreateOpen(true)}
+                                className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                            >
+                                Thêm nhân viên
+                            </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
+                                Tổng nhân sự: <strong>{pagination.totalItems}</strong>
+                            </span>
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
+                                Đang hoạt động: <strong>{activeCount}</strong>
+                            </span>
+                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
+                                Đã khóa: <strong>{lockedCount}</strong>
+                            </span>
                         </div>
                     </div>
 
@@ -219,14 +227,17 @@ const StaffManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Vai trò</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày tạo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {users.map((user, index) => (
-                                        <tr key={user.id} className="hover:bg-slate-50">
-                                            <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
+                                        <tr
+                                            key={user.id}
+                                            className="cursor-pointer hover:bg-slate-50"
+                                            onClick={() => navigate(`/admin/users/${user.id}`)}
+                                        >
+                                            <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{user.username}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.full_name || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.phone_number || "-"}</td>
@@ -241,32 +252,12 @@ const StaffManager = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{formatDate(user.created_at)}</td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => navigate(`/admin/users/${user.id}`)}
-                                                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-                                                    >
-                                                        Chi tiết
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleToggleStatus(user)}
-                                                        disabled={togglingId === user.id}
-                                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${user.is_active
-                                                            ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                                            }`}
-                                                    >
-                                                        {togglingId === user.id ? "..." : user.is_active ? "Khóa" : "Mở khóa"}
-                                                    </button>
-                                                </div>
-                                            </td>
                                         </tr>
                                     ))}
 
                                     {users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có dữ liệu nhân viên phù hợp.
                                             </td>
                                         </tr>
@@ -274,6 +265,13 @@ const StaffManager = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        <TablePagination
+                            page={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalItems={pagination.totalItems}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </main>
 

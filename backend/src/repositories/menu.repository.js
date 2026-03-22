@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-const getMenuItems = async (type, category, search, sort, available) => {
+const getMenuItems = async ({ type, category, search, sort, available, page, limit } = {}) => {
 
     let query = `
         SELECT menu_items.*
@@ -50,8 +50,33 @@ const getMenuItems = async (type, category, search, sort, available) => {
             query += ` ORDER BY menu_items.name ASC`;
     }
 
-    const result = await db.query(query, values);
-    return result.rows;
+    const hasPagination = page !== undefined || limit !== undefined;
+    if (!hasPagination) {
+        const result = await db.query(query, values);
+        return result.rows;
+    }
+
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 100) : 5;
+    const offset = (safePage - 1) * safeLimit;
+
+    const countQuery = `SELECT COUNT(*)::int AS total FROM (${query}) AS filtered_menu_items`;
+    const countResult = await db.query(countQuery, values);
+    const totalItems = countResult.rows[0]?.total || 0;
+
+    const paginatedValues = [...values, safeLimit, offset];
+    const paginatedQuery = `${query} LIMIT $${paginatedValues.length - 1} OFFSET $${paginatedValues.length}`;
+    const result = await db.query(paginatedQuery, paginatedValues);
+
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const getMenuItemById = async (id) => {

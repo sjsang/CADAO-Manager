@@ -23,14 +23,17 @@ const getOrderStatusHistoryByOrderId = async (orderId) => {
     return result.rows;
 };
 
-const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at", sortDir = "desc" } = {}) => {
-    let query = `
-    SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
-           o.total_amount, o.status
-    FROM orders o
-`;
+const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at", sortDir = "desc", page = 1, limit = 5 } = {}) => {
     const params = [];
     const conditions = [];
+
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 100) : 5;
+    const offset = (safePage - 1) * safeLimit;
+
+    let fromWhere = `
+        FROM orders o
+    `;
 
     if (search) {
         params.push(`%${search}%`);
@@ -43,8 +46,12 @@ const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at"
     }
 
     if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(" AND ")}`;
+        fromWhere += ` WHERE ${conditions.join(" AND ")}`;
     }
+
+    const countQuery = `SELECT COUNT(*)::int AS total ${fromWhere}`;
+    const countResult = await db.query(countQuery, params);
+    const totalItems = countResult.rows[0]?.total || 0;
 
     const sortMap = {
         created_at: "o.created_at",
@@ -53,10 +60,30 @@ const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at"
     };
     const safeSortBy = sortMap[sortBy] || "o.created_at";
     const safeSortDir = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
-    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
+
+    params.push(safeLimit);
+    const limitParam = params.length;
+    params.push(offset);
+    const offsetParam = params.length;
+
+    const query = `
+        SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
+               o.total_amount, o.status, o.created_at
+        ${fromWhere}
+        ORDER BY ${safeSortBy} ${safeSortDir}
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+    `;
 
     const result = await db.query(query, params);
-    return result.rows;
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const getOrdersByCustomerId = async (customerId) => {

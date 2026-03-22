@@ -258,68 +258,71 @@ const StaffDetail = () => {
                                 ) : (
                                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                         <InfoRow label="Username" value={user.username} />
+                                        <InfoRow label="Vai trò" value={ROLE_TEXT[user.role] || user.role} />
                                         <InfoRow label="Họ và tên" value={user.full_name} />
                                         <InfoRow label="Số điện thoại" value={user.phone_number} />
-                                        <InfoRow label="Vai trò" value={ROLE_TEXT[user.role] || user.role} />
+                                        <InfoRow label="Trạng thái" value={user.is_active ? "Đang hoạt động" : "Đã khóa"} />
                                         <InfoRow label="Ngày tạo" value={formatDateTime(user.created_at)} />
                                     </div>
                                 )}
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                <h2 className="mb-4 text-base font-semibold text-slate-800">
-                                    Đơn hàng đã phân công ({user.assigned_orders?.length ?? 0})
-                                </h2>
+                            {user.role !== "admin" &&
+                                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <h2 className="mb-4 text-base font-semibold text-slate-800">
+                                        Đơn hàng đã phân công ({user.assigned_orders?.length ?? 0})
+                                    </h2>
 
-                                {user.assigned_orders?.length === 0 ? (
-                                    <p className="text-sm text-slate-500">Nhân viên này chưa được phân công đơn hàng nào.</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full divide-y divide-slate-200">
-                                            <thead className="bg-slate-50">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Mã đơn</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Loại phân công</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Khách hàng</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">SĐT</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng tiền</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Trạng thái</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ngày tạo</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 bg-white">
-                                                {user.assigned_orders.map((order) => {
-                                                    const statusInfo = STATUS_BADGE_CLASS[order.status] || "bg-slate-100 text-slate-700 border border-slate-200";
-                                                    return (
-                                                        <tr key={`${order.order_code}-${order.assignment_type}`} className="hover:bg-slate-50">
-                                                            <td className="px-4 py-3 text-sm font-mono text-slate-700">{order.order_code}</td>
-                                                            <td className="px-4 py-3 text-sm text-slate-700">{ASSIGNMENT_TEXT[order.assignment_type] || order.assignment_type}</td>
-                                                            <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name || "-"}</td>
-                                                            <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_phone || "-"}</td>
-                                                            <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(order.total_amount)}</td>
-                                                            <td className="px-4 py-3 text-sm">
-                                                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusInfo}`}>
-                                                                    {getStatusText(order.status)}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(order.created_at)}</td>
-                                                            <td className="px-4 py-3">
-                                                                <button
-                                                                    onClick={() => navigate(`/admin/orders/${order.order_code}`)}
-                                                                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-                                                                >
-                                                                    Xem đơn
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
+                                    {user.assigned_orders?.length === 0 ? (
+                                        <p className="text-sm text-slate-500">Nhân viên này chưa được phân công đơn hàng nào.</p>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-slate-200">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Mã đơn</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Loại phân công</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Khách hàng</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">SĐT</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng tiền</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Trạng thái</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ngày tạo</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 bg-white">
+                                                    {user.assigned_orders.map((order) => {
+                                                        const statusInfo = STATUS_BADGE_CLASS[order.status] || "bg-slate-100 text-slate-700 border border-slate-200";
+                                                        return (
+                                                            <tr key={`${order.order_code}-${order.assignment_type}`} className="hover:bg-slate-50">
+                                                                <td className="px-4 py-3 text-sm font-mono text-slate-700">{order.order_code}</td>
+                                                                <td className="px-4 py-3 text-sm text-slate-700">{ASSIGNMENT_TEXT[order.assignment_type] || order.assignment_type}</td>
+                                                                <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name || "-"}</td>
+                                                                <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_phone || "-"}</td>
+                                                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(order.total_amount)}</td>
+                                                                <td className="px-4 py-3 text-sm">
+                                                                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusInfo}`}>
+                                                                        {getStatusText(order.status)}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(order.created_at)}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <button
+                                                                        onClick={() => navigate(`/admin/orders/${order.order_code}`)}
+                                                                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                                                                    >
+                                                                        Xem đơn
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            }
                         </>
                     )}
                 </main>
