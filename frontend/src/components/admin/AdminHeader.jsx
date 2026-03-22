@@ -16,7 +16,9 @@ const AdminHeader = ({ title, subtitle }) => {
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split(".")[1]));
-            adminLabel = payload?.username || payload?.name || `Admin #${payload?.id || ""}`;
+            adminLabel = `#${payload?.username}`;
+            console.log(payload);
+
         } catch {
             adminLabel = "Quản trị viên";
         }

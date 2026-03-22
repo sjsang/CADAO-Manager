@@ -243,7 +243,7 @@ const cancelOrder = async (orderCode) => {
     return null;
 };
 
-const updateOrderStatus = async (orderCode, status, changedBy = null, note = null) => {
+const updateOrderStatus = async (orderCode, status, changedBy = null, note = null, shipperId = null) => {
     const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
 
     if (currentOrderResult.rowCount === 0) {
@@ -251,14 +251,71 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, note = nul
     }
 
     const currentOrder = currentOrderResult.rows[0];
-    const query = `UPDATE orders SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE order_code=$2 RETURNING id, order_code, status`;
-    const result = await db.query(query, [status, orderCode]);
+
+    let query;
+    let params;
+
+    if (status === 'shipping' && shipperId) {
+        query = `UPDATE orders SET status=$1, shipper_id=$2, updated_at=CURRENT_TIMESTAMP WHERE order_code=$3 RETURNING id, order_code, status`;
+        params = [status, shipperId, orderCode];
+    } else {
+        query = `UPDATE orders SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE order_code=$2 RETURNING id, order_code, status`;
+        params = [status, orderCode];
+    }
+
+    const result = await db.query(query, params);
 
     if (result.rows[0]) {
         await createOrderStatusHistory(result.rows[0].id, currentOrder.status, status, changedBy, note);
     }
 
     return result.rows[0] || null;
+};
+
+const getShippers = async () => {
+    const query = `
+        SELECT id, username, full_name, phone_number
+        FROM users
+        WHERE role = 'shipper' AND is_active = TRUE
+        ORDER BY full_name ASC
+    `;
+    const result = await db.query(query);
+    return result.rows;
+};
+
+const getOrdersByShipperId = async (shipperId) => {
+    const query = `
+        SELECT o.order_code, o.delivery_full_name, o.delivery_phone,
+               o.delivery_address, o.delivery_ward_name,
+               o.total_amount, o.status, o.notes, o.created_at
+        FROM orders o
+        WHERE o.shipper_id = $1 AND o.status = 'shipping'
+        ORDER BY o.created_at ASC
+    `;
+    const result = await db.query(query, [shipperId]);
+    return result.rows;
+};
+
+const completeDelivery = async (orderCode, shipperId) => {
+    const check = await db.query(
+        `SELECT id, status, shipper_id FROM orders WHERE order_code = $1`,
+        [orderCode]
+    );
+
+    if (check.rowCount === 0) throw new Error('ORDER_NOT_FOUND');
+    const order = check.rows[0];
+
+    if (order.status !== 'shipping') throw new Error('ORDER_NOT_SHIPPING');
+    if (order.shipper_id !== shipperId) throw new Error('NOT_ASSIGNED');
+
+    const result = await db.query(
+        `UPDATE orders SET status='completed', updated_at=CURRENT_TIMESTAMP
+         WHERE order_code=$1 RETURNING id, order_code, status`,
+        [orderCode]
+    );
+
+    await createOrderStatusHistory(result.rows[0].id, 'shipping', 'completed', shipperId, null);
+    return result.rows[0];
 };
 
 module.exports = {
@@ -270,5 +327,8 @@ module.exports = {
     cancelOrder,
     updateOrderStatus,
     createOrderStatusHistory,
-    getOrderStatusHistoryByOrderId
+    getOrderStatusHistoryByOrderId,
+    getShippers,
+    getOrdersByShipperId,
+    completeDelivery
 };

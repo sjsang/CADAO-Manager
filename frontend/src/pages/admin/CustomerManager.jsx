@@ -2,10 +2,21 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const CustomerManager = () => {
     const [customers, setCustomers] = useState([]);
     const [search, setSearch] = useState("");
+    const [togglingId, setTogglingId] = useState(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        full_name: "",
+        phone_number: "",
+        email: "",
+        password: ""
+    });
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -42,6 +53,72 @@ const CustomerManager = () => {
         return new Date(value).toLocaleDateString("vi-VN");
     };
 
+    const handleToggleStatus = async (customer) => {
+        if (togglingId) return;
+        setTogglingId(customer.id);
+        try {
+            const res = await customerApi.toggleCustomerStatus(customer.id);
+            const updated = res.data?.data;
+            setCustomers((prev) =>
+                prev.map((c) => (c.id === updated.id ? { ...c, is_active: updated.is_active } : c))
+            );
+        } catch (error) {
+            console.error("Error toggling customer status:", error);
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const resetCreateForm = () => {
+        setCreateForm({
+            full_name: "",
+            phone_number: "",
+            email: "",
+            password: ""
+        });
+    };
+
+    const handleCreateCustomer = async (e) => {
+        e.preventDefault();
+
+        const payload = {
+            full_name: createForm.full_name.trim(),
+            phone_number: createForm.phone_number.trim(),
+            email: createForm.email.trim(),
+            password: createForm.password
+        };
+
+        if (!payload.full_name || !payload.phone_number || !payload.password) {
+            alert("Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu.");
+            return;
+        }
+
+        if (payload.password.length < 6) {
+            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            return;
+        }
+
+        setCreating(true);
+        try {
+            const response = await customerApi.create(payload);
+            const createdCustomer = response.data?.data;
+
+            if (createdCustomer) {
+                setCustomers((prev) => [createdCustomer, ...prev]);
+            }
+
+            setIsCreateOpen(false);
+            resetCreateForm();
+            alert("Thêm khách hàng thành công.");
+        } catch (error) {
+            const message = error?.response?.data?.message || "Không thể thêm khách hàng.";
+            alert(message);
+            console.error("Error creating customer:", error);
+        } finally {
+            setCreating(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-slate-100">
             <SideBarMenu activePage="customers" />
@@ -53,6 +130,15 @@ const CustomerManager = () => {
                 />
 
                 <main className="p-6">
+                    <div className="mb-4 flex items-center justify-end">
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                            Thêm khách hàng
+                        </button>
+                    </div>
+
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <input
                             type="text"
@@ -74,6 +160,7 @@ const CustomerManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Email</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày tạo</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
@@ -90,12 +177,32 @@ const CustomerManager = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{formatDate(customer.created_at)}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => navigate(`/admin/customers/${customer.id}`)}
+                                                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                                                    >
+                                                        Chi tiết
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleToggleStatus(customer)}
+                                                        disabled={togglingId === customer.id}
+                                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${customer.is_active
+                                                            ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                                            }`}
+                                                    >
+                                                        {togglingId === customer.id ? "..." : customer.is_active ? "Khóa" : "Mở khóa"}
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
 
                                     {filteredCustomers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có khách hàng phù hợp.
                                             </td>
                                         </tr>
@@ -105,6 +212,94 @@ const CustomerManager = () => {
                         </div>
                     </div>
                 </main>
+
+                {isCreateOpen ? (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+                        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                            <div className="mb-5 flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-slate-800">Thêm khách hàng mới</h2>
+                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản khách hàng từ trang quản trị.</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsCreateOpen(false);
+                                        resetCreateForm();
+                                    }}
+                                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateCustomer} className="space-y-4">
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Họ và tên</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.full_name}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập họ tên khách hàng"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Số điện thoại</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.phone_number}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, phone_number: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập số điện thoại"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Email (không bắt buộc)</label>
+                                    <input
+                                        type="email"
+                                        value={createForm.email}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập email"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                                    <input
+                                        type="password"
+                                        value={createForm.password}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Tối thiểu 6 ký tự"
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsCreateOpen(false);
+                                            resetCreateForm();
+                                        }}
+                                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={creating}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                                    >
+                                        {creating ? "Đang tạo..." : "Tạo khách hàng"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     );

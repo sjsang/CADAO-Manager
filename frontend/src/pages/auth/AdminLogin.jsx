@@ -13,6 +13,17 @@ const AdminLogin = () => {
                 password: formData.get('password')
             });
             sessionStorage.setItem("token", response.data.token);
+
+            const payload = JSON.parse(atob(response.data.token.split('.')[1] || ""));
+            if (payload?.role === "staff") {
+                navigate('/admin/orders');
+                return;
+            }
+            if (payload?.role === "shipper") {
+                navigate('/shipper/deliveries');
+                return;
+            }
+
             navigate('/admin/dashboard');
         } catch (error) {
             console.error("Login failed:", error);

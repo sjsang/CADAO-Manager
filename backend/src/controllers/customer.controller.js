@@ -11,6 +11,42 @@ const getCustomers = async (req, res) => {
     }
 };
 
+const createCustomerByAdmin = async (req, res) => {
+    try {
+        const { full_name, phone_number, email, password } = req.body;
+
+        if (!full_name || !phone_number || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu"
+            });
+        }
+
+        if (String(password).length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Mật khẩu phải có ít nhất 6 ký tự"
+            });
+        }
+
+        const customer = await customerService.createCustomerByAdmin({
+            full_name: String(full_name).trim(),
+            phone_number: String(phone_number).trim(),
+            email: email ? String(email).trim() : null,
+            password: String(password)
+        });
+
+        res.status(201).json({ success: true, data: customer });
+    }
+    catch (error) {
+        if (error?.code === '23505') {
+            return res.status(409).json({ success: false, message: 'Email đã tồn tại' });
+        }
+        console.error("Error creating customer by admin:", error);
+        res.status(500).json({ success: false, message: "Failed to create customer" });
+    }
+};
+
 const updateCustomer = async (req, res) => {
     try {
         const id = req.user.id;
@@ -103,12 +139,47 @@ const setDefaultAddress = async (req, res) => {
     }
 };
 
+const getCustomerById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [customer, addresses, orders] = await Promise.all([
+            customerService.getCustomerById(id),
+            customerService.getCustomerAddressesByAdmin(id),
+            customerService.getCustomerOrders(id)
+        ]);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+        res.status(200).json({ success: true, data: { ...customer, addresses, orders } });
+    } catch (error) {
+        console.error('Error fetching customer detail:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch customer' });
+    }
+};
+
+const toggleCustomerStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const customer = await customerService.toggleCustomerStatus(id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+        res.status(200).json({ success: true, data: customer });
+    } catch (error) {
+        console.error('Error toggling customer status:', error);
+        res.status(500).json({ success: false, message: 'Failed to toggle customer status' });
+    }
+};
+
 module.exports = {
     getCustomers,
+    createCustomerByAdmin,
     updateCustomer,
     getAddresses,
     addAddress,
     updateAddress,
     deleteAddress,
-    setDefaultAddress
+    setDefaultAddress,
+    getCustomerById,
+    toggleCustomerStatus
 };

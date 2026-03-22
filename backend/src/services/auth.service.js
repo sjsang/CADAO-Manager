@@ -21,7 +21,8 @@ const loginAdmin = async (username, password) => {
 
         const token = generateToken({
             id: admin.id,
-            role: admin.role
+            role: admin.role,
+            username: admin.username
         });
         await db.query(
             `INSERT INTO user_tokens (user_id, token, expires_at)
@@ -69,7 +70,7 @@ const loginCustomer = async (email, password) => {
 
         const token = generateToken({
             id: customer.id,
-            role: 'customer'
+            role: 'customer',
         });
 
         await db.query(

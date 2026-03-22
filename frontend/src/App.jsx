@@ -18,8 +18,11 @@ import MenuManager from './pages/admin/MenuManager'
 import MenuCreate from './pages/admin/MenuCreate'
 import MenuDetail from './pages/admin/MenuDetail'
 import CustomerManager from './pages/admin/CustomerManager'
+import CustomerDetail from './pages/admin/CustomerDetail'
 import StaffManager from './pages/admin/StaffManager'
+import StaffDetail from './pages/admin/StaffDetail'
 import WardManager from './pages/admin/WardManager'
+import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -36,9 +39,24 @@ const getTokenPayload = () => {
   }
 };
 
+const hasPortalAccess = () => {
+  const payload = getTokenPayload();
+  return payload?.role === 'admin' || payload?.role === 'staff' || payload?.role === 'shipper';
+};
+
 const isAdminAuthenticated = () => {
   const payload = getTokenPayload();
   return payload?.role === 'admin';
+};
+
+const canManageOrders = () => {
+  const payload = getTokenPayload();
+  return payload?.role === 'admin' || payload?.role === 'staff';
+};
+
+const isShipper = () => {
+  const payload = getTokenPayload();
+  return payload?.role === 'shipper';
 };
 
 const AdminRoute = ({ children }) => {
@@ -49,8 +67,33 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const OrderManagerRoute = ({ children }) => {
+  if (!canManageOrders()) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return children;
+};
+
+const ShipperRoute = ({ children }) => {
+  if (!isShipper()) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return children;
+};
+
 const AdminLoginRoute = () => {
-  if (isAdminAuthenticated()) {
+  const payload = getTokenPayload();
+
+  if (hasPortalAccess()) {
+    if (payload?.role === 'staff') {
+      return <Navigate to="/admin/orders" replace />;
+    }
+    if (payload?.role === 'shipper') {
+      return <Navigate to="/shipper/deliveries" replace />;
+    }
+
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -76,14 +119,17 @@ const App = () => {
       {/* Admin Routes */}
       <Route path="/admin/login" element={<AdminLoginRoute />} />
       <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
-      <Route path="/admin/orders" element={<AdminRoute><OrderManager /></AdminRoute>} />
-      <Route path="/admin/orders/:orderCode" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
+      <Route path="/admin/orders" element={<OrderManagerRoute><OrderManager /></OrderManagerRoute>} />
+      <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
       <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
       <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
       <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
+      <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><StaffManager /></AdminRoute>} />
+      <Route path="/admin/users/:id" element={<AdminRoute><StaffDetail /></AdminRoute>} />
       <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
+      <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
     </Routes>
   );
 }

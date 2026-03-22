@@ -2,10 +2,40 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const ROLE_OPTIONS = [
+    { value: "admin", label: "Admin" },
+    { value: "staff", label: "Nhân viên" },
+    { value: "shipper", label: "Shipper" }
+];
+
+const ROLE_BADGE = {
+    admin: "border border-rose-200 bg-rose-50 text-rose-700",
+    staff: "border border-sky-200 bg-sky-50 text-sky-700",
+    shipper: "border border-violet-200 bg-violet-50 text-violet-700"
+};
+
+const ROLE_TEXT = {
+    admin: "Admin",
+    staff: "Nhân viên",
+    shipper: "Shipper"
+};
 
 const StaffManager = () => {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState("");
+    const [togglingId, setTogglingId] = useState(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        username: "",
+        full_name: "",
+        phone_number: "",
+        role: "staff",
+        password: ""
+    });
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -42,6 +72,74 @@ const StaffManager = () => {
         return new Date(value).toLocaleDateString("vi-VN");
     };
 
+    const resetCreateForm = () => {
+        setCreateForm({
+            username: "",
+            full_name: "",
+            phone_number: "",
+            role: "staff",
+            password: ""
+        });
+    };
+
+    const handleToggleStatus = async (user) => {
+        if (togglingId) return;
+        setTogglingId(user.id);
+
+        try {
+            const res = await userApi.toggleUserStatus(user.id);
+            const updated = res.data?.data;
+            setUsers((prev) =>
+                prev.map((u) => (u.id === updated.id ? { ...u, is_active: updated.is_active } : u))
+            );
+        } catch (error) {
+            console.error("Error toggling user status:", error);
+            alert(error?.response?.data?.message || "Không thể cập nhật trạng thái nhân viên.");
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+
+        const payload = {
+            username: createForm.username.trim(),
+            full_name: createForm.full_name.trim(),
+            phone_number: createForm.phone_number.trim(),
+            role: createForm.role,
+            password: createForm.password
+        };
+
+        if (!payload.username || !payload.password || !payload.role) {
+            alert("Vui lòng nhập username, mật khẩu và vai trò.");
+            return;
+        }
+
+        if (payload.password.length < 6) {
+            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            return;
+        }
+
+        setCreating(true);
+
+        try {
+            const response = await userApi.create(payload);
+            const createdUser = response.data?.data;
+            if (createdUser) {
+                setUsers((prev) => [createdUser, ...prev]);
+            }
+            setIsCreateOpen(false);
+            resetCreateForm();
+            alert("Thêm nhân viên thành công.");
+        } catch (error) {
+            console.error("Error creating user:", error);
+            alert(error?.response?.data?.message || "Không thể thêm nhân viên.");
+        } finally {
+            setCreating(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen bg-slate-100">
             <SideBarMenu activePage="staff" />
@@ -53,6 +151,15 @@ const StaffManager = () => {
                 />
 
                 <main className="p-6">
+                    <div className="mb-4 flex items-center justify-end">
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                            Thêm nhân viên
+                        </button>
+                    </div>
+
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <input
                             type="text"
@@ -75,6 +182,7 @@ const StaffManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Vai trò</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày tạo</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
@@ -85,19 +193,43 @@ const StaffManager = () => {
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{user.username}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.full_name || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.phone_number || "-"}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{user.role}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_BADGE[user.role] || "border border-slate-200 bg-slate-50 text-slate-700"}`}>
+                                                    {ROLE_TEXT[user.role] || user.role}
+                                                </span>
+                                            </td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${user.is_active ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
                                                     {user.is_active ? "Đang hoạt động" : "Đã khóa"}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{formatDate(user.created_at)}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => navigate(`/admin/users/${user.id}`)}
+                                                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                                                    >
+                                                        Chi tiết
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleToggleStatus(user)}
+                                                        disabled={togglingId === user.id}
+                                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${user.is_active
+                                                                ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                                                : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                                            }`}
+                                                    >
+                                                        {togglingId === user.id ? "..." : user.is_active ? "Khóa" : "Mở khóa"}
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
 
                                     {filteredUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có dữ liệu nhân viên phù hợp.
                                             </td>
                                         </tr>
@@ -107,9 +239,110 @@ const StaffManager = () => {
                         </div>
                     </div>
                 </main>
+
+                {isCreateOpen ? (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+                        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                            <div className="mb-5 flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-slate-800">Thêm nhân viên mới</h2>
+                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản vận hành từ trang quản trị.</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setIsCreateOpen(false);
+                                        resetCreateForm();
+                                    }}
+                                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateUser} className="space-y-4">
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.username}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, username: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập username"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Họ và tên</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.full_name}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập họ tên"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Số điện thoại</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.phone_number}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, phone_number: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Nhập số điện thoại"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Vai trò</label>
+                                    <select
+                                        value={createForm.role}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    >
+                                        {ROLE_OPTIONS.map((item) => (
+                                            <option key={item.value} value={item.value}>{item.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                                    <input
+                                        type="password"
+                                        value={createForm.password}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        placeholder="Tối thiểu 6 ký tự"
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsCreateOpen(false);
+                                            resetCreateForm();
+                                        }}
+                                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                    >
+                                        Hủy
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={creating}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                                    >
+                                        {creating ? "Đang tạo..." : "Tạo nhân viên"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     );
-}
+};
 
 export default StaffManager;

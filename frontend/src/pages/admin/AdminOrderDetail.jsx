@@ -123,6 +123,10 @@ const AdminOrderDetail = () => {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [selectedCancelReason, setSelectedCancelReason] = useState(CANCEL_REASONS[0]);
     const [customCancelReason, setCustomCancelReason] = useState("");
+    const [isShipperModalOpen, setIsShipperModalOpen] = useState(false);
+    const [shippers, setShippers] = useState([]);
+    const [selectedShipperId, setSelectedShipperId] = useState("");
+    const [isLoadingShippers, setIsLoadingShippers] = useState(false);
 
     const loadOrder = async () => {
         const response = await orderApi.getByOrderCode(orderCode);
@@ -164,8 +168,8 @@ const AdminOrderDetail = () => {
         return selectedCancelReason;
     };
 
-    const handleStatusUpdate = async (nextStatus, note) => {
-        const confirmed = window.confirm(`Bạn có chắc muốn chuyển đơn hàng sang trạng thái \"${getStatusText(nextStatus)}\"?`);
+    const handleStatusUpdate = async (nextStatus, note, shipperId) => {
+        const confirmed = window.confirm(`Bạn có chắc muốn chuyển đơn hàng sang trạng thái "${getStatusText(nextStatus)}"?`);
 
         if (!confirmed) {
             return false;
@@ -174,7 +178,7 @@ const AdminOrderDetail = () => {
         setIsUpdating(true);
 
         try {
-            await orderApi.updateStatusByAdmin(orderCode, nextStatus, note);
+            await orderApi.updateStatusByAdmin(orderCode, nextStatus, note, shipperId);
             await loadOrder();
             return true;
         } catch (error) {
@@ -186,9 +190,48 @@ const AdminOrderDetail = () => {
         }
     };
 
+    const openShipperModal = async () => {
+        setIsShipperModalOpen(true);
+        setSelectedShipperId("");
+        setIsLoadingShippers(true);
+        try {
+            const res = await orderApi.getShippers();
+            setShippers(res.data?.data || []);
+        } catch (error) {
+            console.error("Failed to load shippers:", error);
+            setShippers([]);
+        } finally {
+            setIsLoadingShippers(false);
+        }
+    };
+
+    const closeShipperModal = () => {
+        setIsShipperModalOpen(false);
+        setSelectedShipperId("");
+        setShippers([]);
+    };
+
+    const handleConfirmShipping = async () => {
+        if (!selectedShipperId) {
+            alert("Vui lòng chọn người giao hàng.");
+            return;
+        }
+
+        const didUpdate = await handleStatusUpdate("shipping", null, Number(selectedShipperId));
+
+        if (didUpdate) {
+            closeShipperModal();
+        }
+    };
+
     const handleActionClick = async (nextStatus) => {
         if (nextStatus === "cancelled") {
             setIsCancelModalOpen(true);
+            return;
+        }
+
+        if (nextStatus === "shipping") {
+            await openShipperModal();
             return;
         }
 
@@ -348,6 +391,54 @@ const AdminOrderDetail = () => {
                     </section>
                 </main>
             </div>
+
+            {isShipperModalOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                        <h3 className="text-lg font-semibold text-slate-800">Chọn người giao hàng</h3>
+                        <p className="mt-2 text-sm text-slate-500">Vui lòng chọn shipper để giao đơn hàng này.</p>
+
+                        <div className="mt-5">
+                            {isLoadingShippers ? (
+                                <p className="text-sm text-slate-500">Đang tải danh sách shipper...</p>
+                            ) : shippers.length === 0 ? (
+                                <p className="text-sm text-rose-500">Hiện không có shipper nào đang hoạt động.</p>
+                            ) : (
+                                <select
+                                    value={selectedShipperId}
+                                    onChange={(e) => setSelectedShipperId(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                >
+                                    <option value="">-- Chọn người giao hàng --</option>
+                                    {shippers.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.full_name || s.username}{s.phone_number ? ` — ${s.phone_number}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={closeShipperModal}
+                                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                type="button"
+                                disabled={isUpdating || isLoadingShippers || shippers.length === 0}
+                                onClick={handleConfirmShipping}
+                                className="rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300"
+                            >
+                                {isUpdating ? "Đang xử lý..." : "Xác nhận giao hàng"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
 
             {isCancelModalOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">

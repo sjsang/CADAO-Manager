@@ -1,6 +1,10 @@
 import axiosClient from './axiosClient';
 
 const customerApi = {
+    create: (data) => {
+        const url = '/customers';
+        return axiosClient.post(url, data);
+    },
     getCustomers: () => {
         const url = '/customers';
         return axiosClient.get(url);
@@ -29,6 +33,12 @@ const customerApi = {
     setDefaultAddress: (addressId) => {
         const url = '/customers/addresses/set-default';
         return axiosClient.post(url, { addressId });
+    },
+    getCustomerById: (id) => {
+        return axiosClient.get(`/customers/${id}`);
+    },
+    toggleCustomerStatus: (id) => {
+        return axiosClient.patch(`/customers/${id}/toggle-status`);
     }
 }
 

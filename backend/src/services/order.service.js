@@ -38,7 +38,11 @@ const cancelOrder = async (orderCode) => {
     }
 };
 
-const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note) => {
+const getShippers = async () => {
+    return await orderRepository.getShippers();
+};
+
+const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note, shipperId = null) => {
     const order = await orderRepository.getOrderByOrderCode(orderCode);
 
     if (!order) {
@@ -60,7 +64,19 @@ const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note) 
         throw new Error("Cancel reason is required");
     }
 
-    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote);
+    if (nextStatus === "shipping" && !shipperId) {
+        throw new Error("Vui lòng chọn người giao hàng");
+    }
+
+    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote, shipperId);
+};
+
+const getOrdersByShipperId = async (shipperId) => {
+    return await orderRepository.getOrdersByShipperId(shipperId);
+};
+
+const completeDelivery = async (orderCode, shipperId) => {
+    return await orderRepository.completeDelivery(orderCode, shipperId);
 };
 
 module.exports = {
@@ -70,5 +86,8 @@ module.exports = {
     getOrderByOrderCode,
     confirmOrder,
     cancelOrder,
-    updateOrderStatusByAdmin
+    updateOrderStatusByAdmin,
+    getShippers,
+    getOrdersByShipperId,
+    completeDelivery
 };
