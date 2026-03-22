@@ -1,4 +1,5 @@
 import Header from "../../components/customer/Header";
+import AddressManager from "../../components/customer/AddressManager";
 import authApi from "../../api/authApi";
 import orderApi from "../../api/orderApi";
 import customerApi from "../../api/customerApi";
@@ -145,6 +146,9 @@ const ProfilePage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Address Manager */}
+                <AddressManager />
 
                 {orders.length > 0 && (
                     <div className="mt-8">

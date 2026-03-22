@@ -32,8 +32,7 @@ const CartPage = () => {
         const fetchCustomerInfo = async () => {
             try {
                 const response = await authApi.me();
-
-                setCustomerInfo(response.data);
+                setCustomerInfo(response.data?.data || response.data || null);
             } catch (error) {
                 console.error("Failed to fetch customer info:", error);
             }
@@ -70,9 +69,15 @@ const CartPage = () => {
 
     const handleCheckout = async () => {
         try {
+            if (!customerInfo?.address_id || !customerInfo?.address || !customerInfo?.ward_name) {
+                alert("Vui lòng thiết lập địa chỉ mặc định trước khi thanh toán.");
+                navigate("/customer/me");
+                return;
+            }
+
             const orderData = {
                 items: cartItems,
-                shippingFee: 0,
+                shippingFee: Number(customerInfo?.shipping_fee || 0),
                 discountAmount: 0,
                 deliveryFullName: customerInfo ? `${customerInfo.full_name}` : "",
                 deliveryPhone: customerInfo ? `${customerInfo.phone_number}` : "",

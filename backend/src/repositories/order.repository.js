@@ -64,6 +64,22 @@ const createOrUpdateOrder = async (customerId, orderData) => {
     try {
         await db.query("BEGIN");
 
+        const defaultAddressResult = await db.query(
+            `SELECT ca.address_line, w.name AS ward_name, w.shipping_fee
+             FROM customer_addresses ca
+             JOIN wards w ON w.id = ca.ward_id
+             WHERE ca.customer_id = $1 AND ca.is_default = TRUE
+             LIMIT 1`,
+            [customerId]
+        );
+
+        if (defaultAddressResult.rowCount === 0) {
+            throw new Error("DEFAULT_ADDRESS_REQUIRED");
+        }
+
+        const defaultAddress = defaultAddressResult.rows[0];
+        const shippingFee = Number(defaultAddress.shipping_fee || 0);
+
         const existingOrderRes = await db.query(
             "SELECT id FROM orders WHERE customer_id=$1 AND status='cart' LIMIT 1",
             [customerId]
@@ -72,7 +88,7 @@ const createOrUpdateOrder = async (customerId, orderData) => {
         let orderId;
         let orderCode;
         let subtotal = orderData.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        let totalAmount = subtotal + (orderData.shippingFee || 0) - (orderData.discountAmount || 0);
+        let totalAmount = subtotal + shippingFee - (orderData.discountAmount || 0);
 
         if (existingOrderRes.rowCount > 0) {
             orderId = existingOrderRes.rows[0].id;
@@ -84,9 +100,9 @@ const createOrUpdateOrder = async (customerId, orderData) => {
                 [
                     orderData.deliveryFullName,
                     orderData.deliveryPhone,
-                    orderData.deliveryAddress,
-                    orderData.deliveryWardName,
-                    orderData.shippingFee || 0,
+                    defaultAddress.address_line,
+                    defaultAddress.ward_name,
+                    shippingFee,
                     subtotal,
                     orderData.discountAmount || 0,
                     totalAmount,
@@ -109,9 +125,9 @@ const createOrUpdateOrder = async (customerId, orderData) => {
                     customerId,
                     orderData.deliveryFullName,
                     orderData.deliveryPhone,
-                    orderData.deliveryAddress,
-                    orderData.deliveryWardName,
-                    orderData.shippingFee || 0,
+                    defaultAddress.address_line,
+                    defaultAddress.ward_name,
+                    shippingFee,
                     subtotal,
                     orderData.discountAmount || 0,
                     totalAmount,

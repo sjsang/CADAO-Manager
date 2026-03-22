@@ -22,9 +22,25 @@ const loginCustomer = async (email) => {
 
 const getCustomerById = async (id) => {
     const query = `
-        SELECT id, full_name, phone_number, email, is_active, created_at
-        FROM customers
-        WHERE id = $1
+        SELECT
+            c.id,
+            c.full_name,
+            c.phone_number,
+            c.email,
+            c.is_active,
+            c.created_at,
+            ca.id AS address_id,
+            ca.address_line AS address,
+            w.id AS ward_id,
+            w.name AS ward_name,
+            w.shipping_fee
+        FROM customers c
+        LEFT JOIN customer_addresses ca
+            ON ca.customer_id = c.id
+            AND ca.is_default = TRUE
+        LEFT JOIN wards w
+            ON w.id = ca.ward_id
+        WHERE c.id = $1
     `;
 
     const result = await db.query(query, [id]);

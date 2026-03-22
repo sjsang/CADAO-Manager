@@ -30,6 +30,12 @@ const createOrUpdateOrder = async (req, res) => {
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error("Error creating order:", error);
+        if (error.message === "DEFAULT_ADDRESS_REQUIRED") {
+            return res.status(400).json({
+                success: false,
+                message: "Vui long thiet lap dia chi mac dinh truoc khi thanh toan"
+            });
+        }
         res.status(500).json({ success: false, message: "Failed to create order" });
     }
 };

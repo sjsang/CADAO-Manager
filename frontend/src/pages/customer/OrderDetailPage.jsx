@@ -65,7 +65,7 @@ const OrderDetailPage = () => {
 
                             <div className="flex">
                                 <strong>Ghi chú:</strong>
-                                <p className="ml-2">{order.notes}</p>
+                                <p className="ml-2">{order.notes || '-'}</p>
                             </div>
 
                             <p><strong>Phí vận chuyển:</strong> {Number(order.shipping_fee).toLocaleString('vi-VN')} VND</p>
@@ -108,7 +108,7 @@ const OrderDetailPage = () => {
                                         <td className="border-b border-gray-700 py-2">{item.name}</td>
                                         <td className="border-b border-gray-700 py-2">{item.quantity}</td>
                                         <td className="border-b border-gray-700 py-2">{Number(item.price).toLocaleString('vi-VN')} VND</td>
-                                        <td className="border-b border-gray-700 py-2">{item.note}</td>
+                                        <td className="border-b border-gray-700 py-2">{item.note || '-'}</td>
                                     </tr>
                                 ))}
                             </tbody>

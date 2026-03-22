@@ -1,6 +1,7 @@
 import Header from "../../components/customer/Header";
 import orderApi from "../../api/orderApi";
 import cartApi from "../../api/cartApi";
+import customerApi from "../../api/customerApi";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -8,6 +9,9 @@ const CheckoutPage = () => {
     const { orderCode } = useParams();
     const navigate = useNavigate();
     const [orderDetails, setOrderDetails] = useState(null);
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [shippingFee, setShippingFee] = useState(0);
     const [form, setForm] = useState({
         delivery_full_name: "",
         delivery_phone: "",
@@ -18,41 +22,66 @@ const CheckoutPage = () => {
     });
 
     useEffect(() => {
-        const fetchOrderDetails = async () => {
+        const fetchData = async () => {
             try {
-                const response = await orderApi.getByOrderCode(orderCode);
-                setOrderDetails(response.data.data);
+                const [orderRes, addressRes] = await Promise.all([
+                    orderApi.getByOrderCode(orderCode),
+                    customerApi.getAddresses()
+                ]);
+                const order = orderRes.data.data;
+                const addrs = addressRes.data.data || [];
+                setOrderDetails(order);
+                setShippingFee(Number(order.shipping_fee || 0));
+                setAddresses(addrs);
                 setForm({
-                    delivery_full_name: response.data.data.delivery_full_name,
-                    delivery_phone: response.data.data.delivery_phone,
-                    delivery_address: response.data.data.delivery_address || "",
-                    delivery_ward_name: response.data.data.delivery_ward_name || "",
-                    notes: response.data.data.notes || "",
+                    delivery_full_name: order.delivery_full_name,
+                    delivery_phone: order.delivery_phone,
+                    delivery_address: order.delivery_address || "",
+                    delivery_ward_name: order.delivery_ward_name || "",
+                    notes: order.notes || "",
                     paymentMethod: "cash"
                 });
+                const matched = addrs.find(
+                    a => a.address_line === order.delivery_address && a.ward_name === order.delivery_ward_name
+                );
+                if (matched) setSelectedAddressId(matched.id);
             } catch (error) {
-                console.error("Failed to fetch order details:", error);
+                console.error("Failed to fetch data:", error);
             }
         };
-        fetchOrderDetails();
+        fetchData();
     }, [orderCode]);
+
+    const handleAddressSelect = (addr) => {
+        setSelectedAddressId(addr.id);
+        setShippingFee(Number(addr.shipping_fee || 0));
+        setForm(prev => ({
+            ...prev,
+            delivery_address: addr.address_line,
+            delivery_ward_name: addr.ward_name
+        }));
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        if (name === "delivery_address" || name === "delivery_ward_name") {
+            setSelectedAddressId(null);
+        }
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleConfirm = async (e) => {
         e.preventDefault();
         try {
+            const computedTotal = Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0);
             const payload = {
                 ...form,
                 subtotal: orderDetails.subtotal,
-                shipping_fee: orderDetails.shipping_fee,
+                shipping_fee: shippingFee,
                 discount_amount: orderDetails.discount_amount,
-                total_amount: orderDetails.total_amount
+                total_amount: computedTotal
             };
-            const result = await orderApi.confirm(orderCode, payload, form.paymentMethod);
+            await orderApi.confirm(orderCode, payload, form.paymentMethod);
             alert(`Đơn hàng xác nhận thành công! Mã đơn hàng: ${orderCode}`);
             await cartApi.deleteAllCartItems();
             navigate("/");
@@ -71,6 +100,35 @@ const CheckoutPage = () => {
                     <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <form className="space-y-4" onSubmit={handleConfirm}>
                             <p><strong>Mã đơn hàng:</strong> {orderDetails.order_code}</p>
+
+                            {addresses.length > 0 && (
+                                <div>
+                                    <p className="font-semibold mb-2">Chọn địa chỉ giao hàng:</p>
+                                    <div className="space-y-2">
+                                        {addresses.map(addr => (
+                                            <div
+                                                key={addr.id}
+                                                onClick={() => handleAddressSelect(addr)}
+                                                className={`p-3 rounded border cursor-pointer ${
+                                                    selectedAddressId === addr.id
+                                                        ? 'border-blue-500 bg-blue-900/40'
+                                                        : 'border-gray-600 bg-gray-700 hover:border-gray-400'
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-sm">{addr.address_line}, {addr.ward_name}</p>
+                                                        <p className="text-xs text-gray-400">Phí ship: {Number(addr.shipping_fee || 0).toLocaleString('vi-VN')}đ</p>
+                                                    </div>
+                                                    {addr.is_default && (
+                                                        <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded ml-2">Mặc định</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex gap-6">
                                 <div>
@@ -128,9 +186,9 @@ const CheckoutPage = () => {
                                 />
                             </div>
 
-                            <p><strong>Phí vận chuyển:</strong> {Number(orderDetails.shipping_fee).toLocaleString('vi-VN')} VND</p>
+                            <p><strong>Phí vận chuyển:</strong> {shippingFee.toLocaleString('vi-VN')} VND</p>
                             <p><strong>Giảm giá:</strong> {Number(orderDetails.discount_amount).toLocaleString('vi-VN')} VND</p>
-                            <p><strong>Tổng tiền:</strong> {Number(orderDetails.total_amount).toLocaleString('vi-VN')} VND</p>
+                            <p><strong>Tổng tiền:</strong> {(Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0)).toLocaleString('vi-VN')} VND</p>
 
                             <div className="flex items-center">
                                 <strong>Phương thức thanh toán:</strong>
