@@ -23,18 +23,38 @@ const getOrderStatusHistoryByOrderId = async (orderId) => {
     return result.rows;
 };
 
-const getAllOrders = async (search) => {
+const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at", sortDir = "desc" } = {}) => {
     let query = `
     SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
            o.total_amount, o.status
     FROM orders o
 `;
     const params = [];
+    const conditions = [];
+
     if (search) {
-        query += ` WHERE o.order_code ILIKE $1 OR o.delivery_full_name ILIKE $1`;
         params.push(`%${search}%`);
+        conditions.push(`(o.order_code ILIKE $${params.length} OR o.delivery_full_name ILIKE $${params.length})`);
     }
-    query += ` ORDER BY o.created_at DESC`;
+
+    if (["pending", "confirmed", "preparing", "shipping", "completed", "cancelled"].includes(status)) {
+        params.push(status);
+        conditions.push(`o.status = $${params.length}`);
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+
+    const sortMap = {
+        created_at: "o.created_at",
+        total_amount: "o.total_amount",
+        delivery_full_name: "o.delivery_full_name"
+    };
+    const safeSortBy = sortMap[sortBy] || "o.created_at";
+    const safeSortDir = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
+    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
+
     const result = await db.query(query, params);
     return result.rows;
 };

@@ -15,54 +15,40 @@ const getErrorMessage = (error, fallbackMessage) => {
 const WardManager = () => {
     const [wards, setWards] = useState([]);
     const [search, setSearch] = useState("");
+    const [sortBy, setSortBy] = useState("name");
+    const [sortDir, setSortDir] = useState("asc");
     const [formData, setFormData] = useState(initialFormData);
     const [editingWardId, setEditingWardId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null);
 
-    useEffect(() => {
-        let isMounted = true;
-
-        const fetchWards = async () => {
-            try {
-                const response = await wardApi.getWards();
-
-                if (isMounted) {
-                    setWards(response.data?.data || []);
-                }
-            } catch (error) {
-                if (isMounted) {
-                    setFeedback({
-                        type: "error",
-                        message: getErrorMessage(error, "Không thể tải danh sách phường.")
-                    });
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        fetchWards();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const filteredWards = useMemo(() => {
-        const normalizedSearch = search.trim().toLowerCase();
-
-        if (!normalizedSearch) {
-            return wards;
+    const fetchWards = async ({ showLoading = false } = {}) => {
+        if (showLoading) {
+            setIsLoading(true);
         }
 
-        return wards.filter((ward) => {
-            return String(ward.name || "").toLowerCase().includes(normalizedSearch);
-        });
-    }, [wards, search]);
+        try {
+            const response = await wardApi.getWards({
+                search,
+                sortBy,
+                sortDir
+            });
+
+            setWards(response.data?.data || []);
+        } catch (error) {
+            setFeedback({
+                type: "error",
+                message: getErrorMessage(error, "Không thể tải danh sách phường.")
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchWards({ showLoading: true });
+    }, [search, sortBy, sortDir]);
 
     const averageShippingFee = useMemo(() => {
         if (!wards.length) {
@@ -79,8 +65,7 @@ const WardManager = () => {
     };
 
     const refreshWards = async (successMessage) => {
-        const response = await wardApi.getWards();
-        setWards(response.data?.data || []);
+        await fetchWards();
 
         if (successMessage) {
             setFeedback({
@@ -190,6 +175,26 @@ const WardManager = () => {
                                 />
                             </div>
 
+                            <div className="flex items-center gap-3">
+                                <select
+                                    value={sortBy}
+                                    onChange={(event) => setSortBy(event.target.value)}
+                                    className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                >
+                                    <option value="name">Sắp xếp: Tên phường</option>
+                                    <option value="shipping_fee">Sắp xếp: Phí ship</option>
+                                </select>
+
+                                <select
+                                    value={sortDir}
+                                    onChange={(event) => setSortDir(event.target.value)}
+                                    className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                >
+                                    <option value="asc">Tăng dần</option>
+                                    <option value="desc">Giảm dần</option>
+                                </select>
+                            </div>
+
                             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
                                 <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
                                     Tổng phường: <strong>{wards.length}</strong>
@@ -284,7 +289,7 @@ const WardManager = () => {
                                             </tr>
                                         ) : null}
 
-                                        {!isLoading && filteredWards.map((ward, index) => (
+                                        {!isLoading && wards.map((ward, index) => (
                                             <tr key={ward.id} className="hover:bg-slate-50">
                                                 <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
                                                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{ward.name}</td>
@@ -310,7 +315,7 @@ const WardManager = () => {
                                             </tr>
                                         ))}
 
-                                        {!isLoading && filteredWards.length === 0 ? (
+                                        {!isLoading && wards.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
                                                     Không có phường phù hợp với từ khóa tìm kiếm.

@@ -2,7 +2,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
 import { getStatusText } from "../../functions/formatOrderFields";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const OrderManager = () => {
@@ -10,6 +10,8 @@ const OrderManager = () => {
     const [orders, setOrders] = useState([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("created_at");
+    const [sortDir, setSortDir] = useState("desc");
 
     const token = sessionStorage.getItem("token");
     let currentRole = "admin";
@@ -26,7 +28,12 @@ const OrderManager = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const response = await orderApi.getAllOrders(search);
+                const response = await orderApi.getAllOrders({
+                    search,
+                    status: statusFilter,
+                    sortBy,
+                    sortDir
+                });
                 if (response.data.success) {
                     setOrders(response.data.data);
                 } else {
@@ -38,15 +45,7 @@ const OrderManager = () => {
         };
 
         fetchOrders();
-    }, [search]);
-
-    const displayedOrders = useMemo(() => {
-        if (statusFilter === "all") {
-            return orders;
-        }
-
-        return orders.filter((order) => order.status === statusFilter);
-    }, [orders, statusFilter]);
+    }, [search, statusFilter, sortBy, sortDir]);
 
     const statusClass = (status) => {
         const map = {
@@ -98,17 +97,36 @@ const OrderManager = () => {
                                 <option value="completed">Đã hoàn thành</option>
                                 <option value="cancelled">Đã hủy</option>
                             </select>
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="created_at">Sắp xếp: Ngày tạo</option>
+                                <option value="total_amount">Sắp xếp: Tổng tiền</option>
+                                <option value="delivery_full_name">Sắp xếp: Khách hàng</option>
+                            </select>
+
+                            <select
+                                value={sortDir}
+                                onChange={(e) => setSortDir(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="desc">Mới nhất / Giảm dần</option>
+                                <option value="asc">Cũ nhất / Tăng dần</option>
+                            </select>
                         </div>
                     </div>
 
                     {isStaff ? (
-                        displayedOrders.length === 0 ? (
+                        orders.length === 0 ? (
                             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
                                 Không có đơn hàng phù hợp bộ lọc.
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                {displayedOrders.map((order, index) => (
+                                {orders.map((order, index) => (
                                     <div
                                         key={`${order.order_code}-${index}`}
                                         className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow"
@@ -151,7 +169,7 @@ const OrderManager = () => {
                                     </thead>
 
                                     <tbody className="divide-y divide-slate-100 bg-white">
-                                        {displayedOrders.map((order, index) => (
+                                        {orders.map((order, index) => (
                                             <tr
                                                 key={`${order.order_code}-${index}`}
                                                 className="cursor-pointer hover:bg-slate-50"
@@ -171,7 +189,7 @@ const OrderManager = () => {
                                             </tr>
                                         ))}
 
-                                        {displayedOrders.length === 0 ? (
+                                        {orders.length === 0 ? (
                                             <tr>
                                                 <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                     Không có đơn hàng phù hợp bộ lọc.

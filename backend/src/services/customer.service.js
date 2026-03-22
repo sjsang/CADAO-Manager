@@ -1,8 +1,8 @@
 const customerRepository = require('../repositories/customer.repository');
 const bcrypt = require('bcrypt');
 
-const getCustomers = async () => {
-    return await customerRepository.getCustomers();
+const getCustomers = async (queryOptions) => {
+    return await customerRepository.getCustomers(queryOptions);
 };
 
 const createCustomerByAdmin = async (customerData) => {

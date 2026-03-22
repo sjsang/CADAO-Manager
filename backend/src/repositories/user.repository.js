@@ -1,12 +1,44 @@
 const db = require("../config/db");
 
-const getUsers = async () => {
-    const query = `
+const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = "created_at", sortDir = "desc" } = {}) => {
+    const values = [];
+    let query = `
         SELECT id, username, full_name, phone_number, role, is_active, created_at
         FROM users
-        ORDER BY created_at DESC
     `;
-    const result = await db.query(query);
+
+    const conditions = [];
+
+    if (search) {
+        values.push(`%${search}%`);
+        conditions.push(`(username ILIKE $${values.length} OR full_name ILIKE $${values.length} OR phone_number ILIKE $${values.length})`);
+    }
+
+    if (["admin", "staff", "shipper"].includes(role)) {
+        values.push(role);
+        conditions.push(`role = $${values.length}`);
+    }
+
+    if (isActive === "true" || isActive === "false") {
+        values.push(isActive === "true");
+        conditions.push(`is_active = $${values.length}`);
+    }
+
+    if (conditions.length > 0) {
+        query += ` WHERE ${conditions.join(" AND ")}`;
+    }
+
+    const sortMap = {
+        created_at: "created_at",
+        username: "username",
+        full_name: "full_name",
+        role: "role"
+    };
+    const safeSortBy = sortMap[sortBy] || "created_at";
+    const safeSortDir = String(sortDir).toLowerCase() === "asc" ? "ASC" : "DESC";
+    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
+
+    const result = await db.query(query, values);
     return result.rows;
 };
 

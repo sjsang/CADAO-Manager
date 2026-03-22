@@ -9,8 +9,8 @@ const ADMIN_STATUS_TRANSITIONS = {
     cancelled: []
 };
 
-const getAllOrders = async (search) => {
-    return await orderRepository.getAllOrders(search);
+const getAllOrders = async (queryOptions) => {
+    return await orderRepository.getAllOrders(queryOptions);
 };
 
 const getOrdersByCustomerId = async (customerId) => {

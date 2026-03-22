@@ -17,7 +17,13 @@ const sendError = (res, error, fallbackMessage) => {
 
 const getWards = async (req, res) => {
     try {
-        const wards = await wardService.getWards(req.query.search);
+        const queryOptions = {
+            search: String(req.query.search || "").trim(),
+            sortBy: String(req.query.sortBy || "name").trim(),
+            sortDir: String(req.query.sortDir || "asc").trim()
+        };
+
+        const wards = await wardService.getWards(queryOptions);
         res.status(200).json({ success: true, data: wards });
     } catch (error) {
         sendError(res, error, "Không thể lấy danh sách phường.");

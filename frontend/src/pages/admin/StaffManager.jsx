@@ -1,7 +1,7 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const ROLE_OPTIONS = [
@@ -25,6 +25,10 @@ const ROLE_TEXT = {
 const StaffManager = () => {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all");
+    const [isActiveFilter, setIsActiveFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("created_at");
+    const [sortDir, setSortDir] = useState("desc");
     const [togglingId, setTogglingId] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -37,32 +41,24 @@ const StaffManager = () => {
     });
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await userApi.getUsers();
-                setUsers(response.data?.data || []);
-            } catch (error) {
-                console.error("Error fetching users:", error);
-            }
-        };
-
-        fetchUsers();
-    }, []);
-
-    const filteredUsers = useMemo(() => {
-        const normalized = search.trim().toLowerCase();
-
-        if (!normalized) {
-            return users;
+    const fetchUsers = async () => {
+        try {
+            const response = await userApi.getUsers({
+                search,
+                role: roleFilter,
+                isActive: isActiveFilter,
+                sortBy,
+                sortDir
+            });
+            setUsers(response.data?.data || []);
+        } catch (error) {
+            console.error("Error fetching users:", error);
         }
+    };
 
-        return users.filter((user) => {
-            return [user.username, user.full_name, user.phone_number, user.role]
-                .filter(Boolean)
-                .some((value) => String(value).toLowerCase().includes(normalized));
-        });
-    }, [users, search]);
+    useEffect(() => {
+        fetchUsers();
+    }, [search, roleFilter, isActiveFilter, sortBy, sortDir]);
 
     const formatDate = (value) => {
         if (!value) {
@@ -92,6 +88,7 @@ const StaffManager = () => {
             setUsers((prev) =>
                 prev.map((u) => (u.id === updated.id ? { ...u, is_active: updated.is_active } : u))
             );
+            fetchUsers();
         } catch (error) {
             console.error("Error toggling user status:", error);
             alert(error?.response?.data?.message || "Không thể cập nhật trạng thái nhân viên.");
@@ -124,11 +121,8 @@ const StaffManager = () => {
         setCreating(true);
 
         try {
-            const response = await userApi.create(payload);
-            const createdUser = response.data?.data;
-            if (createdUser) {
-                setUsers((prev) => [createdUser, ...prev]);
-            }
+            await userApi.create(payload);
+            await fetchUsers();
             setIsCreateOpen(false);
             resetCreateForm();
             alert("Thêm nhân viên thành công.");
@@ -161,13 +155,56 @@ const StaffManager = () => {
                     </div>
 
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <input
-                            type="text"
-                            placeholder="Tìm nhân viên theo tài khoản, tên, vai trò..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        />
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                            <input
+                                type="text"
+                                placeholder="Tìm nhân viên theo tài khoản, tên, vai trò..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+
+                            <select
+                                value={roleFilter}
+                                onChange={(e) => setRoleFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Vai trò: Tất cả</option>
+                                <option value="admin">Admin</option>
+                                <option value="staff">Nhân viên</option>
+                                <option value="shipper">Shipper</option>
+                            </select>
+
+                            <select
+                                value={isActiveFilter}
+                                onChange={(e) => setIsActiveFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Trạng thái: Tất cả</option>
+                                <option value="true">Đang hoạt động</option>
+                                <option value="false">Đã khóa</option>
+                            </select>
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="created_at">Sắp xếp: Ngày tạo</option>
+                                <option value="username">Sắp xếp: Username</option>
+                                <option value="full_name">Sắp xếp: Họ tên</option>
+                                <option value="role">Sắp xếp: Vai trò</option>
+                            </select>
+
+                            <select
+                                value={sortDir}
+                                onChange={(e) => setSortDir(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -187,7 +224,7 @@ const StaffManager = () => {
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {filteredUsers.map((user, index) => (
+                                    {users.map((user, index) => (
                                         <tr key={user.id} className="hover:bg-slate-50">
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{user.username}</td>
@@ -216,8 +253,8 @@ const StaffManager = () => {
                                                         onClick={() => handleToggleStatus(user)}
                                                         disabled={togglingId === user.id}
                                                         className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${user.is_active
-                                                                ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                                                                : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                                            ? "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                                                            : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                                             }`}
                                                     >
                                                         {togglingId === user.id ? "..." : user.is_active ? "Khóa" : "Mở khóa"}
@@ -227,7 +264,7 @@ const StaffManager = () => {
                                         </tr>
                                     ))}
 
-                                    {filteredUsers.length === 0 ? (
+                                    {users.length === 0 ? (
                                         <tr>
                                             <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có dữ liệu nhân viên phù hợp.

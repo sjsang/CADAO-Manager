@@ -2,8 +2,13 @@ const orderService = require("../services/order.service");
 
 const getAllOrders = async (req, res) => {
     try {
-        const search = req.query.search || "";
-        const result = await orderService.getAllOrders(search);
+        const queryOptions = {
+            search: String(req.query.search || "").trim(),
+            status: String(req.query.status || "all").trim(),
+            sortBy: String(req.query.sortBy || "created_at").trim(),
+            sortDir: String(req.query.sortDir || "desc").trim()
+        };
+        const result = await orderService.getAllOrders(queryOptions);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error fetching orders:", error);

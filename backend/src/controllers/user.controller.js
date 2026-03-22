@@ -2,7 +2,15 @@ const userService = require("../services/user.service");
 
 const getUsers = async (req, res) => {
     try {
-        const result = await userService.getUsers();
+        const queryOptions = {
+            search: String(req.query.search || "").trim(),
+            role: String(req.query.role || "all").trim(),
+            isActive: String(req.query.isActive || "all").trim(),
+            sortBy: String(req.query.sortBy || "created_at").trim(),
+            sortDir: String(req.query.sortDir || "desc").trim()
+        };
+
+        const result = await userService.getUsers(queryOptions);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error fetching users:", error);

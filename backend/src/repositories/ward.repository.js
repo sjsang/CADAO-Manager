@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-const getWards = async (search) => {
+const getWards = async ({ search = "", sortBy = "name", sortDir = "asc" } = {}) => {
     const values = [];
     let query = `
         SELECT id, name, shipping_fee
@@ -12,7 +12,13 @@ const getWards = async (search) => {
         query += ` WHERE name ILIKE $${values.length}`;
     }
 
-    query += ` ORDER BY name ASC`;
+    const sortMap = {
+        name: "name",
+        shipping_fee: "shipping_fee"
+    };
+    const safeSortBy = sortMap[sortBy] || "name";
+    const safeSortDir = String(sortDir).toLowerCase() === "desc" ? "DESC" : "ASC";
+    query += ` ORDER BY ${safeSortBy} ${safeSortDir}`;
 
     const result = await db.query(query, values);
     return result.rows;

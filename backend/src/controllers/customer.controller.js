@@ -2,7 +2,14 @@ const customerService = require('../services/customer.service');
 
 const getCustomers = async (req, res) => {
     try {
-        const data = await customerService.getCustomers();
+        const queryOptions = {
+            search: String(req.query.search || "").trim(),
+            isActive: String(req.query.isActive || "all").trim(),
+            sortBy: String(req.query.sortBy || "created_at").trim(),
+            sortDir: String(req.query.sortDir || "desc").trim()
+        };
+
+        const data = await customerService.getCustomers(queryOptions);
         res.status(200).json({ success: true, data });
     }
     catch (error) {

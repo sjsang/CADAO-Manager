@@ -4,8 +4,8 @@ const userApi = {
     create: (data) => {
         return axiosClient.post("/users", data);
     },
-    getUsers: () => {
-        return axiosClient.get("/users");
+    getUsers: (params = {}) => {
+        return axiosClient.get("/users", { params });
     },
     getUserById: (id) => {
         return axiosClient.get(`/users/${id}`);

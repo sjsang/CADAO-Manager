@@ -1,8 +1,8 @@
 const userRepository = require("../repositories/user.repository");
 const bcrypt = require("bcrypt");
 
-const getUsers = async () => {
-    return await userRepository.getUsers();
+const getUsers = async (queryOptions) => {
+    return await userRepository.getUsers(queryOptions);
 };
 
 const createUserByAdmin = async (userData) => {

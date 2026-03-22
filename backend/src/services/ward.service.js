@@ -46,9 +46,8 @@ const mapDatabaseError = (error) => {
     throw error;
 };
 
-const getWards = async (search) => {
-    const normalizedSearch = String(search || "").trim();
-    return wardRepository.getWards(normalizedSearch);
+const getWards = async (queryOptions) => {
+    return wardRepository.getWards(queryOptions);
 };
 
 const createWard = async (name, shippingFee) => {

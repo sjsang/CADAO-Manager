@@ -5,9 +5,9 @@ const customerApi = {
         const url = '/customers';
         return axiosClient.post(url, data);
     },
-    getCustomers: () => {
+    getCustomers: (params = {}) => {
         const url = '/customers';
-        return axiosClient.get(url);
+        return axiosClient.get(url, { params });
     },
     update: (data) => {
         const url = '/customers/me';

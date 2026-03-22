@@ -1,12 +1,15 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const CustomerManager = () => {
     const [customers, setCustomers] = useState([]);
     const [search, setSearch] = useState("");
+    const [isActiveFilter, setIsActiveFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("created_at");
+    const [sortDir, setSortDir] = useState("desc");
     const [togglingId, setTogglingId] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -18,32 +21,23 @@ const CustomerManager = () => {
     });
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchCustomers = async () => {
-            try {
-                const response = await customerApi.getCustomers();
-                setCustomers(response.data?.data || []);
-            } catch (error) {
-                console.error("Error fetching customers:", error);
-            }
-        };
-
-        fetchCustomers();
-    }, []);
-
-    const filteredCustomers = useMemo(() => {
-        const normalized = search.trim().toLowerCase();
-
-        if (!normalized) {
-            return customers;
+    const fetchCustomers = async () => {
+        try {
+            const response = await customerApi.getCustomers({
+                search,
+                isActive: isActiveFilter,
+                sortBy,
+                sortDir
+            });
+            setCustomers(response.data?.data || []);
+        } catch (error) {
+            console.error("Error fetching customers:", error);
         }
+    };
 
-        return customers.filter((customer) => {
-            return [customer.full_name, customer.phone_number, customer.email]
-                .filter(Boolean)
-                .some((value) => String(value).toLowerCase().includes(normalized));
-        });
-    }, [customers, search]);
+    useEffect(() => {
+        fetchCustomers();
+    }, [search, isActiveFilter, sortBy, sortDir]);
 
     const formatDate = (value) => {
         if (!value) {
@@ -62,6 +56,7 @@ const CustomerManager = () => {
             setCustomers((prev) =>
                 prev.map((c) => (c.id === updated.id ? { ...c, is_active: updated.is_active } : c))
             );
+            fetchCustomers();
         } catch (error) {
             console.error("Error toggling customer status:", error);
         } finally {
@@ -100,12 +95,8 @@ const CustomerManager = () => {
 
         setCreating(true);
         try {
-            const response = await customerApi.create(payload);
-            const createdCustomer = response.data?.data;
-
-            if (createdCustomer) {
-                setCustomers((prev) => [createdCustomer, ...prev]);
-            }
+            await customerApi.create(payload);
+            await fetchCustomers();
 
             setIsCreateOpen(false);
             resetCreateForm();
@@ -140,13 +131,44 @@ const CustomerManager = () => {
                     </div>
 
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <input
-                            type="text"
-                            placeholder="Tìm khách hàng theo tên, số điện thoại, email..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        />
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                            <input
+                                type="text"
+                                placeholder="Tìm khách hàng theo tên, số điện thoại, email..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="flex-1 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+
+                            <select
+                                value={isActiveFilter}
+                                onChange={(e) => setIsActiveFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Trạng thái: Tất cả</option>
+                                <option value="true">Đang hoạt động</option>
+                                <option value="false">Đã khóa</option>
+                            </select>
+
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="created_at">Sắp xếp: Ngày tạo</option>
+                                <option value="full_name">Sắp xếp: Họ tên</option>
+                                <option value="phone_number">Sắp xếp: SĐT</option>
+                            </select>
+
+                            <select
+                                value={sortDir}
+                                onChange={(e) => setSortDir(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -165,7 +187,7 @@ const CustomerManager = () => {
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {filteredCustomers.map((customer, index) => (
+                                    {customers.map((customer, index) => (
                                         <tr key={customer.id} className="hover:bg-slate-50">
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{customer.full_name || "-"}</td>
@@ -200,7 +222,7 @@ const CustomerManager = () => {
                                         </tr>
                                     ))}
 
-                                    {filteredCustomers.length === 0 ? (
+                                    {customers.length === 0 ? (
                                         <tr>
                                             <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có khách hàng phù hợp.

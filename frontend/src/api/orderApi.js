@@ -7,7 +7,7 @@ const orderApi = {
     confirm: (orderCode, payload, paymentMethod) =>
         axiosClient.patch(`/orders/${orderCode}/status`, { ...payload, paymentMethod, status: "confirmed" }),
     cancel: (orderCode) => axiosClient.patch(`/orders/${orderCode}/status`, { status: "cancelled" }),
-    getAllOrders: (search) => axiosClient.get(`/orders?search=${encodeURIComponent(search)}`),
+    getAllOrders: (params = {}) => axiosClient.get('/orders', { params }),
     updateStatusByAdmin: (orderCode, status, note, shipperId) =>
         axiosClient.patch(`/orders/${orderCode}/admin-status`, { status, note, shipperId: shipperId || undefined }),
     getShippers: () => axiosClient.get('/orders/shippers'),
