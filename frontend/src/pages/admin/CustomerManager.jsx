@@ -5,6 +5,7 @@ import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
+import NoticeModal from "../../components/admin/modals/NoticeModal";
 
 const PAGE_SIZE = 8;
 
@@ -29,7 +30,12 @@ const CustomerManager = () => {
         email: "",
         password: ""
     });
+    const [notice, setNotice] = useState({ isOpen: false, title: "", description: "", tone: "warning" });
     const navigate = useNavigate();
+
+    const openNotice = (title, description, tone = "warning") => {
+        setNotice({ isOpen: true, title, description, tone });
+    };
 
     const fetchCustomers = async () => {
         try {
@@ -86,12 +92,12 @@ const CustomerManager = () => {
         };
 
         if (!payload.full_name || !payload.phone_number || !payload.password) {
-            alert("Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu.");
+            openNotice("Thiếu thông tin bắt buộc", "Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu.", "warning");
             return;
         }
 
         if (payload.password.length < 6) {
-            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            openNotice("Mật khẩu chưa hợp lệ", "Mật khẩu phải có ít nhất 6 ký tự.", "warning");
             return;
         }
 
@@ -102,10 +108,10 @@ const CustomerManager = () => {
 
             setIsCreateOpen(false);
             resetCreateForm();
-            alert("Thêm khách hàng thành công.");
+            openNotice("Thao tác thành công", "Thêm khách hàng thành công.", "default");
         } catch (error) {
             const message = error?.response?.data?.message || "Không thể thêm khách hàng.";
-            alert(message);
+            openNotice("Không thể tạo khách hàng", message, "warning");
             console.error("Error creating customer:", error);
         } finally {
             setCreating(false);
@@ -338,6 +344,14 @@ const CustomerManager = () => {
                         </div>
                     </div>
                 ) : null}
+
+                <NoticeModal
+                    isOpen={notice.isOpen}
+                    title={notice.title || "Thông báo"}
+                    description={notice.description}
+                    tone={notice.tone}
+                    onClose={() => setNotice({ isOpen: false, title: "", description: "", tone: "warning" })}
+                />
             </div>
         </div>
     );

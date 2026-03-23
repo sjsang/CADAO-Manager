@@ -5,6 +5,9 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
 import { getPaymentMethodText, getPaymentStatusText, getStatusText } from "../../functions/formatOrderFields";
 import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDate";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
+import NoticeModal from "../../components/admin/modals/NoticeModal";
+import { RESTAURANT_INFO } from "../../constants/restaurantInfo";
 
 const CANCEL_REASONS = [
     "Khách hàng yêu cầu hủy đơn",
@@ -33,6 +36,30 @@ const formatDateTime = (value) => {
     const year = String(date.getFullYear());
 
     return `${hour}:${minute} ${day}/${month}/${year}`;
+};
+
+const formatCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+
+const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const getPortalUserName = () => {
+    const token = sessionStorage.getItem("token");
+
+    if (!token) {
+        return "Admin";
+    }
+
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        return payload?.full_name || payload?.username || "Admin";
+    } catch {
+        return "Admin";
+    }
 };
 
 const STATUS_BADGE_CLASS = {
@@ -128,6 +155,8 @@ const AdminOrderDetail = () => {
     const [selectedShipperId, setSelectedShipperId] = useState("");
     const [isLoadingShippers, setIsLoadingShippers] = useState(false);
     const [nowTs, setNowTs] = useState(Date.now());
+    const [noticeMessage, setNoticeMessage] = useState("");
+    const [pendingStatusAction, setPendingStatusAction] = useState(null);
 
     const loadOrder = useCallback(async () => {
         const response = await orderApi.getByOrderCode(orderCode);
@@ -141,7 +170,7 @@ const AdminOrderDetail = () => {
                 await loadOrder();
             } catch (error) {
                 console.error("Failed to fetch admin order detail:", error);
-                alert("Không tải được chi tiết đơn hàng.");
+                setNoticeMessage("Không tải được chi tiết đơn hàng.");
                 navigate("/admin/orders");
             } finally {
                 setIsLoading(false);
@@ -187,12 +216,6 @@ const AdminOrderDetail = () => {
     };
 
     const handleStatusUpdate = async (nextStatus, note, shipperId) => {
-        const confirmed = window.confirm(`Bạn có chắc muốn chuyển đơn hàng sang trạng thái "${getStatusText(nextStatus)}"?`);
-
-        if (!confirmed) {
-            return false;
-        }
-
         setIsUpdating(true);
 
         try {
@@ -201,11 +224,39 @@ const AdminOrderDetail = () => {
             return true;
         } catch (error) {
             console.error("Failed to update order status:", error);
-            alert(error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.");
+            setNoticeMessage(error.response?.data?.message || "Không thể cập nhật trạng thái đơn hàng.");
             return false;
         } finally {
             setIsUpdating(false);
         }
+    };
+
+    const requestStatusUpdateConfirmation = (nextStatus, note, shipperId) => {
+        setPendingStatusAction({ nextStatus, note, shipperId });
+    };
+
+    const handleConfirmStatusUpdate = async () => {
+        if (!pendingStatusAction) {
+            return;
+        }
+
+        const didUpdate = await handleStatusUpdate(
+            pendingStatusAction.nextStatus,
+            pendingStatusAction.note,
+            pendingStatusAction.shipperId
+        );
+
+        if (didUpdate) {
+            if (pendingStatusAction.nextStatus === "shipping") {
+                closeShipperModal();
+            }
+
+            if (pendingStatusAction.nextStatus === "cancelled") {
+                closeCancelModal();
+            }
+        }
+
+        setPendingStatusAction(null);
     };
 
     const openShipperModal = async () => {
@@ -231,15 +282,11 @@ const AdminOrderDetail = () => {
 
     const handleConfirmShipping = async () => {
         if (!selectedShipperId) {
-            alert("Vui lòng chọn người giao hàng.");
+            setNoticeMessage("Vui lòng chọn người giao hàng.");
             return;
         }
 
-        const didUpdate = await handleStatusUpdate("shipping", null, Number(selectedShipperId));
-
-        if (didUpdate) {
-            closeShipperModal();
-        }
+        requestStatusUpdateConfirmation("shipping", null, Number(selectedShipperId));
     };
 
     const handleActionClick = async (nextStatus) => {
@@ -253,22 +300,139 @@ const AdminOrderDetail = () => {
             return;
         }
 
-        await handleStatusUpdate(nextStatus);
+        requestStatusUpdateConfirmation(nextStatus);
     };
 
     const handleConfirmCancel = async () => {
         const cancelNote = getCancelNote();
 
         if (!cancelNote) {
-            alert("Vui lòng chọn hoặc nhập lý do hủy đơn.");
+            setNoticeMessage("Vui lòng chọn hoặc nhập lý do hủy đơn.");
             return;
         }
 
-        const didCancel = await handleStatusUpdate("cancelled", cancelNote);
+        requestStatusUpdateConfirmation("cancelled", cancelNote);
+    };
 
-        if (didCancel) {
-            closeCancelModal();
+    const handlePrintInvoice = () => {
+        if (!order) {
+            return;
         }
+
+        const printTime = formatDateTime(new Date());
+        const staffName = getPortalUserName();
+        const itemRows = (order.items || []).map((item, index) => {
+            const quantity = Number(item.quantity || 0);
+            const unitPrice = Number(item.price || 0);
+            const lineTotal = quantity * unitPrice;
+
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td style="text-align:center">${quantity}</td>
+                    <td style="text-align:right">${escapeHtml(formatCurrency(unitPrice))}</td>
+                    <td style="text-align:right">${escapeHtml(formatCurrency(lineTotal))}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const html = `
+            <!doctype html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>Hoa don ${escapeHtml(order.order_code)}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; color: #0f172a; margin: 24px; }
+                        .head { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; }
+                        h1 { margin: 0; font-size: 22px; }
+                        .muted { color: #475569; font-size: 13px; margin-top: 4px; }
+                        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin: 14px 0 18px; }
+                        .row-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+                        .row-value { font-size: 14px; margin-top: 2px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px; font-size: 13px; }
+                        th { background: #f8fafc; text-align: left; }
+                        .totals { margin-top: 14px; width: 320px; margin-left: auto; }
+                        .totals .line { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #cbd5e1; font-size: 13px; }
+                        .totals .line.total { font-weight: 700; border-bottom: none; font-size: 15px; }
+                        .footer { margin-top: 28px; color: #64748b; font-size: 12px; text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="head">
+                        <h1>HOA DON DON HANG</h1>
+                        <div class="muted">${escapeHtml(RESTAURANT_INFO.name)} - ${escapeHtml(RESTAURANT_INFO.address)} - ${escapeHtml(RESTAURANT_INFO.phone)}</div>
+                    </div>
+
+                    <div class="grid">
+                        <div>
+                            <div class="row-label">Ma don</div>
+                            <div class="row-value">${escapeHtml(order.order_code)}</div>
+                        </div>
+                        <div>
+                            <div class="row-label">Thoi gian in</div>
+                            <div class="row-value">${escapeHtml(printTime)}</div>
+                        </div>
+                        <div>
+                            <div class="row-label">Nhan vien</div>
+                            <div class="row-value">${escapeHtml(staffName)}</div>
+                        </div>
+                        <div>
+                            <div class="row-label">Khach hang</div>
+                            <div class="row-value">${escapeHtml(order.delivery_full_name || "-")}</div>
+                        </div>
+                        <div>
+                            <div class="row-label">So dien thoai</div>
+                            <div class="row-value">${escapeHtml(order.delivery_phone || "-")}</div>
+                        </div>
+                        <div>
+                            <div class="row-label">Dia chi giao</div>
+                            <div class="row-value">${escapeHtml(order.delivery_address || "-")}</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:40px">STT</th>
+                                <th>Mon</th>
+                                <th style="width:60px; text-align:center">SL</th>
+                                <th style="width:120px; text-align:right">Don gia</th>
+                                <th style="width:130px; text-align:right">Thanh tien</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemRows || `<tr><td colspan="5" style="text-align:center">Khong co mon trong don</td></tr>`}
+                        </tbody>
+                    </table>
+
+                    <div class="totals">
+                        <div class="line"><span>Tam tinh</span><span>${escapeHtml(formatCurrency(order.subtotal))}</span></div>
+                        <div class="line"><span>Giam gia</span><span>${escapeHtml(formatCurrency(order.discount_amount))}</span></div>
+                        <div class="line"><span>Phi ship</span><span>${escapeHtml(formatCurrency(order.shipping_fee))}</span></div>
+                        <div class="line total"><span>Tong thanh toan</span><span>${escapeHtml(formatCurrency(order.total_amount))}</span></div>
+                    </div>
+
+                    <div class="footer">Cam on quy khach da su dung dich vu.</div>
+                </body>
+            </html>
+        `;
+
+        const printWindow = window.open("", "_blank", "width=900,height=800");
+
+        if (!printWindow) {
+            setNoticeMessage("Trinh duyet dang chan cua so in. Vui long cho phep popup va thu lai.");
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+
+        printWindow.focus();
+        printWindow.print();
     };
 
     if (isLoading) {
@@ -323,6 +487,7 @@ const AdminOrderDetail = () => {
                                 <InfoRow label="Số điện thoại" value={order.delivery_phone} />
                                 <InfoRow label="Phường" value={order.delivery_ward_name} />
                                 <InfoRow label="Địa chỉ" value={order.delivery_address} />
+                                <InfoRow label="Thời gian đặt hàng" value={formatDateTime(order.created_at)} />
                                 <InfoRow label="Ghi chú" value={order.notes} />
                                 <InfoRow label="Phương thức thanh toán" value={getPaymentMethodText(order.payment?.method)} />
                                 <InfoRow label="Trạng thái thanh toán" value={getPaymentStatusText(order.payment?.payment_status)} />
@@ -355,6 +520,14 @@ const AdminOrderDetail = () => {
                                         Đơn hàng này không còn thao tác tiếp theo.
                                     </div>
                                 ) : null}
+
+                                <button
+                                    type="button"
+                                    onClick={handlePrintInvoice}
+                                    className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                                >
+                                    In hóa đơn
+                                </button>
 
                                 <button
                                     type="button"
@@ -536,6 +709,26 @@ const AdminOrderDetail = () => {
                     </div>
                 </div>
             ) : null}
+
+            <ConfirmModal
+                isOpen={Boolean(pendingStatusAction)}
+                title="Xác nhận cập nhật trạng thái"
+                description={pendingStatusAction ? `Bạn có chắc muốn chuyển đơn hàng sang trạng thái "${getStatusText(pendingStatusAction.nextStatus)}"?` : ""}
+                confirmText="Xác nhận"
+                cancelText="Hủy"
+                tone={pendingStatusAction?.nextStatus === "cancelled" ? "danger" : "warning"}
+                busy={isUpdating}
+                onClose={() => setPendingStatusAction(null)}
+                onConfirm={handleConfirmStatusUpdate}
+            />
+
+            <NoticeModal
+                isOpen={Boolean(noticeMessage)}
+                title="Cần kiểm tra thao tác"
+                description={noticeMessage}
+                tone="warning"
+                onClose={() => setNoticeMessage("")}
+            />
         </div>
     );
 };

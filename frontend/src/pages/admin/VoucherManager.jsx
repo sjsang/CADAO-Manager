@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import TablePagination from "../../components/admin/TablePagination";
 import voucherApi from "../../api/voucherApi";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const PAGE_SIZE = 10;
 
@@ -78,6 +79,8 @@ const VoucherManager = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null);
+    const [deletingVoucher, setDeletingVoucher] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchVouchers = async ({ showLoading = false } = {}) => {
         if (showLoading) {
@@ -230,27 +233,33 @@ const VoucherManager = () => {
     };
 
     const handleDelete = async (voucher) => {
-        const confirmed = window.confirm(`Xóa voucher \"${voucher.code}\"?`);
+        setDeletingVoucher(voucher);
+    };
 
-        if (!confirmed) {
+    const handleConfirmDelete = async () => {
+        if (!deletingVoucher) {
             return;
         }
 
+        setIsDeleting(true);
         setFeedback(null);
 
         try {
-            await voucherApi.deleteVoucher(voucher.id);
+            await voucherApi.deleteVoucher(deletingVoucher.id);
 
-            if (editingVoucherId === voucher.id) {
+            if (editingVoucherId === deletingVoucher.id) {
                 resetForm();
             }
 
             await refreshVouchers("Xóa voucher thành công.");
+            setDeletingVoucher(null);
         } catch (error) {
             setFeedback({
                 type: "error",
                 message: getErrorMessage(error, "Không thể xóa voucher.")
             });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -576,6 +585,18 @@ const VoucherManager = () => {
                     </section>
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={Boolean(deletingVoucher)}
+                title="Xác nhận xóa voucher"
+                description={deletingVoucher ? `Bạn có chắc muốn xóa voucher "${deletingVoucher.code}"? Hành động này không thể hoàn tác.` : ""}
+                confirmText="Xóa voucher"
+                cancelText="Giữ lại"
+                tone="danger"
+                busy={isDeleting}
+                onClose={() => setDeletingVoucher(null)}
+                onConfirm={handleConfirmDelete}
+            />
         </div>
     );
 };

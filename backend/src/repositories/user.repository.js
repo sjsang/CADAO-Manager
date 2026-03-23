@@ -17,7 +17,7 @@ const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = 
         conditions.push(`(username ILIKE $${values.length} OR full_name ILIKE $${values.length} OR phone_number ILIKE $${values.length})`);
     }
 
-    if (["admin", "staff", "shipper"].includes(role)) {
+    if (["admin", "shipper"].includes(role)) {
         values.push(role);
         conditions.push(`role = $${values.length}`);
     }
@@ -161,13 +161,9 @@ const getAssignedOrders = async (userId) => {
             o.total_amount,
             o.status,
             o.created_at,
-            CASE
-                WHEN o.staff_id = $1 THEN 'staff'
-                WHEN o.shipper_id = $1 THEN 'shipper'
-                ELSE 'unknown'
-            END AS assignment_type
+            'shipper' AS assignment_type
         FROM orders o
-        WHERE (o.staff_id = $1 OR o.shipper_id = $1)
+        WHERE o.shipper_id = $1
           AND o.status != 'cart'
         ORDER BY o.created_at DESC
         LIMIT 50

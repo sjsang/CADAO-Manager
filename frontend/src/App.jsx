@@ -12,6 +12,7 @@ import OrderDetailPage from './pages/customer/OrderDetailPage'
 
 import AdminLogin from './pages/auth/AdminLogin'
 import Dashboard from './pages/admin/Dashboard'
+import StatisticsPage from './pages/admin/StatisticsPage'
 import OrderManager from './pages/admin/OrderManager'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail'
 import MenuManager from './pages/admin/MenuManager'
@@ -19,9 +20,9 @@ import MenuCreate from './pages/admin/MenuCreate'
 import MenuDetail from './pages/admin/MenuDetail'
 import CustomerManager from './pages/admin/CustomerManager'
 import CustomerDetail from './pages/admin/CustomerDetail'
-import StaffManager from './pages/admin/StaffManager'
-import StaffDetail from './pages/admin/StaffDetail'
-import StaffProfile from './pages/admin/StaffProfile'
+import UserManagerPage from './pages/admin/UserManager'
+import UserDetailPage from './pages/admin/UserDetail'
+import UserProfilePage from './pages/admin/UserProfile'
 import WardManager from './pages/admin/WardManager'
 import VoucherManager from './pages/admin/VoucherManager'
 import ReviewManager from './pages/admin/ReviewManager'
@@ -44,7 +45,7 @@ const getTokenPayload = () => {
 
 const hasPortalAccess = () => {
   const payload = getTokenPayload();
-  return payload?.role === 'admin' || payload?.role === 'staff' || payload?.role === 'shipper';
+  return payload?.role === 'admin' || payload?.role === 'shipper';
 };
 
 const isAdminAuthenticated = () => {
@@ -54,17 +55,12 @@ const isAdminAuthenticated = () => {
 
 const canManageOrders = () => {
   const payload = getTokenPayload();
-  return payload?.role === 'admin' || payload?.role === 'staff';
+  return payload?.role === 'admin';
 };
 
 const isShipper = () => {
   const payload = getTokenPayload();
   return payload?.role === 'shipper';
-};
-
-const isStaff = () => {
-  const payload = getTokenPayload();
-  return payload?.role === 'staff';
 };
 
 const AdminRoute = ({ children }) => {
@@ -91,7 +87,7 @@ const ShipperRoute = ({ children }) => {
   return children;
 };
 
-const StaffRoute = ({ children }) => {
+const PortalRoute = ({ children }) => {
   if (!hasPortalAccess()) {
     return <Navigate to="/admin/login" replace />;
   }
@@ -103,9 +99,6 @@ const AdminLoginRoute = () => {
   const payload = getTokenPayload();
 
   if (hasPortalAccess()) {
-    if (payload?.role === 'staff') {
-      return <Navigate to="/admin/orders" replace />;
-    }
     if (payload?.role === 'shipper') {
       return <Navigate to="/shipper/deliveries" replace />;
     }
@@ -135,6 +128,7 @@ const App = () => {
       {/* Admin Routes */}
       <Route path="/admin/login" element={<AdminLoginRoute />} />
       <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+      <Route path="/admin/statistics" element={<AdminRoute><StatisticsPage /></AdminRoute>} />
       <Route path="/admin/orders" element={<OrderManagerRoute><OrderManager /></OrderManagerRoute>} />
       <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
       <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
@@ -142,10 +136,10 @@ const App = () => {
       <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
       <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
-      <Route path="/admin/users" element={<AdminRoute><StaffManager /></AdminRoute>} />
-      <Route path="/admin/users/:id" element={<AdminRoute><StaffDetail /></AdminRoute>} />
-      <Route path="/admin/profile" element={<StaffRoute><StaffProfile /></StaffRoute>} />
-      <Route path="/profile" element={<StaffRoute><StaffProfile /></StaffRoute>} />
+      <Route path="/admin/users" element={<AdminRoute><UserManagerPage /></AdminRoute>} />
+      <Route path="/admin/users/:id" element={<AdminRoute><UserDetailPage /></AdminRoute>} />
+      <Route path="/admin/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
+      <Route path="/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
       <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
       <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
       <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />

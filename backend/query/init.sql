@@ -23,7 +23,7 @@ CREATE TABLE menu_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Nhân viên
+-- 4. Người dùng nội bộ
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE users (
     avatar_url TEXT,
     phone_number VARCHAR(20),
     role VARCHAR(20) NOT NULL
-        CHECK (role IN ('admin', 'staff', 'shipper')),
+        CHECK (role IN ('admin', 'shipper')),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -75,9 +75,6 @@ CREATE TABLE orders (
 
     customer_id INT
         REFERENCES customers(id),
-
-    staff_id INT
-        REFERENCES users(id),
 
     shipper_id INT
         REFERENCES users(id),

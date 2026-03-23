@@ -7,9 +7,9 @@ const upload = multer({ dest: "uploads/" });
 
 router.post("/", authenticate, requireRole("admin"), userController.createUserByAdmin);
 router.get("/", authenticate, requireRole("admin"), userController.getUsers);
-router.get("/me", authenticate, requireAnyRole("admin", "staff", "shipper"), userController.getMyProfile);
-router.patch("/me", authenticate, requireAnyRole("admin", "staff", "shipper"), userController.updateMyProfile);
-router.patch("/me/avatar", authenticate, requireAnyRole("admin", "staff", "shipper"), upload.single("avatar"), userController.updateMyAvatar);
+router.get("/me", authenticate, requireAnyRole("admin", "shipper"), userController.getMyProfile);
+router.patch("/me", authenticate, requireAnyRole("admin", "shipper"), userController.updateMyProfile);
+router.patch("/me/avatar", authenticate, requireAnyRole("admin", "shipper"), upload.single("avatar"), userController.updateMyAvatar);
 router.get("/:id", authenticate, requireRole("admin"), userController.getUserById);
 router.patch("/:id/toggle-status", authenticate, requireRole("admin"), userController.toggleUserStatus);
 router.patch("/:id", authenticate, requireRole("admin"), userController.updateUser);

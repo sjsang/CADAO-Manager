@@ -150,9 +150,8 @@ const updateOrderStatusByAdmin = async (req, res) => {
         const orderCode = req.params.orderCode;
         const { status, note, shipperId } = req.body;
         const changedBy = req.user?.id || null;
-        const changedByRole = req.user?.role || null;
 
-        const result = await orderService.updateOrderStatusByAdmin(orderCode, status, changedBy, changedByRole, note, shipperId || null);
+        const result = await orderService.updateOrderStatusByAdmin(orderCode, status, changedBy, note, shipperId || null);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error updating order status by admin:", error);

@@ -15,10 +15,6 @@ const AdminLogin = () => {
             sessionStorage.setItem("token", response.data.token);
 
             const payload = JSON.parse(atob(response.data.token.split('.')[1] || ""));
-            if (payload?.role === "staff") {
-                navigate('/admin/orders');
-                return;
-            }
             if (payload?.role === "shipper") {
                 navigate('/shipper/deliveries');
                 return;
@@ -42,9 +38,9 @@ const AdminLogin = () => {
                 >
                     ×
                 </Link>
-                <p className='mb-2 text-xs tracking-[0.24em] text-sky-300/80 uppercase'>CADAO Staff Portal</p>
-                <h1 className='mb-1 text-3xl font-extrabold text-white'>Đăng nhập nhân viên</h1>
-                <p className='mb-6 text-sm text-slate-300'>Dành cho quản trị viên và nhân viên vận hành hệ thống.</p>
+                <p className='mb-2 text-xs tracking-[0.24em] text-sky-300/80 uppercase'>CADAO Portal</p>
+                <h1 className='mb-1 text-3xl font-extrabold text-white'>Đăng nhập quản trị</h1>
+                <p className='mb-6 text-sm text-slate-300'>Dành cho quản trị viên và shipper vận hành hệ thống.</p>
 
                 <form onSubmit={handleLogin} className='flex flex-col gap-4'>
                     <div className='space-y-1'>

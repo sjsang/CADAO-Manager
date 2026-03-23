@@ -3,6 +3,7 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import wardApi from "../../api/wardApi";
 import TablePagination from "../../components/admin/TablePagination";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const PAGE_SIZE = 8;
 
@@ -27,6 +28,8 @@ const WardManager = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null);
+    const [deletingWard, setDeletingWard] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchWards = async ({ showLoading = false } = {}) => {
         if (showLoading) {
@@ -136,27 +139,33 @@ const WardManager = () => {
     };
 
     const handleDelete = async (ward) => {
-        const confirmed = window.confirm(`Xóa phường "${ward.name}"?`);
+        setDeletingWard(ward);
+    };
 
-        if (!confirmed) {
+    const handleConfirmDelete = async () => {
+        if (!deletingWard) {
             return;
         }
 
+        setIsDeleting(true);
         setFeedback(null);
 
         try {
-            await wardApi.deleteWard(ward.id);
+            await wardApi.deleteWard(deletingWard.id);
 
-            if (editingWardId === ward.id) {
+            if (editingWardId === deletingWard.id) {
                 resetForm();
             }
 
             await refreshWards("Xóa phường thành công.");
+            setDeletingWard(null);
         } catch (error) {
             setFeedback({
                 type: "error",
                 message: getErrorMessage(error, "Không thể xóa phường.")
             });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -357,6 +366,18 @@ const WardManager = () => {
                     </section>
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={Boolean(deletingWard)}
+                title="Xác nhận xóa phường"
+                description={deletingWard ? `Bạn có chắc muốn xóa phường "${deletingWard.name}"? Hành động này không thể hoàn tác.` : ""}
+                confirmText="Xóa phường"
+                cancelText="Giữ lại"
+                tone="danger"
+                busy={isDeleting}
+                onClose={() => setDeletingWard(null)}
+                onConfirm={handleConfirmDelete}
+            />
         </div>
     );
 };

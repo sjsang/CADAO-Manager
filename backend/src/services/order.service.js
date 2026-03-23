@@ -57,7 +57,11 @@ const getShippers = async () => {
     return await orderRepository.getShippers();
 };
 
-const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, changedByRole, note, shipperId = null) => {
+const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note, shipperId = null) => {
+    if (!changedBy) {
+        throw new Error("Không xác định được người cập nhật đơn hàng");
+    }
+
     const order = await orderRepository.getOrderByOrderCode(orderCode);
 
     if (!order) {
@@ -83,7 +87,7 @@ const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, change
         throw new Error("Vui lòng chọn người giao hàng");
     }
 
-    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, changedByRole, resolvedNote, shipperId);
+    return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote, shipperId);
 };
 
 const getOrdersByShipperId = async (shipperId) => {

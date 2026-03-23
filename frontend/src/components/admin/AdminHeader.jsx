@@ -1,10 +1,16 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import authApi from "../../api/authApi";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
+import ConfirmModal from "./modals/ConfirmModal";
+import NoticeModal from "./modals/NoticeModal";
 
 const AdminHeader = ({ title, subtitle }) => {
     const navigate = useNavigate();
     const today = formatDateDDMMYYYY(new Date());
+    const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+    const [noticeMessage, setNoticeMessage] = useState("");
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const token = sessionStorage.getItem("token");
     let adminLabel = "Quản trị viên";
@@ -23,9 +29,10 @@ const AdminHeader = ({ title, subtitle }) => {
     }
 
     const worklistRoute = currentRole === "shipper" ? "/shipper/deliveries" : "/admin/orders";
-    const shouldShowWorklistButton = currentRole === "staff" || currentRole === "shipper";
+    const shouldShowWorklistButton = currentRole === "shipper";
 
     const handleLogout = async () => {
+        setIsLoggingOut(true);
         try {
             await authApi.logout();
             sessionStorage.removeItem("token");
@@ -38,55 +45,80 @@ const AdminHeader = ({ title, subtitle }) => {
             }
 
             console.error("Failed to logout admin:", error);
-            alert("Không thể đăng xuất ngay lúc này. Vui lòng thử lại.");
+            setNoticeMessage("Không thể đăng xuất ngay lúc này. Vui lòng thử lại.");
+        } finally {
+            setIsLoggingOut(false);
+            setIsLogoutConfirmOpen(false);
         }
     };
 
     return (
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-slate-100/80 px-6 py-4 backdrop-blur">
-            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold tracking-[0.2em] text-blue-500 uppercase">CADAO Admin</p>
-                        <h1 className="mt-1 text-2xl font-bold text-slate-800">{title}</h1>
-                        {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
-                        <p className="mt-2 text-xs text-slate-400">{today}</p>
+        <>
+            <header className="sticky top-0 z-30 border-b border-slate-200 bg-slate-100/85 px-6 py-2.5 backdrop-blur-md">
+                <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold tracking-wide">CADAO ADMIN</span>
+                            <span>{today}</span>
+                        </div>
+                        <h1 className="mt-1 truncate text-xl font-semibold text-slate-800">{title}</h1>
+                        {subtitle ? <p className="mt-0.5 truncate text-sm text-slate-500">{subtitle}</p> : null}
                     </div>
 
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="hidden rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 md:inline-block">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="hidden rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700 sm:inline-flex">
                             {adminLabel}
                         </span>
                         <button
                             onClick={() => navigate("/profile")}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                         >
-                            Hồ sơ cá nhân
+                            Hồ sơ
                         </button>
                         {shouldShowWorklistButton ? (
                             <button
                                 onClick={() => navigate(worklistRoute)}
-                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                             >
-                                Danh sách đơn
+                                Công việc
                             </button>
                         ) : null}
                         <button
                             onClick={() => navigate("/")}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                         >
-                            Về trang chủ
+                            Trang chủ
                         </button>
                         <button
-                            onClick={handleLogout}
-                            className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                            onClick={() => setIsLogoutConfirmOpen(true)}
+                            className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-slate-700"
                         >
                             Đăng xuất
                         </button>
                     </div>
                 </div>
-            </div>
-        </header>
+
+                <NoticeModal
+                    isOpen={Boolean(noticeMessage)}
+                    title="Không thể hoàn tất thao tác"
+                    description={noticeMessage}
+                    tone="warning"
+                    onClose={() => setNoticeMessage("")}
+                />
+            </header>
+
+            <ConfirmModal
+                isOpen={isLogoutConfirmOpen}
+                title="Xác nhận đăng xuất"
+                description="Bạn có chắc chắn muốn đăng xuất khỏi trang quản trị?"
+                confirmText="Đăng xuất"
+                cancelText="Ở lại"
+                tone="warning"
+                busy={isLoggingOut}
+                onClose={() => setIsLogoutConfirmOpen(false)}
+                onConfirm={handleLogout}
+            />
+        </>
     );
 };
 

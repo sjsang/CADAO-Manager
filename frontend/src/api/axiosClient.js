@@ -40,7 +40,7 @@ axiosClient.interceptors.response.use(
             const isShipperPath = window.location.pathname.startsWith("/shipper");
             const isPortalProfilePath = window.location.pathname === "/profile";
             const isAdminRequest = String(error.config?.url || "").includes("/auth/admin");
-            const isPortalRole = ["admin", "staff", "shipper"].includes(role);
+            const isPortalRole = ["admin", "shipper"].includes(role);
             const shouldRedirectToAdminLogin = isPortalRole || isAdminPath || isShipperPath || isPortalProfilePath || isAdminRequest;
 
             sessionStorage.removeItem("token");

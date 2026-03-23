@@ -15,23 +15,20 @@ const buildCloudinaryUrl = (publicId) => {
 
 const ROLE_OPTIONS = [
     { value: "admin", label: "Admin" },
-    { value: "staff", label: "Nhân viên" },
     { value: "shipper", label: "Shipper" }
 ];
 
 const ROLE_BADGE = {
     admin: "border border-rose-200 bg-rose-50 text-rose-700",
-    staff: "border border-sky-200 bg-sky-50 text-sky-700",
     shipper: "border border-violet-200 bg-violet-50 text-violet-700"
 };
 
 const ROLE_TEXT = {
     admin: "Admin",
-    staff: "Nhân viên",
     shipper: "Shipper"
 };
 
-const StaffManager = () => {
+const UserManagerPage = () => {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState("all");
@@ -46,7 +43,7 @@ const StaffManager = () => {
         username: "",
         full_name: "",
         phone_number: "",
-        role: "staff",
+        role: "shipper",
         password: ""
     });
     const navigate = useNavigate();
@@ -92,7 +89,7 @@ const StaffManager = () => {
             username: "",
             full_name: "",
             phone_number: "",
-            role: "staff",
+            role: "shipper",
             password: ""
         });
     };
@@ -125,10 +122,10 @@ const StaffManager = () => {
             await fetchUsers();
             setIsCreateOpen(false);
             resetCreateForm();
-            alert("Thêm nhân viên thành công.");
+            alert("Thêm tài khoản thành công.");
         } catch (error) {
             console.error("Error creating user:", error);
-            alert(error?.response?.data?.message || "Không thể thêm nhân viên.");
+            alert(error?.response?.data?.message || "Không thể thêm tài khoản.");
         } finally {
             setCreating(false);
         }
@@ -136,12 +133,12 @@ const StaffManager = () => {
 
     return (
         <div className="flex min-h-screen bg-slate-100">
-            <SideBarMenu activePage="staff" />
+            <SideBarMenu activePage="users" />
 
             <div className="flex-1">
                 <AdminHeader
-                    title="Quản lý nhân viên"
-                    subtitle="Phân quyền và theo dõi tài khoản nhân sự vận hành."
+                    title="Quản lý tài khoản"
+                    subtitle="Phân quyền và theo dõi tài khoản admin, shipper."
                 />
 
                 <main className="p-6">
@@ -149,7 +146,7 @@ const StaffManager = () => {
                         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
                             <input
                                 type="text"
-                                placeholder="Tìm nhân viên theo tài khoản, tên, vai trò..."
+                                placeholder="Tìm tài khoản theo username, tên, vai trò..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="flex-1 min-w-55 rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -162,7 +159,6 @@ const StaffManager = () => {
                             >
                                 <option value="all">Vai trò: Tất cả</option>
                                 <option value="admin">Admin</option>
-                                <option value="staff">Nhân viên</option>
                                 <option value="shipper">Shipper</option>
                             </select>
 
@@ -200,13 +196,13 @@ const StaffManager = () => {
                                 onClick={() => setIsCreateOpen(true)}
                                 className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
                             >
-                                Thêm nhân viên
+                                Thêm tài khoản
                             </button>
                         </div>
 
                         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
                             <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
-                                Tổng nhân sự: <strong>{pagination.totalItems}</strong>
+                                Tổng tài khoản: <strong>{pagination.totalItems}</strong>
                             </span>
                             <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
                                 Đang hoạt động: <strong>{activeCount}</strong>
@@ -246,7 +242,7 @@ const StaffManager = () => {
                                                     {user.avatar_url ? (
                                                         <img
                                                             src={buildCloudinaryUrl(user.avatar_url)}
-                                                            alt="Avatar nhân viên"
+                                                            alt="Avatar tài khoản"
                                                             className="h-full w-full object-cover"
                                                         />
                                                     ) : (
@@ -274,7 +270,7 @@ const StaffManager = () => {
                                     {users.length === 0 ? (
                                         <tr>
                                             <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
-                                                Không có dữ liệu nhân viên phù hợp.
+                                                Không có dữ liệu tài khoản phù hợp.
                                             </td>
                                         </tr>
                                     ) : null}
@@ -296,8 +292,8 @@ const StaffManager = () => {
                         <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-semibold text-slate-800">Thêm nhân viên mới</h2>
-                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản vận hành từ trang quản trị.</p>
+                                    <h2 className="text-lg font-semibold text-slate-800">Thêm tài khoản mới</h2>
+                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản admin hoặc shipper từ trang quản trị.</p>
                                 </div>
                                 <button
                                     onClick={() => {
@@ -384,7 +380,7 @@ const StaffManager = () => {
                                         disabled={creating}
                                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                                     >
-                                        {creating ? "Đang tạo..." : "Tạo nhân viên"}
+                                        {creating ? "Đang tạo..." : "Tạo tài khoản"}
                                     </button>
                                 </div>
                             </form>
@@ -396,4 +392,4 @@ const StaffManager = () => {
     );
 };
 
-export default StaffManager;
+export default UserManagerPage;

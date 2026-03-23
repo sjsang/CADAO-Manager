@@ -28,7 +28,7 @@ const toggleUserStatus = async (id) => {
 };
 
 const updateUser = async (id, { full_name, phone_number, role, password }) => {
-    if (!['admin', 'staff', 'shipper'].includes(role)) {
+    if (!['admin', 'shipper'].includes(role)) {
         throw new Error('INVALID_ROLE');
     }
 

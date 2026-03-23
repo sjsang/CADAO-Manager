@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 
 const SideBarMenu = ({ activePage }) => {
     const navigate = useNavigate();
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const token = sessionStorage.getItem("token");
     let currentRole = "admin";
@@ -15,71 +17,81 @@ const SideBarMenu = ({ activePage }) => {
         }
     }
 
-    const isStaff = currentRole === "staff";
+    useEffect(() => {
+        const stored = window.localStorage.getItem("cadao-admin-sidebar-collapsed");
+        if (stored === "1") {
+            setIsCollapsed(true);
+        }
+    }, []);
+
     const isShipper = currentRole === "shipper";
 
-    if (isStaff || isShipper) {
+    if (isShipper) {
         return null;
     }
 
-    const itemClass = "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-slate-300 transition hover:bg-slate-800 hover:text-white";
-    const activeClass = "bg-blue-600/20 text-blue-300 font-semibold border border-blue-500/30";
-    const dotClass = "inline-block h-2 w-2 rounded-full";
+    const menuItems = useMemo(() => ([
+        { key: "dashboard", label: "Tổng quan", path: "/admin/dashboard", dot: "bg-cyan-400" },
+        { key: "statistics", label: "Thống kê", path: "/admin/statistics", dot: "bg-lime-400" },
+        { key: "orders", label: "Đơn hàng", path: "/admin/orders", dot: "bg-emerald-400" },
+        { key: "menu", label: "Thực đơn", path: "/admin/menus", dot: "bg-amber-400" },
+        { key: "customers", label: "Khách hàng", path: "/admin/customers", dot: "bg-violet-400" },
+        { key: "wards", label: "Phường", path: "/admin/wards", dot: "bg-teal-400" },
+        { key: "vouchers", label: "Voucher", path: "/admin/vouchers", dot: "bg-orange-400" },
+        { key: "reviews", label: "Đánh giá", path: "/admin/reviews", dot: "bg-yellow-400" },
+        { key: "users", label: "Tài khoản", path: "/admin/users", dot: "bg-rose-400" }
+    ]), []);
+
+    const toggleSidebar = () => {
+        const next = !isCollapsed;
+        setIsCollapsed(next);
+        window.localStorage.setItem("cadao-admin-sidebar-collapsed", next ? "1" : "0");
+    };
+
+    const itemClass = "group flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm text-slate-300 transition hover:border-slate-800 hover:bg-slate-900 hover:text-white";
+    const activeClass = "border-sky-500/40 bg-sky-500/10 text-sky-300";
+    const dotClass = "inline-block h-2.5 w-2.5 rounded-full";
 
     return (
-        <aside className="sticky top-0 h-screen w-64 border-r border-slate-800 bg-slate-950 p-4">
-            <ul className="space-y-2">
-                <>
-                    <li
-                        className={`${itemClass} ${activePage === "dashboard" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/dashboard")}>
-                        <span className={`${dotClass} bg-cyan-400`} />
-                        Tổng quan
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "orders" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/orders")}>
-                        <span className={`${dotClass} bg-emerald-400`} />
-                        Đơn hàng
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "menu" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/menus")}>
-                        <span className={`${dotClass} bg-amber-400`} />
-                        Thực đơn
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "customers" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/customers")}>
-                        <span className={`${dotClass} bg-violet-400`} />
-                        Khách hàng
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "wards" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/wards")}>
-                        <span className={`${dotClass} bg-teal-400`} />
-                        Phường
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "vouchers" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/vouchers")}>
-                        <span className={`${dotClass} bg-orange-400`} />
-                        Voucher
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "reviews" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/reviews")}>
-                        <span className={`${dotClass} bg-yellow-400`} />
-                        Đánh giá
-                    </li>
-                    <li
-                        className={`${itemClass} ${activePage === "staff" ? activeClass : ""}`}
-                        onClick={() => navigate("/admin/users")}>
-                        <span className={`${dotClass} bg-rose-400`} />
-                        Nhân viên
-                    </li>
-                </>
-            </ul>
+        <aside
+            className={`sticky top-0 h-screen border-r border-slate-800 bg-slate-950 px-3 py-4 transition-all duration-300 ${isCollapsed ? "w-20" : "w-68"}`}
+            aria-label="Admin navigation"
+        >
+            <div className="flex items-center justify-between">
+                {!isCollapsed && <span className="text-sm font-bold text-white">ADMIN</span>}
+                <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    className="inline-flex h-8 w-8 items-center justify-center text-xl rounded-lg border border-slate-800 text-slate-300 transition hover:bg-slate-900 hover:text-white"
+                    title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+                >
+                    {isCollapsed ? "»" : "«"}
+                </button>
+            </div>
+
+            <div className="mt-5 border-t border-slate-800 pt-4">
+                <ul className="space-y-1.5">
+                    {menuItems.map((item) => (
+                        <li key={item.key}>
+                            <button
+                                type="button"
+                                className={`${itemClass} ${activePage === item.key ? activeClass : ""} w-full ${isCollapsed ? "justify-center" : "justify-start"}`}
+                                onClick={() => navigate(item.path)}
+                                title={item.label}
+                            >
+                                <span className={`${dotClass} ${item.dot}`} />
+                                {!isCollapsed ? <span className="truncate">{item.label}</span> : null}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="absolute bottom-4 left-3 right-3">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-400">
+                    {!isCollapsed ? "Chế độ quản trị" : "Admin"}
+                </div>
+            </div>
         </aside>
     )
 }

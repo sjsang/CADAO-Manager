@@ -490,7 +490,7 @@ const getDeliveryHistoryByShipperId = async (shipperId) => {
     return result.rows;
 };
 
-const updateOrderStatus = async (orderCode, status, changedBy = null, changedByRole = null, note = null, shipperId = null) => {
+const updateOrderStatus = async (orderCode, status, changedBy = null, note = null, shipperId = null) => {
     try {
         await db.query("BEGIN");
 
@@ -512,11 +512,6 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, changedByR
         if (status === 'shipping' && shipperId) {
             params.push(shipperId);
             setClauses.push(`shipper_id=$${params.length}`);
-        }
-
-        if (changedByRole === 'staff' && changedBy) {
-            params.push(changedBy);
-            setClauses.push(`staff_id=$${params.length}`);
         }
 
         params.push(orderCode);

@@ -31,7 +31,7 @@ const createUserByAdmin = async (req, res) => {
             });
         }
 
-        if (!["admin", "staff", "shipper"].includes(role)) {
+        if (!["admin", "shipper"].includes(role)) {
             return res.status(400).json({ success: false, message: "Vai trò không hợp lệ" });
         }
 

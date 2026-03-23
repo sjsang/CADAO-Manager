@@ -4,17 +4,14 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
 import { getStatusText } from "../../functions/formatOrderFields";
-import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
 const ROLE_BADGE = {
     admin: "border border-rose-200 bg-rose-50 text-rose-700",
-    staff: "border border-sky-200 bg-sky-50 text-sky-700",
     shipper: "border border-violet-200 bg-violet-50 text-violet-700"
 };
 
 const ROLE_TEXT = {
     admin: "Admin",
-    staff: "Nhân viên",
     shipper: "Shipper"
 };
 
@@ -28,7 +25,6 @@ const STATUS_BADGE_CLASS = {
 };
 
 const ASSIGNMENT_TEXT = {
-    staff: "Xử lý đơn",
     shipper: "Giao hàng"
 };
 
@@ -64,7 +60,7 @@ const InfoRow = ({ label, value }) => (
     </div>
 );
 
-const StaffDetail = () => {
+const UserDetailPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
@@ -72,7 +68,7 @@ const StaffDetail = () => {
     const [toggling, setToggling] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [editForm, setEditForm] = useState({ full_name: "", phone_number: "", role: "staff", password: "" });
+    const [editForm, setEditForm] = useState({ full_name: "", phone_number: "", role: "shipper", password: "" });
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -81,7 +77,7 @@ const StaffDetail = () => {
                 const data = res.data?.data || null;
                 setUser(data);
                 if (data) {
-                    setEditForm({ full_name: data.full_name || "", phone_number: data.phone_number || "", role: data.role || "staff", password: "" });
+                    setEditForm({ full_name: data.full_name || "", phone_number: data.phone_number || "", role: data.role || "shipper", password: "" });
                 }
             } catch (error) {
                 console.error("Error fetching user detail:", error);
@@ -102,14 +98,14 @@ const StaffDetail = () => {
             setUser((prev) => ({ ...prev, is_active: updated.is_active }));
         } catch (error) {
             console.error("Error toggling user status:", error);
-            alert(error?.response?.data?.message || "Không thể cập nhật trạng thái nhân viên.");
+            alert(error?.response?.data?.message || "Không thể cập nhật trạng thái tài khoản.");
         } finally {
             setToggling(false);
         }
     };
 
     const handleEditOpen = () => {
-        setEditForm({ full_name: user.full_name || "", phone_number: user.phone_number || "", role: user.role || "staff", password: "" });
+        setEditForm({ full_name: user.full_name || "", phone_number: user.phone_number || "", role: user.role || "shipper", password: "" });
         setIsEditing(true);
     };
 
@@ -142,11 +138,11 @@ const StaffDetail = () => {
 
     return (
         <div className="flex min-h-screen bg-slate-100">
-            <SideBarMenu activePage="staff" />
+            <SideBarMenu activePage="users" />
 
             <div className="flex-1">
                 <AdminHeader
-                    title="Chi tiết nhân viên"
+                    title="Chi tiết tài khoản"
                     subtitle="Theo dõi thông tin tài khoản và các đơn hàng đã được phân công."
                 />
 
@@ -161,7 +157,7 @@ const StaffDetail = () => {
                     {loading ? (
                         <div className="flex h-40 items-center justify-center text-sm text-slate-500">Đang tải dữ liệu...</div>
                     ) : !user ? (
-                        <div className="flex h-40 items-center justify-center text-sm text-rose-500">Không tìm thấy nhân viên.</div>
+                        <div className="flex h-40 items-center justify-center text-sm text-rose-500">Không tìm thấy tài khoản.</div>
                     ) : (
                         <>
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -212,7 +208,6 @@ const StaffDetail = () => {
                                                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                                                 >
                                                     <option value="admin">Admin</option>
-                                                    <option value="staff">Nhân viên</option>
                                                     <option value="shipper">Shipper</option>
                                                 </select>
                                             </div>
@@ -282,7 +277,7 @@ const StaffDetail = () => {
                                     </h2>
 
                                     {user.assigned_orders?.length === 0 ? (
-                                        <p className="text-sm text-slate-500">Nhân viên này chưa được phân công đơn hàng nào.</p>
+                                        <p className="text-sm text-slate-500">Tài khoản này chưa được phân công đơn hàng nào.</p>
                                     ) : (
                                         <div className="overflow-x-auto">
                                             <table className="min-w-full divide-y divide-slate-200">
@@ -339,4 +334,4 @@ const StaffDetail = () => {
     );
 };
 
-export default StaffDetail;
+export default UserDetailPage;
