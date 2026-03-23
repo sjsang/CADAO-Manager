@@ -54,6 +54,15 @@ const statusClasses = {
     cancelled: "bg-rose-50 text-rose-700 border border-rose-200"
 };
 
+const statusGradientByKey = {
+    pending: ["#fbbf24", "#f59e0b"],
+    confirmed: ["#38bdf8", "#0284c7"],
+    preparing: ["#a78bfa", "#7c3aed"],
+    shipping: ["#c4b5fd", "#7c3aed"],
+    completed: ["#34d399", "#059669"],
+    cancelled: ["#fb7185", "#e11d48"]
+};
+
 const formatCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 const toDateInputValue = (date) => {
@@ -68,8 +77,12 @@ const createPresetFilters = (preset) => {
     const end = toDateInputValue(today);
     const start = new Date(today);
 
-    if (preset === "7days") {
+    if (preset === "today") {
+        start.setDate(today.getDate());
+    } else if (preset === "7days") {
         start.setDate(today.getDate() - 6);
+    } else if (preset === "30days") {
+        start.setDate(today.getDate() - 29);
     } else if (preset === "month") {
         start.setDate(1);
     } else if (preset === "90days") {
@@ -84,7 +97,7 @@ const createPresetFilters = (preset) => {
         toDate: end,
         status: "all",
         groupBy: preset === "90days" ? "week" : "day",
-        topLimit: 3
+        topLimit: 5
     };
 };
 
@@ -177,7 +190,7 @@ const alertToneClasses = {
     good: "border-emerald-200 bg-emerald-50 text-emerald-800"
 };
 
-const ChartTooltip = ({ active, payload, label, formatter, labelFormatter }) => {
+const ChartTooltip = ({ active, payload, label, formatter, labelFormatter, nameFormatter }) => {
     if (!active || !payload || payload.length === 0) {
         return null;
     }
@@ -190,13 +203,25 @@ const ChartTooltip = ({ active, payload, label, formatter, labelFormatter }) => 
                     <div key={`${entry.dataKey}-${entry.name}`} className="flex items-center justify-between gap-4 text-sm">
                         <span className="flex items-center gap-2 text-slate-500">
                             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                            {entry.name}
+                            {nameFormatter ? nameFormatter(entry.name, entry) : entry.name}
                         </span>
                         <span className="font-semibold text-slate-900">{formatter ? formatter(entry.value, entry.name, entry) : entry.value}</span>
                     </div>
                 ))}
             </div>
         </div>
+    );
+};
+
+const renderStatusPieLabel = ({ percent, x, y }) => {
+    if (!percent || percent < 0.06) {
+        return null;
+    }
+
+    return (
+        <text x={x} y={y} fill="#0f172a" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
+            {`${Math.round(percent * 100)}%`}
+        </text>
     );
 };
 
@@ -283,7 +308,24 @@ const StatisticsPage = () => {
     const wardDemand = statistics?.wardDemand || [];
     const alerts = statistics?.alerts || [];
 
-    const statusTotal = useMemo(() => statusBreakdown.reduce((sum, item) => sum + Number(item.count || 0), 0), [statusBreakdown]);
+    const statusMixData = useMemo(() => (
+        statusBreakdown
+            .map((item) => ({
+                ...item,
+                count: Number(item.count || 0)
+            }))
+            .filter((item) => item.count > 0)
+    ), [statusBreakdown]);
+
+    const statusTotal = useMemo(() => statusMixData.reduce((sum, item) => sum + item.count, 0), [statusMixData]);
+
+    const statusMixDisplay = useMemo(() => (
+        statusMixData.map((item) => ({
+            ...item,
+            percent: statusTotal > 0 ? (item.count / statusTotal) * 100 : 0
+        }))
+    ), [statusMixData, statusTotal]);
+
     const topItemTotal = useMemo(() => topItems.reduce((sum, item) => sum + Number(item.sold_quantity || 0), 0), [topItems]);
     const trendRevenue = useMemo(() => trend.reduce((sum, item) => sum + Number(item.revenue || 0), 0), [trend]);
 
@@ -351,6 +393,14 @@ const StatisticsPage = () => {
 
     const handleApplyFilters = () => {
         setFilters({ ...draftFilters, preset: "custom" });
+    };
+
+    const handleDateFilterChange = (field, value) => {
+        setDraftFilters((prev) => {
+            const nextFilters = { ...prev, [field]: value, preset: "custom" };
+            setFilters(nextFilters);
+            return nextFilters;
+        });
     };
 
     const handleResetFilters = () => {
@@ -561,7 +611,7 @@ const StatisticsPage = () => {
                                     <input
                                         type="date"
                                         value={draftFilters.fromDate}
-                                        onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value, preset: "custom" }))}
+                                        onChange={(event) => handleDateFilterChange("fromDate", event.target.value)}
                                         className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
                                     />
                                 </label>
@@ -570,7 +620,7 @@ const StatisticsPage = () => {
                                     <input
                                         type="date"
                                         value={draftFilters.toDate}
-                                        onChange={(event) => setDraftFilters((prev) => ({ ...prev, toDate: event.target.value, preset: "custom" }))}
+                                        onChange={(event) => handleDateFilterChange("toDate", event.target.value)}
                                         className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
                                     />
                                 </label>
@@ -602,8 +652,8 @@ const StatisticsPage = () => {
                                     <span className="font-medium">Top món</span>
                                     <input
                                         type="number"
-                                        min="3"
-                                        max="10"
+                                        min="5"
+                                        max="20"
                                         value={draftFilters.topLimit}
                                         onChange={(event) => setDraftFilters((prev) => ({ ...prev, topLimit: event.target.value }))}
                                         className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500"
@@ -724,31 +774,31 @@ const StatisticsPage = () => {
                                     Array.from({ length: 2 }).map((_, index) => (
                                         <div key={index} className="h-56 animate-pulse rounded-2xl bg-slate-100" />
                                     ))
-                                ) : statusBreakdown.length > 0 ? (
+                                ) : statusMixDisplay.length > 0 ? (
                                     <>
                                         <div className="h-72">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
                                                     <defs>
-                                                        {statusBreakdown.map((_, index) => (
-                                                            <linearGradient key={`statusPieGradient-${index}`} id={`statusPieGradient-${index}`} x1="0" y1="0" x2="1" y2="1">
-                                                                <stop offset="0%" stopColor={gradientPairs[index % gradientPairs.length][0]} />
-                                                                <stop offset="100%" stopColor={gradientPairs[index % gradientPairs.length][1]} />
+                                                        {statusMixDisplay.map((item) => (
+                                                            <linearGradient key={`statusPieGradient-${item.status}`} id={`statusPieGradient-${item.status}`} x1="0" y1="0" x2="1" y2="1">
+                                                                <stop offset="0%" stopColor={(statusGradientByKey[item.status] || gradientPairs[0])[0]} />
+                                                                <stop offset="100%" stopColor={(statusGradientByKey[item.status] || gradientPairs[0])[1]} />
                                                             </linearGradient>
                                                         ))}
                                                     </defs>
-                                                    <Pie data={statusBreakdown} dataKey="count" nameKey="status" innerRadius={58} outerRadius={92} paddingAngle={4}>
-                                                        {statusBreakdown.map((entry, index) => (
-                                                            <Cell key={`${entry.status}-${index}`} fill={`url(#statusPieGradient-${index})`} />
+                                                    <Pie data={statusMixDisplay} dataKey="count" nameKey="status" innerRadius={58} outerRadius={94} paddingAngle={3} labelLine={false}>
+                                                        {statusMixDisplay.map((entry) => (
+                                                            <Cell key={entry.status} fill={`url(#statusPieGradient-${entry.status})`} />
                                                         ))}
                                                     </Pie>
-                                                    <Tooltip content={<ChartTooltip formatter={(value) => `${value} đơn`} labelFormatter={(value) => getStatusText(value)} />} />
+                                                    <Tooltip content={<ChartTooltip formatter={(value) => `${value} đơn`} labelFormatter={(value) => getStatusText(value)} nameFormatter={(value) => getStatusText(value)} />} />
                                                 </PieChart>
                                             </ResponsiveContainer>
                                         </div>
                                         <div className="space-y-4">
-                                            {statusBreakdown.map((item) => {
-                                                const percent = statusTotal > 0 ? (Number(item.count || 0) / statusTotal) * 100 : 0;
+                                            {statusMixDisplay.map((item) => {
+                                                const percent = item.percent;
                                                 return (
                                                     <div key={item.status} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
                                                         <div className="flex items-center justify-between gap-3">
@@ -836,24 +886,6 @@ const StatisticsPage = () => {
                                     ))
                                 ) : topItems.length > 0 ? (
                                     <>
-                                        <div className="h-72 rounded-3xl bg-slate-50/60 p-4">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={topItemsChartData} layout="vertical" margin={{ left: 20, right: 12 }}>
-                                                    <defs>
-                                                        <linearGradient id="statsTopItemsGradient" x1="0" y1="0" x2="1" y2="0">
-                                                            <stop offset="0%" stopColor="#22d3ee" />
-                                                            <stop offset="100%" stopColor="#0ea5e9" />
-                                                        </linearGradient>
-                                                    </defs>
-                                                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 6" horizontal={false} />
-                                                    <XAxis type="number" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
-                                                    <YAxis type="category" dataKey="name" width={130} tick={{ fill: "#334155", fontSize: 12 }} axisLine={false} tickLine={false} />
-                                                    <Tooltip content={<ChartTooltip formatter={(value, name) => name === "Doanh thu" ? formatCurrency(value) : `${value} phần`} />} />
-                                                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                                                    <Bar dataKey="soldQuantity" name="Số lượng bán" fill="url(#statsTopItemsGradient)" radius={[0, 10, 10, 0]} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
                                         {topItems.map((item, index) => {
                                             const share = topItemTotal > 0 ? (Number(item.sold_quantity || 0) / topItemTotal) * 100 : 0;
                                             return (
@@ -867,13 +899,6 @@ const StatisticsPage = () => {
                                                             <p className="text-sm font-semibold text-slate-900">{item.sold_quantity} phần</p>
                                                             <p className="mt-1 text-xs text-slate-500">{formatCurrency(item.revenue)}</p>
                                                         </div>
-                                                    </div>
-                                                    <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                                        <span>Tỷ trọng top list</span>
-                                                        <span>{share.toFixed(1)}%</span>
-                                                    </div>
-                                                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-                                                        <div className="h-full rounded-full bg-linear-to-r from-emerald-500 to-cyan-400" style={{ width: `${share}%` }} />
                                                     </div>
                                                 </div>
                                             );
@@ -1067,7 +1092,7 @@ const StatisticsPage = () => {
                                 ) : paymentStatusChartData.length > 0 ? (
                                     <div className="h-52">
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={paymentStatusChartData}>
+                                            <BarChart data={paymentStatusChartData} >
                                                 <defs>
                                                     <linearGradient id="statsPaymentStatusGradient" x1="0" y1="0" x2="0" y2="1">
                                                         <stop offset="0%" stopColor="#818cf8" />
@@ -1076,7 +1101,7 @@ const StatisticsPage = () => {
                                                 </defs>
                                                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 6" vertical={false} />
                                                 <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
-                                                <YAxis tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
+                                                <YAxis tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                                                 <Tooltip content={<ChartTooltip formatter={(value) => `${value} đơn`} />} />
                                                 <Bar dataKey="count" name="Số đơn" fill="url(#statsPaymentStatusGradient)" radius={[10, 10, 0, 0]} />
                                             </BarChart>

@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { getPaymentByOrderId, createPayment, markCashPaymentPaid } = require('./payment.repository');
+const { getPaymentByOrderId, createPayment, markCashPaymentPaid, markOrderPaymentFailed } = require('./payment.repository');
 
 const toSafeNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -469,6 +469,7 @@ const cancelOrder = async (orderCode) => {
     const result = await db.query(query, [orderCode]);
 
     if (result.rowCount > 0) {
+        await markOrderPaymentFailed(result.rows[0].id, db);
         await createOrderStatusHistory(result.rows[0].id, currentOrder.status, 'cancelled', null, 'Khách hàng hủy đơn');
         return result.rows[0].id;
     }
@@ -527,6 +528,8 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, note = nul
         if (result.rows[0]) {
             if (status === 'completed') {
                 await markCashPaymentPaid(result.rows[0].id, db);
+            } else if (status === 'cancelled') {
+                await markOrderPaymentFailed(result.rows[0].id, db);
             }
 
             await createOrderStatusHistory(result.rows[0].id, currentOrder.status, status, changedBy, note);

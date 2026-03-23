@@ -35,8 +35,24 @@ const markCashPaymentPaid = async (orderId, client = db) => {
     return result.rows[0] || null;
 };
 
+const markOrderPaymentFailed = async (orderId, client = db) => {
+    const result = await client.query(
+        `
+            UPDATE payments
+            SET payment_status = 'failed',
+                paid_at = NULL
+            WHERE order_id = $1
+            RETURNING *
+        `,
+        [orderId]
+    );
+
+    return result.rows[0] || null;
+};
+
 module.exports = {
     getPaymentByOrderId,
     createPayment,
-    markCashPaymentPaid
+    markCashPaymentPaid,
+    markOrderPaymentFailed
 };

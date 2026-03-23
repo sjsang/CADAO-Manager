@@ -388,7 +388,7 @@ const Dashboard = () => {
                                                 </linearGradient>
                                             </defs>
                                             <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 6" horizontal={false} />
-                                            <XAxis type="number" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} />
+                                            <XAxis type="number" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                                             <YAxis type="category" dataKey="name" width={120} tick={{ fill: "#334155", fontSize: 12 }} axisLine={false} tickLine={false} />
                                             <Tooltip content={<ChartTooltip formatter={(value, name) => name === "Doanh thu" ? formatCurrency(value) : `${value} phần`} />} />
                                             <Bar dataKey="soldQuantity" name="Số lượng bán" radius={[0, 14, 14, 0]} fill="url(#dashboardTopSellingGradient)" />
