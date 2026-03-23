@@ -207,11 +207,32 @@ const toggleCustomerStatus = async (req, res) => {
     }
 };
 
+const updateCustomerAvatar = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const avatarFile = req.file;
+        const customer = await customerService.updateCustomerAvatar(id, avatarFile);
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Khách hàng không tồn tại' });
+        }
+
+        res.status(200).json({ success: true, data: customer });
+    } catch (error) {
+        if (error?.message === 'AVATAR_FILE_REQUIRED') {
+            return res.status(400).json({ success: false, message: 'Vui lòng chọn ảnh đại diện' });
+        }
+        console.error('Error updating customer avatar:', error);
+        res.status(500).json({ success: false, message: 'Failed to update avatar' });
+    }
+};
+
 module.exports = {
     getCustomers,
     createCustomerByAdmin,
     updateCustomer,
     updateCustomerByAdmin,
+    updateCustomerAvatar,
     getAddresses,
     addAddress,
     updateAddress,

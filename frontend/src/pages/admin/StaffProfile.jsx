@@ -3,6 +3,14 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
 
+const buildCloudinaryUrl = (publicId) => {
+    if (!publicId) {
+        return "";
+    }
+
+    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${publicId}`;
+};
+
 const InfoRow = ({ label, value }) => (
     <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
@@ -22,6 +30,7 @@ const StaffProfile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ full_name: "", phone_number: "", password: "" });
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     const loadProfile = async () => {
         const res = await userApi.getMyProfile();
@@ -77,6 +86,34 @@ const StaffProfile = () => {
         }
     };
 
+    const handleAvatarChange = async (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        setUploadingAvatar(true);
+
+        try {
+            const response = await userApi.updateMyAvatar(file);
+            const updated = response.data?.data;
+
+            if (updated?.avatar_url) {
+                setProfile((prev) => ({
+                    ...prev,
+                    avatar_url: updated.avatar_url
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to update avatar:", error);
+            alert(error.response?.data?.message || "Không thể cập nhật ảnh đại diện.");
+        } finally {
+            setUploadingAvatar(false);
+            event.target.value = "";
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen bg-slate-100">
@@ -106,7 +143,34 @@ const StaffProfile = () => {
                 <main className="p-6">
                     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                            <h2 className="text-base font-semibold text-slate-800">Hồ sơ nhân viên</h2>
+                            <div className="flex items-center gap-4">
+                                <div className="h-20 w-20 overflow-hidden rounded-full border border-slate-300 bg-slate-100">
+                                    {profile?.avatar_url ? (
+                                        <img
+                                            src={buildCloudinaryUrl(profile.avatar_url)}
+                                            alt="Avatar nhân viên"
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">No avatar</div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <h2 className="text-base font-semibold text-slate-800">Hồ sơ nhân viên</h2>
+                                    <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                        {uploadingAvatar ? "Đang tải..." : "Đổi ảnh đại diện"}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleAvatarChange}
+                                            disabled={uploadingAvatar}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
                             {!isEditing ? (
                                 <button
                                     type="button"

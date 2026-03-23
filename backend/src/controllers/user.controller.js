@@ -160,6 +160,26 @@ const updateMyProfile = async (req, res) => {
     }
 };
 
+const updateMyAvatar = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const avatarFile = req.file;
+
+        const user = await userService.updateMyAvatar(userId, avatarFile);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+        }
+
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        if (error?.message === "AVATAR_FILE_REQUIRED") {
+            return res.status(400).json({ success: false, message: "Vui lòng chọn ảnh đại diện" });
+        }
+        console.error("Error updating my avatar:", error);
+        res.status(500).json({ success: false, message: "Failed to update avatar" });
+    }
+};
+
 module.exports = {
     getUsers,
     createUserByAdmin,
@@ -167,5 +187,6 @@ module.exports = {
     getMyProfile,
     toggleUserStatus,
     updateUser,
-    updateMyProfile
+    updateMyProfile,
+    updateMyAvatar
 };

@@ -25,6 +25,21 @@ const getOrderByOrderCode = async (orderCode) => {
     return await orderRepository.getOrderByOrderCode(orderCode);
 };
 
+const submitOrderReview = async (orderCode, customerId, rating, content) => {
+    const normalizedRating = Number(rating);
+    const normalizedContent = typeof content === "string" ? content.trim() : "";
+
+    if (!Number.isInteger(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+        throw new Error("INVALID_RATING");
+    }
+
+    if (!normalizedContent) {
+        throw new Error("INVALID_REVIEW_CONTENT");
+    }
+
+    return await orderRepository.submitOrderReview(orderCode, customerId, normalizedRating, normalizedContent);
+};
+
 const confirmOrder = async (orderCode, orderData, paymentMethod) => {
     return await orderRepository.confirmOrder(orderCode, orderData, paymentMethod);
 };
@@ -88,6 +103,7 @@ module.exports = {
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
+    submitOrderReview,
     confirmOrder,
     cancelOrder,
     updateOrderStatusByAdmin,

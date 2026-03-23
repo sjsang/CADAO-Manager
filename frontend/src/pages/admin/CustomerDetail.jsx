@@ -3,6 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
+
+const buildCloudinaryUrl = (publicId) => {
+    if (!publicId) return "";
+    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${publicId}`;
+};
 
 const STATUS_MAP = {
     pending: { label: "Chờ xác nhận", cls: "bg-amber-50 text-amber-700 border border-amber-200" },
@@ -14,16 +20,7 @@ const STATUS_MAP = {
 };
 
 const formatDate = (value) => {
-    if (!value) return "-";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "-";
-    return new Intl.DateTimeFormat("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(d);
+    return formatDateDDMMYYYY(value);
 };
 
 const formatCurrency = (value) => {
@@ -144,30 +141,48 @@ const CustomerDetail = () => {
                         <>
                             {/* Basic info */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="text-base font-semibold text-slate-800">Thông tin cơ bản</h2>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${customer.is_active ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
-                                            {customer.is_active ? "Đang hoạt động" : "Đã khóa"}
-                                        </span>
-                                        {!isEditing && (
-                                            <button
-                                                onClick={handleEditOpen}
-                                                className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
-                                            >
-                                                Chỉnh sửa
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={handleToggleStatus}
-                                            disabled={toggling}
-                                            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${customer.is_active
-                                                ? "bg-rose-600 text-white hover:bg-rose-700"
-                                                : "bg-emerald-600 text-white hover:bg-emerald-700"
-                                                }`}
-                                        >
-                                            {toggling ? "Đang xử lý..." : customer.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                                        </button>
+                                <div className="mb-6 flex items-start justify-between gap-6">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="h-24 w-24 overflow-hidden rounded-full border border-slate-300 bg-slate-100">
+                                            {customer.avatar_url ? (
+                                                <img
+                                                    src={buildCloudinaryUrl(customer.avatar_url)}
+                                                    alt="Avatar khách hàng"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">Chưa có ảnh</div>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-500">ID: {customer.id}</p>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <h2 className="text-base font-semibold text-slate-800">Thông tin cơ bản</h2>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`rounded-full px-3 py-1 text-xs font-medium ${customer.is_active ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
+                                                    {customer.is_active ? "Đang hoạt động" : "Đã khóa"}
+                                                </span>
+                                                {!isEditing && (
+                                                    <button
+                                                        onClick={handleEditOpen}
+                                                        className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+                                                    >
+                                                        Chỉnh sửa
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={handleToggleStatus}
+                                                    disabled={toggling}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${customer.is_active
+                                                        ? "bg-rose-600 text-white hover:bg-rose-700"
+                                                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                        }`}
+                                                >
+                                                    {toggling ? "Đang xử lý..." : customer.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -1,5 +1,7 @@
 const customerRepository = require('../repositories/customer.repository');
 const bcrypt = require('bcrypt');
+const cloudinary = require('../config/cloudinary');
+const fs = require('fs');
 
 const getCustomers = async (queryOptions) => {
     return await customerRepository.getCustomers(queryOptions);
@@ -32,6 +34,21 @@ const updateCustomerByAdmin = async (id, { full_name, phone_number, email, passw
         email: email ? String(email).trim() : '',
         password_hash
     });
+};
+
+const updateCustomerAvatar = async (id, avatarFile) => {
+    if (!avatarFile) {
+        throw new Error('AVATAR_FILE_REQUIRED');
+    }
+
+    const uploadResult = await cloudinary.uploader.upload(avatarFile.path, {
+        folder: 'CADAO/avatars/customers',
+        resource_type: 'image'
+    });
+
+    fs.unlinkSync(avatarFile.path);
+
+    return await customerRepository.updateCustomerAvatar(id, uploadResult.public_id);
 };
 
 // Address Management
@@ -76,6 +93,7 @@ module.exports = {
     createCustomerByAdmin,
     updateCustomer,
     updateCustomerByAdmin,
+    updateCustomerAvatar,
     getCustomerAddresses,
     addCustomerAddress,
     updateCustomerAddress,

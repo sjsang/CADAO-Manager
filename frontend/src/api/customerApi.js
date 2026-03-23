@@ -13,6 +13,16 @@ const customerApi = {
         const url = '/customers/me';
         return axiosClient.put(url, data);
     },
+    updateAvatar: (avatarFile) => {
+        const url = '/customers/me/avatar';
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+        return axiosClient.patch(url, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+    },
     // Address Management
     getAddresses: () => {
         const url = '/customers/addresses';

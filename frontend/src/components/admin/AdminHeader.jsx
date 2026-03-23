@@ -1,28 +1,29 @@
 import { useNavigate } from "react-router-dom";
 import authApi from "../../api/authApi";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
 const AdminHeader = ({ title, subtitle }) => {
     const navigate = useNavigate();
-    const today = new Date().toLocaleDateString("vi-VN", {
-        weekday: "long",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
+    const today = formatDateDDMMYYYY(new Date());
 
     const token = sessionStorage.getItem("token");
     let adminLabel = "Quản trị viên";
+    let currentRole = "admin";
 
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split(".")[1]));
             adminLabel = `#${payload?.username}`;
-            console.log(payload);
+            currentRole = payload?.role || "admin";
 
         } catch {
             adminLabel = "Quản trị viên";
+            currentRole = "admin";
         }
     }
+
+    const worklistRoute = currentRole === "shipper" ? "/shipper/deliveries" : "/admin/orders";
+    const shouldShowWorklistButton = currentRole === "staff" || currentRole === "shipper";
 
     const handleLogout = async () => {
         try {
@@ -56,6 +57,20 @@ const AdminHeader = ({ title, subtitle }) => {
                         <span className="hidden rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 md:inline-block">
                             {adminLabel}
                         </span>
+                        <button
+                            onClick={() => navigate("/profile")}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                        >
+                            Hồ sơ cá nhân
+                        </button>
+                        {shouldShowWorklistButton ? (
+                            <button
+                                onClick={() => navigate(worklistRoute)}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                            >
+                                Danh sách đơn
+                            </button>
+                        ) : null}
                         <button
                             onClick={() => navigate("/")}
                             className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"

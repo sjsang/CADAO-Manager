@@ -7,7 +7,7 @@ import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 8;
 
 const MenuManager = () => {
     const navigate = useNavigate();

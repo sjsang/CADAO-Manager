@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
 import { getPaymentMethodText, getPaymentStatusText, getStatusText } from "../../functions/formatOrderFields";
+import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDate";
 
 const CANCEL_REASONS = [
     "Khách hàng yêu cầu hủy đơn",
@@ -25,14 +26,13 @@ const formatDateTime = (value) => {
         return "-";
     }
 
-    return new Intl.DateTimeFormat("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    }).format(date);
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear());
+
+    return `${hour}:${minute} ${day}/${month}/${year}`;
 };
 
 const STATUS_BADGE_CLASS = {
@@ -127,11 +127,12 @@ const AdminOrderDetail = () => {
     const [shippers, setShippers] = useState([]);
     const [selectedShipperId, setSelectedShipperId] = useState("");
     const [isLoadingShippers, setIsLoadingShippers] = useState(false);
+    const [nowTs, setNowTs] = useState(Date.now());
 
-    const loadOrder = async () => {
+    const loadOrder = useCallback(async () => {
         const response = await orderApi.getByOrderCode(orderCode);
         setOrder(response.data?.data || null);
-    };
+    }, [orderCode]);
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -148,7 +149,24 @@ const AdminOrderDetail = () => {
         };
 
         fetchOrder();
-    }, [navigate, orderCode]);
+    }, [loadOrder, navigate]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setNowTs(Date.now());
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const processingDuration = order
+        ? formatElapsedTime(
+            order.created_at,
+            order.status === "completed" || order.status === "cancelled"
+                ? (order.updated_at || order.created_at)
+                : nowTs
+        )
+        : "-";
 
     const availableActions = !order?.status ? [] : (ADMIN_ACTIONS[order.status] || []);
 
@@ -290,9 +308,14 @@ const AdminOrderDetail = () => {
                                     <h2 className="mt-1 text-2xl font-bold text-slate-800">{order.order_code}</h2>
                                 </div>
 
-                                <span className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${STATUS_BADGE_CLASS[order.status] || "bg-slate-100 text-slate-700 border border-slate-200"}`}>
-                                    {getStatusText(order.status)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${STATUS_BADGE_CLASS[order.status] || "bg-slate-100 text-slate-700 border border-slate-200"}`}>
+                                        {getStatusText(order.status)}
+                                    </span>
+                                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                                        {processingDuration}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -389,6 +412,31 @@ const AdminOrderDetail = () => {
                             </table>
                         </div>
                     </section>
+
+                    {order.status === "completed" && (
+                        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="border-b border-slate-200 pb-4">
+                                <h3 className="text-lg font-semibold text-slate-800">Đánh giá từ khách hàng</h3>
+                                <p className="mt-1 text-sm text-slate-500">Phản hồi của khách hàng sau khi nhận đơn.</p>
+                            </div>
+                            <div className="mt-5">
+                                {order.review ? (
+                                    <>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                <span key={s} className={`text-xl ${s <= order.review.rating ? "text-yellow-400" : "text-slate-300"}`}>★</span>
+                                            ))}
+                                            <span className="text-sm text-slate-500">{order.review.rating}/5 sao</span>
+                                        </div>
+                                        <p className="text-sm text-slate-700 leading-relaxed">{order.review.content}</p>
+                                        <p className="mt-2 text-xs text-slate-400">Đánh giá lúc: {formatDateDDMMYYYY(order.review.created_at)}</p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-slate-500">Khách hàng chưa gửi đánh giá cho đơn hàng này.</p>
+                                )}
+                            </div>
+                        </section>
+                    )}
                 </main>
             </div>
 

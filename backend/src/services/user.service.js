@@ -1,5 +1,7 @@
 const userRepository = require("../repositories/user.repository");
 const bcrypt = require("bcrypt");
+const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
 
 const getUsers = async (queryOptions) => {
     return await userRepository.getUsers(queryOptions);
@@ -62,6 +64,21 @@ const updateMyProfile = async (id, { full_name, phone_number, password }) => {
     });
 };
 
+const updateMyAvatar = async (id, avatarFile) => {
+    if (!avatarFile) {
+        throw new Error("AVATAR_FILE_REQUIRED");
+    }
+
+    const uploadResult = await cloudinary.uploader.upload(avatarFile.path, {
+        folder: "CADAO/avatars/users",
+        resource_type: "image"
+    });
+
+    fs.unlinkSync(avatarFile.path);
+
+    return await userRepository.updateMyAvatar(id, uploadResult.public_id);
+};
+
 const getAssignedOrders = async (userId) => {
     return await userRepository.getAssignedOrders(userId);
 };
@@ -75,4 +92,5 @@ module.exports = {
     getMyProfile,
     getAssignedOrders,
     updateMyProfile,
+    updateMyAvatar,
 };

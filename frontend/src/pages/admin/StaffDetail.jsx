@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
 import { getStatusText } from "../../functions/formatOrderFields";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
 const ROLE_BADGE = {
     admin: "border border-rose-200 bg-rose-50 text-rose-700",
@@ -32,16 +33,23 @@ const ASSIGNMENT_TEXT = {
 };
 
 const formatDateTime = (value) => {
-    if (!value) return "-";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "-";
-    return new Intl.DateTimeFormat("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    }).format(d);
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "-";
+    }
+
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear());
+
+    return `${hour}:${minute} ${day}/${month}/${year}`;
 };
 
 const formatCurrency = (value) => {
@@ -296,7 +304,7 @@ const StaffDetail = () => {
                                                         return (
                                                             <tr key={`${order.order_code}-${order.assignment_type}`} className="hover:bg-slate-50">
                                                                 <td className="px-4 py-3 text-sm font-mono text-slate-700">{order.order_code}</td>
-                                                                <td className="px-4 py-3 text-sm text-slate-700">{ASSIGNMENT_TEXT[order.assignment_type] || order.assignment_type}</td>
+                                                                <td className="px-4 py-3 text-sm text-slate-700">{ASSIGNMENT_TEXT[order.assignment_type] || order.assignment_type || "-"}</td>
                                                                 <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_full_name || "-"}</td>
                                                                 <td className="px-4 py-3 text-sm text-slate-700">{order.delivery_phone || "-"}</td>
                                                                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(order.total_amount)}</td>

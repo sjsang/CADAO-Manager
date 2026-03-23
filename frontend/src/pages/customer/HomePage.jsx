@@ -1,10 +1,27 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Header from "../../components/customer/Header";
 import Footer from "../../components/customer/Footer";
+import reviewApi from "../../api/reviewApi";
+
+const StarRow = ({ rating }) => (
+    <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+            <span key={s} className={s <= rating ? "text-yellow-400" : "text-gray-600"}>★</span>
+        ))}
+    </div>
+);
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const [reviews, setReviews] = useState([]);
+
+    useEffect(() => {
+        reviewApi.getRecentReviews(6)
+            .then((res) => setReviews(res.data?.data || []))
+            .catch(() => setReviews([]));
+    }, []);
 
     return (
         <>
@@ -73,6 +90,36 @@ const HomePage = () => {
                     </div>
                 </div>
             </section>
+
+            {reviews.length > 0 && (
+                <section className="w-7xl mx-auto py-20">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-white">Khách hàng nói gì về chúng tôi</h2>
+                        <p className="mt-3 text-gray-400">Những trải nghiệm thực tế từ khách hàng đã dùng dịch vụ của Ca Dao</p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {reviews.map((review) => (
+                            <div key={review.id} className="rounded-2xl bg-gray-800 p-5">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <img
+                                        src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${review.customer_avatar}`}
+                                        alt={review.customer_name}
+                                        className="w-12 h-12 rounded-full object-cover"
+                                    />
+
+                                    <div>
+                                        <p className="font-semibold text-white mb-1">{review.customer_name}</p>
+                                        <p className="text-xs text-gray-400">{new Date(review.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <StarRow rating={Number(review.rating)} />
+                                <p className="flex-1 leading-relaxed text-gray-300">{review.content}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             <Footer />
         </>

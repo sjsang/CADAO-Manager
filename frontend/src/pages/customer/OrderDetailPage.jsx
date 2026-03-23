@@ -8,12 +8,21 @@ import Header from "../../components/customer/Header";
 const OrderDetailPage = () => {
     const { orderCode } = useParams();
     const [order, setOrder] = useState(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewContent, setReviewContent] = useState("");
+    const [submittingReview, setSubmittingReview] = useState(false);
 
     useEffect(() => {
         const fetchOrderDetail = async () => {
             try {
                 const response = await orderApi.getByOrderCode(orderCode);
-                setOrder(response.data.data);
+                const fetchedOrder = response.data.data;
+                setOrder(fetchedOrder);
+
+                if (fetchedOrder?.review) {
+                    setReviewRating(Number(fetchedOrder.review.rating) || 5);
+                    setReviewContent(fetchedOrder.review.content || "");
+                }
             } catch (error) {
                 console.error("Failed to fetch order detail:", error);
             }
@@ -30,6 +39,40 @@ const OrderDetailPage = () => {
             } catch (error) {
                 console.error("Failed to cancel order:", error);
             }
+        }
+    };
+
+    const handleSubmitReview = async () => {
+        if (submittingReview) {
+            return;
+        }
+
+        if (!reviewContent.trim()) {
+            alert("Vui lòng nhập nội dung đánh giá.");
+            return;
+        }
+
+        try {
+            setSubmittingReview(true);
+            const response = await orderApi.submitReview(orderCode, {
+                rating: reviewRating,
+                content: reviewContent.trim()
+            });
+
+            setOrder((prev) => ({
+                ...prev,
+                review: response.data?.data || {
+                    rating: reviewRating,
+                    content: reviewContent.trim()
+                }
+            }));
+
+            alert("Đã gửi đánh giá thành công!");
+        } catch (error) {
+            console.error("Failed to submit review:", error);
+            alert(error.response?.data?.message || "Không thể gửi đánh giá.");
+        } finally {
+            setSubmittingReview(false);
         }
     };
 
@@ -88,6 +131,51 @@ const OrderDetailPage = () => {
                                 >
                                     Hủy đơn hàng
                                 </button>
+                            )}
+
+                            {order.status === "completed" && (
+                                <div className="mt-6 rounded-lg border border-gray-700 bg-gray-900 p-4">
+                                    <h3 className="text-lg font-semibold">Đánh giá đơn hàng</h3>
+
+                                    <div className="mt-3 flex items-center gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                className={`cursor-pointer text-2xl transition ${star <= reviewRating ? "text-yellow-400" : "text-gray-500 hover:text-yellow-300"}`}
+                                                onClick={() => setReviewRating(star)}
+                                                disabled={submittingReview}
+                                                aria-label={`Chọn ${star} sao`}
+                                            >
+                                                ★
+                                            </button>
+                                        ))}
+                                        <span className="ml-2 text-sm text-gray-300">{reviewRating}/5 sao</span>
+                                    </div>
+
+                                    <textarea
+                                        className="mt-3 w-full rounded border border-gray-600 bg-gray-800 p-3 text-white outline-none focus:border-blue-500"
+                                        rows={4}
+                                        placeholder="Chia sẻ cảm nhận của bạn về đơn hàng..."
+                                        value={reviewContent}
+                                        onChange={(e) => setReviewContent(e.target.value)}
+                                        disabled={submittingReview}
+                                    />
+
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <button
+                                            className="cursor-pointer rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                            onClick={handleSubmitReview}
+                                            disabled={submittingReview}
+                                        >
+                                            {submittingReview ? "Đang gửi..." : order.review ? "Cập nhật đánh giá" : "Gửi đánh giá"}
+                                        </button>
+
+                                        {order.review && (
+                                            <span className="text-sm text-emerald-400">Bạn đã đánh giá đơn hàng này.</span>
+                                        )}
+                                    </div>
+                                </div>
                             )}
                         </div>
 

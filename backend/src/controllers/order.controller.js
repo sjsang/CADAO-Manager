@@ -58,6 +58,33 @@ const getOrderByOrderCode = async (req, res) => {
     }
 };
 
+const submitOrderReview = async (req, res) => {
+    try {
+        const orderCode = req.params.orderCode;
+        const customerId = req.user.id;
+        const { rating, content } = req.body;
+
+        const result = await orderService.submitOrderReview(orderCode, customerId, rating, content);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        console.error("Error submitting order review:", error);
+
+        const errorMap = {
+            INVALID_RATING: { status: 400, message: "Số sao phải từ 1 đến 5." },
+            INVALID_REVIEW_CONTENT: { status: 400, message: "Nội dung đánh giá không được để trống." },
+            ORDER_NOT_FOUND_OR_FORBIDDEN: { status: 404, message: "Không tìm thấy đơn hàng của bạn." },
+            ORDER_NOT_COMPLETED: { status: 400, message: "Chỉ có thể đánh giá khi đơn hàng đã hoàn thành." }
+        };
+
+        const mapped = errorMap[error.message];
+        if (mapped) {
+            return res.status(mapped.status).json({ success: false, message: mapped.message });
+        }
+
+        res.status(500).json({ success: false, message: "Không thể gửi đánh giá." });
+    }
+};
+
 const confirmOrder = async (req, res) => {
     try {
         const orderCode = req.params.orderCode;
@@ -67,6 +94,23 @@ const confirmOrder = async (req, res) => {
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error confirming order:", error);
+        const errorMap = {
+            ORDER_NOT_IN_CART: { status: 400, message: "Đơn hàng đã được xác nhận hoặc không còn ở trạng thái giỏ hàng." },
+            VOUCHER_NOT_FOUND: { status: 404, message: "Voucher không tồn tại." },
+            VOUCHER_INACTIVE: { status: 400, message: "Voucher hiện không hoạt động." },
+            VOUCHER_EXPIRED: { status: 400, message: "Voucher đã hết hạn." },
+            VOUCHER_USAGE_LIMIT_REACHED: { status: 400, message: "Voucher đã hết lượt sử dụng." },
+            VOUCHER_MIN_ORDER_NOT_MET: { status: 400, message: "Đơn hàng chưa đạt giá trị tối thiểu để áp dụng voucher." },
+            INVALID_PAYMENT_METHOD: { status: 400, message: "Phương thức thanh toán không hợp lệ." },
+            "Order not found": { status: 404, message: "Không tìm thấy đơn hàng." }
+        };
+
+        const mapped = errorMap[error.message];
+
+        if (mapped) {
+            return res.status(mapped.status).json({ success: false, message: mapped.message });
+        }
+
         res.status(500).json({ success: false, message: "Failed to confirm order" });
     }
 };
@@ -171,6 +215,7 @@ module.exports = {
     getOrdersByCustomerId,
     createOrUpdateOrder,
     getOrderByOrderCode,
+    submitOrderReview,
     updateOrderStatus,
     updateOrderStatusByAdmin,
     getShippers,

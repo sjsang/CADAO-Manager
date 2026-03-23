@@ -21,6 +21,15 @@ const userApi = {
     },
     updateMyProfile: (data) => {
         return axiosClient.patch("/users/me", data);
+    },
+    updateMyAvatar: (avatarFile) => {
+        const formData = new FormData();
+        formData.append("avatar", avatarFile);
+        return axiosClient.patch("/users/me/avatar", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
     }
 }
 

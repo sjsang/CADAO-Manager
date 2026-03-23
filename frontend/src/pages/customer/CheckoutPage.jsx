@@ -2,6 +2,7 @@ import Header from "../../components/customer/Header";
 import orderApi from "../../api/orderApi";
 import cartApi from "../../api/cartApi";
 import customerApi from "../../api/customerApi";
+import voucherApi from "../../api/voucherApi";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -12,6 +13,10 @@ const CheckoutPage = () => {
     const [addresses, setAddresses] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [shippingFee, setShippingFee] = useState(0);
+    const [voucherCode, setVoucherCode] = useState("");
+    const [voucherMessage, setVoucherMessage] = useState("");
+    const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+    const [appliedVoucher, setAppliedVoucher] = useState(null);
     const [form, setForm] = useState({
         delivery_full_name: "",
         delivery_phone: "",
@@ -32,6 +37,8 @@ const CheckoutPage = () => {
                 const addrs = addressRes.data.data || [];
                 setOrderDetails(order);
                 setShippingFee(Number(order.shipping_fee || 0));
+                setVoucherCode(order.voucher_code || "");
+                setAppliedVoucher(order.voucher_id ? { id: order.voucher_id, code: order.voucher_code || "" } : null);
                 setAddresses(addrs);
                 setForm({
                     delivery_full_name: order.delivery_full_name,
@@ -70,6 +77,67 @@ const CheckoutPage = () => {
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleApplyVoucher = async () => {
+        if (!orderDetails) {
+            return;
+        }
+
+        if (!voucherCode.trim()) {
+            setVoucherMessage("Vui lòng nhập mã voucher.");
+            return;
+        }
+
+        setIsApplyingVoucher(true);
+        setVoucherMessage("");
+
+        try {
+            const response = await voucherApi.validateForOrder({
+                code: voucherCode,
+                orderValue: Number(orderDetails.subtotal || 0)
+            });
+
+            const voucherData = response.data?.data;
+
+            setOrderDetails((prev) => ({
+                ...(prev || {}),
+                discount_amount: Number(voucherData.discountAmount || 0),
+                voucher_id: voucherData.voucherId,
+                voucher_code: voucherData.code
+            }));
+
+            setAppliedVoucher({
+                id: voucherData.voucherId,
+                code: voucherData.code
+            });
+            setVoucherCode(voucherData.code || voucherCode.trim().toUpperCase());
+            setVoucherMessage(`Áp dụng voucher ${voucherData.code} thành công.`);
+        } catch (error) {
+            const message = error.response?.data?.message || "Không thể áp dụng voucher.";
+            setVoucherMessage(message);
+            setAppliedVoucher(null);
+            setOrderDetails((prev) => ({
+                ...(prev || {}),
+                discount_amount: 0,
+                voucher_id: null,
+                voucher_code: null
+            }));
+        } finally {
+            setIsApplyingVoucher(false);
+        }
+    };
+
+    const handleRemoveVoucher = () => {
+        setAppliedVoucher(null);
+        setVoucherCode("");
+        setVoucherMessage("Đã bỏ áp dụng voucher.");
+        setOrderDetails((prev) => ({
+            ...(prev || {}),
+            discount_amount: 0,
+            voucher_id: null,
+            voucher_code: null
+        }));
+    };
+
     const handleConfirm = async (e) => {
         e.preventDefault();
         try {
@@ -79,7 +147,8 @@ const CheckoutPage = () => {
                 subtotal: orderDetails.subtotal,
                 shipping_fee: shippingFee,
                 discount_amount: orderDetails.discount_amount,
-                total_amount: computedTotal
+                total_amount: computedTotal,
+                voucher_id: appliedVoucher?.id || null
             };
             await orderApi.confirm(orderCode, payload, form.paymentMethod);
             alert(`Đơn hàng xác nhận thành công! Mã đơn hàng: ${orderCode}`);
@@ -90,6 +159,10 @@ const CheckoutPage = () => {
             alert("Xác nhận đơn hàng thất bại!");
         }
     };
+
+    const computedTotal = orderDetails
+        ? Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0)
+        : 0;
 
     return (
         <div>
@@ -109,11 +182,10 @@ const CheckoutPage = () => {
                                             <div
                                                 key={addr.id}
                                                 onClick={() => handleAddressSelect(addr)}
-                                                className={`p-3 rounded border cursor-pointer ${
-                                                    selectedAddressId === addr.id
-                                                        ? 'border-blue-500 bg-blue-900/40'
-                                                        : 'border-gray-600 bg-gray-700 hover:border-gray-400'
-                                                }`}
+                                                className={`p-3 rounded border cursor-pointer ${selectedAddressId === addr.id
+                                                    ? 'border-blue-500 bg-blue-900/40'
+                                                    : 'border-gray-600 bg-gray-700 hover:border-gray-400'
+                                                    }`}
                                             >
                                                 <div className="flex justify-between items-center">
                                                     <div>
@@ -186,9 +258,46 @@ const CheckoutPage = () => {
                                 />
                             </div>
 
+                            <div className="rounded border border-gray-600 bg-gray-700/70 p-3">
+                                <p className="mb-2 font-semibold">Mã voucher</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={voucherCode}
+                                        onChange={(event) => setVoucherCode(event.target.value)}
+                                        placeholder="Nhập mã giảm giá"
+                                        className="w-56 rounded bg-gray-800 px-3 py-2 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleApplyVoucher}
+                                        disabled={isApplyingVoucher}
+                                        className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-60"
+                                    >
+                                        {isApplyingVoucher ? "Đang áp dụng..." : "Áp dụng"}
+                                    </button>
+                                    {appliedVoucher ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveVoucher}
+                                            className="rounded bg-slate-600 px-4 py-2 text-white hover:bg-slate-500"
+                                        >
+                                            Bỏ voucher
+                                        </button>
+                                    ) : null}
+                                </div>
+
+                                {voucherMessage ? (
+                                    <p className={`mt-2 text-sm ${appliedVoucher ? "text-emerald-400" : "text-amber-300"}`}>
+                                        {voucherMessage}
+                                    </p>
+                                ) : null}
+                            </div>
+
+                            <p><strong>Tạm tính:</strong> {Number(orderDetails.subtotal).toLocaleString('vi-VN')} VND</p>
                             <p><strong>Phí vận chuyển:</strong> {shippingFee.toLocaleString('vi-VN')} VND</p>
                             <p><strong>Giảm giá:</strong> {Number(orderDetails.discount_amount).toLocaleString('vi-VN')} VND</p>
-                            <p><strong>Tổng tiền:</strong> {(Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0)).toLocaleString('vi-VN')} VND</p>
+                            <p><strong>Tổng tiền:</strong> {computedTotal.toLocaleString('vi-VN')} VND</p>
 
                             <div className="flex items-center">
                                 <strong>Phương thức thanh toán:</strong>
@@ -199,9 +308,7 @@ const CheckoutPage = () => {
                                     className="text-center ml-2 p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="cash">Thanh toán khi nhận hàng</option>
-                                    <option value="card">Thanh toán bằng thẻ</option>
                                     <option value="transfer">Chuyển khoản ngân hàng</option>
-                                    <option value="e-wallet">Ví điện tử</option>
                                 </select>
                             </div>
 

@@ -11,6 +11,7 @@ router.get("/my-deliveries/history", authenticate, requireRole("shipper"), order
 router.get("/", authenticate, requireAnyRole("admin", "staff"), orderController.getAllOrders);
 router.get("/me", authenticate, requireRole("customer"), orderController.getOrdersByCustomerId);
 router.get("/:orderCode", authenticate, requireAnyRole("customer", "admin", "staff"), orderController.getOrderByOrderCode);
+router.post("/:orderCode/review", authenticate, requireRole("customer"), orderController.submitOrderReview);
 router.patch("/:orderCode/status", authenticate, requireRole("customer"), orderController.updateOrderStatus);
 router.patch("/:orderCode/admin-status", authenticate, requireAnyRole("admin", "staff"), orderController.updateOrderStatusByAdmin);
 router.patch("/:orderCode/shipper-complete", authenticate, requireRole("shipper"), orderController.completeDelivery);

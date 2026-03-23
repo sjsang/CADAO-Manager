@@ -44,7 +44,7 @@ const getCustomers = async ({ search = "", isActive = "all", sortBy = "created_a
     const offsetParam = values.length;
 
     const dataQuery = `
-        SELECT id, full_name, phone_number, email, is_active, created_at
+        SELECT id, full_name, phone_number, email, avatar_url, is_active, created_at
         ${fromWhere}
         ORDER BY ${safeSortBy} ${safeSortDir}
         LIMIT $${limitParam} OFFSET $${offsetParam}
@@ -67,7 +67,7 @@ const createCustomerByAdmin = async (customerData) => {
     const query = `
         INSERT INTO customers (full_name, phone_number, email, password_hash)
         VALUES ($1, $2, NULLIF($3, ''), $4)
-        RETURNING id, full_name, phone_number, email, is_active, created_at
+        RETURNING id, full_name, phone_number, email, avatar_url, is_active, created_at
     `;
     const result = await db.query(query, [full_name, phone_number, email || '', password_hash]);
     return result.rows[0];
@@ -90,8 +90,19 @@ const updateCustomerByAdmin = async (id, { full_name, phone_number, email, passw
     }
 
     params.push(id);
-    query += ` WHERE id=$${params.length} RETURNING id, full_name, phone_number, email, is_active, created_at`;
+    query += ` WHERE id=$${params.length} RETURNING id, full_name, phone_number, email, avatar_url, is_active, created_at`;
     const result = await db.query(query, params);
+    return result.rows[0] || null;
+};
+
+const updateCustomerAvatar = async (id, avatarUrl) => {
+    const query = `
+        UPDATE customers
+        SET avatar_url = $1
+        WHERE id = $2
+        RETURNING id, full_name, phone_number, email, avatar_url, is_active, created_at
+    `;
+    const result = await db.query(query, [avatarUrl, id]);
     return result.rows[0] || null;
 };
 
@@ -154,7 +165,7 @@ const setDefaultAddress = async (customerId, addressId) => {
 
 const getCustomerById = async (id) => {
     const query = `
-        SELECT id, full_name, phone_number, email, is_active, created_at
+        SELECT id, full_name, phone_number, email, avatar_url, is_active, created_at
         FROM customers
         WHERE id = $1
     `;
@@ -167,7 +178,7 @@ const toggleCustomerStatus = async (id) => {
         UPDATE customers
         SET is_active = NOT is_active
         WHERE id = $1
-        RETURNING id, full_name, phone_number, email, is_active, created_at
+        RETURNING id, full_name, phone_number, email, avatar_url, is_active, created_at
     `;
     const result = await db.query(query, [id]);
     return result.rows[0] || null;
@@ -202,6 +213,7 @@ module.exports = {
     createCustomerByAdmin,
     updateCustomer,
     updateCustomerByAdmin,
+    updateCustomerAvatar,
     getCustomerAddresses,
     addCustomerAddress,
     updateCustomerAddress,

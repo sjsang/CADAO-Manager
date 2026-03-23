@@ -31,14 +31,8 @@ const getPaymentMethodText = (method) => {
         case 'cash':
             methodText = 'Tiền mặt';
             break;
-        case 'card':
-            methodText = 'Thẻ tín dụng/ghi nợ';
-            break;
         case 'transfer':
             methodText = 'Chuyển khoản ngân hàng';
-            break;
-        case 'e-wallet':
-            methodText = 'Ví điện tử';
             break;
         default:
             methodText = method;

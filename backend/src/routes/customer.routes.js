@@ -1,11 +1,14 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
 const customerController = require("../controllers/customer.controller");
 const { authenticate, requireRole } = require("../middlewares/auth.middleware");
+const upload = multer({ dest: "uploads/" });
 
 // Specific static routes must come before dynamic /:id routes
 // Customer self-management routes
 router.put("/me", authenticate, requireRole("customer"), customerController.updateCustomer);
+router.patch("/me/avatar", authenticate, requireRole("customer"), upload.single("avatar"), customerController.updateCustomerAvatar);
 
 // Address Management Routes
 router.get("/addresses", authenticate, requireRole("customer"), customerController.getAddresses);

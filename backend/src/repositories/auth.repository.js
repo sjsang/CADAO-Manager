@@ -27,6 +27,7 @@ const getCustomerById = async (id) => {
             c.full_name,
             c.phone_number,
             c.email,
+            c.avatar_url,
             c.is_active,
             c.created_at,
             ca.id AS address_id,

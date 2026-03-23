@@ -26,7 +26,12 @@ const AddressManager = () => {
 
     const fetchWards = async () => {
         try {
-            const response = await wardApi.getWards();
+            const response = await wardApi.getWards({
+                page: 1,
+                limit: 100,
+                sortBy: "name",
+                sortDir: "asc"
+            });
             setWards(response.data.data || response.data || []);
         } catch (error) {
             console.error("Failed to fetch wards:", error);
@@ -190,8 +195,8 @@ const AddressManager = () => {
                         <div
                             key={address.id}
                             className={`p-4 rounded border-l-4 ${address.is_default
-                                    ? 'bg-gray-700 border-l-green-500'
-                                    : 'bg-gray-800 border-l-gray-600'
+                                ? 'bg-gray-700 border-l-green-500'
+                                : 'bg-gray-800 border-l-gray-600'
                                 }`}
                         >
                             <div className="flex justify-between items-start">

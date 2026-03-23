@@ -9,6 +9,8 @@ const orderRoutes = require("./routes/order.routes");
 const customerRoutes = require("./routes/customer.routes");
 const userRoutes = require("./routes/user.routes");
 const wardRoutes = require("./routes/ward.routes");
+const voucherRoutes = require("./routes/voucher.routes");
+const reviewRoutes = require("./routes/review.routes");
 
 const app = express();
 app.use(cors());
@@ -24,5 +26,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/wards", wardRoutes);
+app.use("/api/vouchers", voucherRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 module.exports = app;

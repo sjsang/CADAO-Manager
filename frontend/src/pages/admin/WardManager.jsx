@@ -4,7 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import wardApi from "../../api/wardApi";
 import TablePagination from "../../components/admin/TablePagination";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 8;
 
 const initialFormData = {
     name: "",

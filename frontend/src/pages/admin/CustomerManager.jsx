@@ -4,8 +4,14 @@ import customerApi from "../../api/customerApi";
 import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 8;
+
+const buildCloudinaryUrl = (publicId) => {
+    if (!publicId) return "";
+    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${publicId}`;
+};
 
 const CustomerManager = () => {
     const [customers, setCustomers] = useState([]);
@@ -57,11 +63,7 @@ const CustomerManager = () => {
     const lockedCount = Math.max(0, customers.length - activeCount);
 
     const formatDate = (value) => {
-        if (!value) {
-            return "-";
-        }
-
-        return new Date(value).toLocaleDateString("vi-VN");
+        return formatDateDDMMYYYY(value);
     };
 
     const resetCreateForm = () => {
@@ -187,6 +189,7 @@ const CustomerManager = () => {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Họ tên</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">SĐT</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Email</th>
@@ -203,6 +206,19 @@ const CustomerManager = () => {
                                             onClick={() => navigate(`/admin/customers/${customer.id}`)}
                                         >
                                             <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-300 bg-slate-100">
+                                                    {customer.avatar_url ? (
+                                                        <img
+                                                            src={buildCloudinaryUrl(customer.avatar_url)}
+                                                            alt="Avatar khách hàng"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">─</div>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{customer.full_name || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{customer.phone_number || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{customer.email || "-"}</td>
@@ -217,7 +233,7 @@ const CustomerManager = () => {
 
                                     {customers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có khách hàng phù hợp.
                                             </td>
                                         </tr>

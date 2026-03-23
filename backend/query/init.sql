@@ -29,6 +29,7 @@ CREATE TABLE users (
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name VARCHAR(150),
+    avatar_url TEXT,
     phone_number VARCHAR(20),
     role VARCHAR(20) NOT NULL
         CHECK (role IN ('admin', 'staff', 'shipper')),
@@ -42,6 +43,7 @@ CREATE TABLE customers (
     full_name VARCHAR(150) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     email VARCHAR(150) UNIQUE,
+    avatar_url TEXT,
     password_hash TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -118,6 +120,21 @@ CREATE TABLE order_items (
     note TEXT
 );
 
+-- 8. Đánh giá đơn hàng
+CREATE TABLE order_reviews (
+    id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL UNIQUE
+        REFERENCES orders(id) ON DELETE CASCADE,
+    customer_id INT NOT NULL
+        REFERENCES customers(id) ON DELETE CASCADE,
+    rating INT NOT NULL
+        CHECK (rating BETWEEN 1 AND 5),
+    content TEXT NOT NULL
+        CHECK (char_length(trim(content)) > 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 9. Thanh toán
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
@@ -125,13 +142,12 @@ CREATE TABLE payments (
         REFERENCES orders(id) ON DELETE CASCADE,
 
     method VARCHAR(50)
-        CHECK (method IN ('cash', 'card', 'transfer', 'e-wallet')),
+        CHECK (method IN ('cash', 'transfer')),
 
     payment_status VARCHAR(20) DEFAULT 'pending'
         CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
 
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
-    transaction_code VARCHAR(100),
 
     paid_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

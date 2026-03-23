@@ -50,7 +50,7 @@ const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = 
     const offsetParam = values.length;
 
     const dataQuery = `
-        SELECT id, username, full_name, phone_number, role, is_active, created_at
+        SELECT id, username, full_name, phone_number, avatar_url, role, is_active, created_at
         ${fromWhere}
         ORDER BY ${safeSortBy} ${safeSortDir}
         LIMIT $${limitParam} OFFSET $${offsetParam}
@@ -73,7 +73,7 @@ const createUserByAdmin = async (userData) => {
     const query = `
         INSERT INTO users (username, password_hash, full_name, phone_number, role)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, username, full_name, phone_number, role, is_active, created_at
+        RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at
     `;
     const result = await db.query(query, [username, password_hash, full_name, phone_number, role]);
     return result.rows[0];
@@ -81,7 +81,7 @@ const createUserByAdmin = async (userData) => {
 
 const getUserById = async (id) => {
     const query = `
-        SELECT id, username, full_name, phone_number, role, is_active, created_at
+        SELECT id, username, full_name, phone_number, avatar_url, role, is_active, created_at
         FROM users
         WHERE id = $1
     `;
@@ -91,7 +91,7 @@ const getUserById = async (id) => {
 
 const getMyProfile = async (id) => {
     const query = `
-        SELECT id, username, full_name, phone_number, role, is_active, created_at
+        SELECT id, username, full_name, phone_number, avatar_url, role, is_active, created_at
         FROM users
         WHERE id = $1
     `;
@@ -104,7 +104,7 @@ const toggleUserStatus = async (id) => {
         UPDATE users
         SET is_active = NOT is_active
         WHERE id = $1
-        RETURNING id, username, full_name, phone_number, role, is_active, created_at
+        RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at
     `;
     const result = await db.query(query, [id]);
     return result.rows[0] || null;
@@ -120,7 +120,7 @@ const updateUser = async (id, { full_name, phone_number, role, password_hash }) 
     }
 
     params.push(id);
-    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, role, is_active, created_at`;
+    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at`;
     const result = await db.query(query, params);
     return result.rows[0] || null;
 };
@@ -135,8 +135,19 @@ const updateMyProfile = async (id, { full_name, phone_number, password_hash }) =
     }
 
     params.push(id);
-    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, role, is_active, created_at`;
+    query += ` WHERE id=$${params.length} RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at`;
     const result = await db.query(query, params);
+    return result.rows[0] || null;
+};
+
+const updateMyAvatar = async (id, avatarUrl) => {
+    const query = `
+        UPDATE users
+        SET avatar_url = $1
+        WHERE id = $2
+        RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at
+    `;
+    const result = await db.query(query, [avatarUrl, id]);
     return result.rows[0] || null;
 };
 
@@ -173,5 +184,6 @@ module.exports = {
     updateUser,
     getMyProfile,
     updateMyProfile,
+    updateMyAvatar,
     getAssignedOrders
 };

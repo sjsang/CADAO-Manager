@@ -4,8 +4,14 @@ import userApi from "../../api/userApi";
 import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 8;
+
+const buildCloudinaryUrl = (publicId) => {
+    if (!publicId) return "";
+    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${publicId}`;
+};
 
 const ROLE_OPTIONS = [
     { value: "admin", label: "Admin" },
@@ -78,11 +84,7 @@ const StaffManager = () => {
     const lockedCount = Math.max(0, users.length - activeCount);
 
     const formatDate = (value) => {
-        if (!value) {
-            return "-";
-        }
-
-        return new Date(value).toLocaleDateString("vi-VN");
+        return formatDateDDMMYYYY(value);
     };
 
     const resetCreateForm = () => {
@@ -221,6 +223,7 @@ const StaffManager = () => {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Username</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Họ tên</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">SĐT</th>
@@ -238,6 +241,19 @@ const StaffManager = () => {
                                             onClick={() => navigate(`/admin/users/${user.id}`)}
                                         >
                                             <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="h-10 w-10 overflow-hidden rounded-full border border-slate-300 bg-slate-100">
+                                                    {user.avatar_url ? (
+                                                        <img
+                                                            src={buildCloudinaryUrl(user.avatar_url)}
+                                                            alt="Avatar nhân viên"
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">─</div>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{user.username}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.full_name || "-"}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{user.phone_number || "-"}</td>
@@ -257,7 +273,7 @@ const StaffManager = () => {
 
                                     {users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có dữ liệu nhân viên phù hợp.
                                             </td>
                                         </tr>

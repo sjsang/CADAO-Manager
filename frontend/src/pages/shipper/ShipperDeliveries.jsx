@@ -1,20 +1,28 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
+import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDate";
 
 const formatDateTime = (value) => {
-    if (!value) return "-";
+    if (!value) {
+        return "-";
+    }
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "-";
-    return new Intl.DateTimeFormat("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    }).format(date);
+
+    if (Number.isNaN(date.getTime())) {
+        return "-";
+    }
+
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear());
+
+    return `${hour}:${minute} ${day}/${month}/${year}`;
 };
 
 const ShipperDeliveries = () => {
@@ -24,8 +32,9 @@ const ShipperDeliveries = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [completing, setCompleting] = useState(null);
     const [activeTab, setActiveTab] = useState("shipping");
+    const [nowTs, setNowTs] = useState(Date.now());
 
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         try {
             const [shippingRes, historyRes] = await Promise.all([
                 orderApi.getMyDeliveries(),
@@ -40,7 +49,7 @@ const ShipperDeliveries = () => {
                 navigate("/admin/login", { replace: true });
             }
         }
-    };
+    }, [navigate]);
 
     useEffect(() => {
         const init = async () => {
@@ -49,7 +58,23 @@ const ShipperDeliveries = () => {
             setIsLoading(false);
         };
         init();
+    }, [loadOrders]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setNowTs(Date.now());
+        }, 1000);
+
+        return () => clearInterval(intervalId);
     }, []);
+
+    const getProcessingDuration = (order) => {
+        if (order.status === "completed" || order.status === "cancelled") {
+            return formatElapsedTime(order.created_at, order.updated_at || order.created_at);
+        }
+
+        return formatElapsedTime(order.created_at, nowTs);
+    };
 
     const handleComplete = async (orderCode) => {
         const confirmed = window.confirm(`Xác nhận đã giao thành công đơn ${orderCode}?`);
@@ -137,9 +162,14 @@ const ShipperDeliveries = () => {
                                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mã đơn</p>
                                             <p className="mt-1 text-base font-bold text-slate-800">{order.order_code}</p>
                                         </div>
-                                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}>
-                                            {statusText(order.status)}
-                                        </span>
+                                        <div className="flex ite-ce gap-1.5">
+                                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}>
+                                                {statusText(order.status)}
+                                            </span>
+                                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                                                {getProcessingDuration(order)}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2 rounded-xl bg-slate-50 p-3">
