@@ -23,6 +23,7 @@ const MenuManager = () => {
     const [sortOrder, setSortOrder] = useState("name_asc");
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
+    const [togglingId, setTogglingId] = useState(null);
 
     useEffect(() => {
         const fetchFilterOptions = async () => {
@@ -117,6 +118,25 @@ const MenuManager = () => {
         setCategoryFilter("all");
         setAvailabilityFilter("all");
         setSortOrder("name_asc");
+    };
+
+    const handleToggleFeatured = async (e, item) => {
+        e.stopPropagation();
+        setTogglingId(item.id);
+        try {
+            const response = await menuApi.toggleFeatured(item.id);
+            if (response.data?.success) {
+                setMenuItems((prev) =>
+                    prev.map((m) =>
+                        m.id === item.id ? { ...m, is_featured: response.data.data.is_featured } : m
+                    )
+                );
+            }
+        } catch (error) {
+            console.error("Failed to toggle featured:", error);
+        } finally {
+            setTogglingId(null);
+        }
     };
 
     return (
@@ -228,6 +248,7 @@ const MenuManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên món</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Giá</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide text-slate-500 uppercase">Nổi bật</th>
                                     </tr>
                                 </thead>
 
@@ -235,7 +256,7 @@ const MenuManager = () => {
                                     {menuItems.map((item, index) => (
                                         <tr
                                             key={item.id}
-                                            className="hover:bg-slate-50 cursor-pointer"
+                                            className={`hover:bg-slate-50 cursor-pointer ${item.is_featured ? "bg-amber-50" : ""}`}
                                             onClick={() => navigate(`/admin/menus/${item.id}`)}
                                         >
                                             <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
@@ -260,6 +281,16 @@ const MenuManager = () => {
                                                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.is_available ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
                                                     {item.is_available ? "Có sẵn" : "Hết hàng"}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <button
+                                                    onClick={(e) => handleToggleFeatured(e, item)}
+                                                    disabled={togglingId === item.id}
+                                                    title={item.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                                                    className={`text-xl transition-opacity ${togglingId === item.id ? "opacity-40" : "hover:opacity-70"} ${item.is_featured ? "text-amber-400" : "text-slate-300"}`}
+                                                >
+                                                    {item.is_featured ? "★" : "☆"}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

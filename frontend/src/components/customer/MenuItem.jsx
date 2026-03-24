@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AddToCartModal from "./AddToCartModal";
 import cartApi from "../../api/cartApi";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const MenuItem = ({ item }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -10,10 +11,11 @@ const MenuItem = ({ item }) => {
         setLoading(true);
         try {
             await cartApi.addToCart({ menuItemId: item.id, quantity, note });
-            alert("Thêm vào giỏ hàng thành công!");
+            notifyCustomer({ message: "Thêm vào giỏ hàng thành công!", type: "success" });
+            window.dispatchEvent(new Event("cartUpdated"));
         } catch (error) {
             console.error("Failed to add item to cart:", error);
-            alert("Thêm vào giỏ hàng thất bại!");
+            notifyCustomer({ message: "Thêm vào giỏ hàng thất bại!", type: "error" });
         } finally {
             setLoading(false);
             setIsModalOpen(false);
@@ -21,7 +23,7 @@ const MenuItem = ({ item }) => {
     };
 
     return (
-        <div key={item.id}>
+        <div>
             <div className="relative">
                 <div className="w-full h-60">
                     <img
@@ -30,18 +32,21 @@ const MenuItem = ({ item }) => {
                         className="h-full mx-auto object-cover"
                     />
                 </div>
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-lg font-bold text-orange-600">
+                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-[#e4c590] border border-[#e4c590]/40">
                     {Number(item.price).toLocaleString('vi-VN')}đ
                 </div>
             </div>
-            <p className="text-lg text-center font-bold my-2">{item.name}</p>
-            <p className="text-gray-400 text-sm text-center">{item.description}</p>
+            <p className="text-base text-center font-semibold mt-3 mb-1">{item.name}</p>
+            <p className="text-gray-400 text-sm text-center leading-relaxed">{item.description}</p>
             <button
-                className="w-full mt-2 py-2 bg-gray-900 text-white rounded-xl font-medium hover:bg-yellow-500 hover:text-black cursor-pointer transition-colors"
+                className="group relative overflow-hidden w-full mt-3 py-2.5 border border-[#e4c590] text-[#e4c590] cursor-pointer"
                 onClick={() => setIsModalOpen(true)}
                 disabled={loading}
             >
-                Thêm vào phiếu gọi món
+                <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></span>
+                <span className="relative z-10 text-sm font-bold tracking-wider transition-colors duration-500 group-hover:text-black">
+                    THÊM VÀO GIỎ
+                </span>
             </button>
 
             <AddToCartModal

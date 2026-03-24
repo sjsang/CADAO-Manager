@@ -14,8 +14,20 @@ const registerCustomer = async (customerData) => {
     return result.rows[0].id;
 };
 
+const getCustomerByEmail = async (email) => {
+    const query = `SELECT id, email FROM customers WHERE LOWER(email) = LOWER($1) LIMIT 1`;
+    const result = await db.query(query, [email]);
+    return result.rows[0] || null;
+};
+
+const getCustomerByPhone = async (phoneNumber) => {
+    const query = `SELECT id, phone_number FROM customers WHERE phone_number = $1 LIMIT 1`;
+    const result = await db.query(query, [phoneNumber]);
+    return result.rows[0] || null;
+};
+
 const loginCustomer = async (email) => {
-    const query = `SELECT * FROM customers WHERE email = $1 AND is_active = TRUE`;
+    const query = `SELECT * FROM customers WHERE LOWER(email) = LOWER($1) AND is_active = TRUE`;
     const result = await db.query(query, [email]);
     return result.rows[0] || null;
 };
@@ -51,6 +63,8 @@ const getCustomerById = async (id) => {
 
 module.exports = {
     registerCustomer,
+    getCustomerByEmail,
+    getCustomerByPhone,
     loginCustomer,
     loginAdmin,
     getCustomerById

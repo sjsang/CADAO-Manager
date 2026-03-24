@@ -1,5 +1,26 @@
 const db = require('../config/db');
 
+const getFeaturedReviews = async () => {
+    const query = `
+        SELECT
+            r.id,
+            r.rating,
+            r.content,
+            r.created_at,
+            c.full_name AS customer_name,
+            c.avatar_url AS customer_avatar,
+            o.order_code
+        FROM order_reviews r
+        JOIN customers c ON c.id = r.customer_id
+        JOIN orders o ON o.id = r.order_id
+        WHERE r.is_featured = TRUE
+        ORDER BY r.created_at DESC
+    `;
+
+    const result = await db.query(query);
+    return result.rows;
+};
+
 const getRecentReviews = async (limit = 6) => {
     const safeLimit = Math.min(
         Number.isInteger(Number(limit)) && Number(limit) > 0 ? Number(limit) : 6,
@@ -70,6 +91,7 @@ const getReviewsForAdmin = async ({ search = "", rating = "all", page = 1, limit
             r.id,
             r.rating,
             r.content,
+            r.is_featured,
             r.created_at,
             r.updated_at,
             c.full_name AS customer_name,
@@ -93,4 +115,22 @@ const getReviewsForAdmin = async ({ search = "", rating = "all", page = 1, limit
     };
 };
 
-module.exports = { getRecentReviews, getReviewsForAdmin };
+const setFeaturedReview = async (id) => {
+    const safeId = Number(id);
+    if (!Number.isInteger(safeId) || safeId <= 0) {
+        throw new Error('Invalid review id');
+    }
+
+    const result = await db.query(
+        `UPDATE order_reviews
+         SET is_featured = NOT is_featured, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, is_featured`,
+        [safeId]
+    );
+
+    return result.rows[0] || null;
+};
+
+module.exports = { getFeaturedReviews, getRecentReviews, getReviewsForAdmin, setFeaturedReview };
+

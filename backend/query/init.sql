@@ -20,8 +20,11 @@ CREATE TABLE menu_items (
     category_id INT NOT NULL REFERENCES categories(id),
     image_url TEXT,
     is_available BOOLEAN DEFAULT TRUE,
+    is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
+-- ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
 
 -- 4. Người dùng nội bộ
 CREATE TABLE users (
@@ -128,9 +131,12 @@ CREATE TABLE order_reviews (
         CHECK (rating BETWEEN 1 AND 5),
     content TEXT NOT NULL
         CHECK (char_length(trim(content)) > 0),
+    is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
+-- ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
 
 -- 9. Thanh toán
 CREATE TABLE payments (

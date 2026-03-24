@@ -116,9 +116,46 @@ const updateMenuItem = async (id, name, description, price, categoryId, imageUrl
     return result.rows[0];
 };
 
+const getFeaturedMenuItems = async () => {
+    const query = `
+        SELECT
+            mi.id,
+            mi.name,
+            mi.description,
+            mi.price,
+            mi.image_url
+        FROM menu_items mi
+        WHERE mi.is_featured = TRUE AND mi.is_available = TRUE
+        ORDER BY mi.price DESC
+        LIMIT 3
+    `;
+
+    const result = await db.query(query);
+    return result.rows;
+};
+
+const toggleFeaturedMenuItem = async (id) => {
+    const safeId = Number(id);
+    if (!Number.isInteger(safeId) || safeId <= 0) {
+        throw new Error('Invalid menu item id');
+    }
+
+    const result = await db.query(
+        `UPDATE menu_items
+         SET is_featured = NOT is_featured
+         WHERE id = $1
+         RETURNING id, is_featured`,
+        [safeId]
+    );
+
+    return result.rows[0] || null;
+};
+
 module.exports = {
     getMenuItems,
     getMenuItemById,
     createMenuItem,
-    updateMenuItem
+    updateMenuItem,
+    getFeaturedMenuItems,
+    toggleFeaturedMenuItem
 };

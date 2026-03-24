@@ -62,9 +62,40 @@ const updateMenuItem = async (req, res) => {
     }
 };
 
+const getFeaturedMenuItems = async (req, res) => {
+    try {
+        const data = await menuService.getFeaturedMenuItems();
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+const toggleFeaturedMenuItem = async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ success: false, message: 'ID không hợp lệ.' });
+        }
+
+        const updated = await menuService.toggleFeaturedMenuItem(id);
+        if (!updated) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy món ăn.' });
+        }
+
+        res.status(200).json({ success: true, data: updated });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 module.exports = {
     getMenuItems,
     getMenuItemById,
     createMenuItem,
-    updateMenuItem
+    updateMenuItem,
+    getFeaturedMenuItems,
+    toggleFeaturedMenuItem
 };

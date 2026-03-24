@@ -6,6 +6,8 @@ import customerApi from "../../api/customerApi";
 import { getStatusText } from "../../functions/formatOrderFields";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AOS from "aos";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const buildCloudinaryUrl = (publicId) => {
     if (!publicId) {
@@ -22,6 +24,10 @@ const ProfilePage = () => {
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     const navigate = useNavigate();
+
+    useEffect(() => {
+        AOS.init({ duration: 800, easing: "ease-out-cubic", once: false, offset: 80 });
+    }, []);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -70,7 +76,7 @@ const ProfilePage = () => {
             }
 
             console.error("Failed to logout:", error);
-            alert("Không thể đăng xuất ngay lúc này. Vui lòng thử lại.");
+            notifyCustomer({ message: "Không thể đăng xuất ngay lúc này. Vui lòng thử lại.", type: "error" });
         }
     };
 
@@ -114,7 +120,10 @@ const ProfilePage = () => {
             }
         } catch (error) {
             console.error("Failed to update avatar:", error);
-            alert(error.response?.data?.message || "Không thể cập nhật ảnh đại diện.");
+            notifyCustomer({
+                message: error.response?.data?.message || "Không thể cập nhật ảnh đại diện.",
+                type: "error"
+            });
         } finally {
             setUploadingAvatar(false);
             event.target.value = "";
@@ -125,147 +134,219 @@ const ProfilePage = () => {
         <div>
             <Header />
 
-            <div className="w-7xl mx-auto mt-12 text-white">
+            <div className="w-7xl mx-auto py-16 text-white">
                 {profile && (
-                    <div className="flex gap-12 p-4 bg-gray-800 rounded-lg">
-                        <div className="w-42 flex shrink-0 flex-col items-center gap-3">
-                            <div className="h-28 w-28 overflow-hidden rounded-full border border-gray-600 bg-gray-700">
-                                {profile.avatar_url ? (
-                                    <img
-                                        src={buildCloudinaryUrl(profile.avatar_url)}
-                                        alt="Avatar khách hàng"
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-xs text-gray-300">Chưa có ảnh</div>
-                                )}
+                    <div data-aos="fade-up" className="mb-12">
+                        <div className="bg-black/30 border border-white/10 rounded-2xl p-10">
+                            <h2 className="text-3xl font-bold mb-8 text-[#e4c590]">Hồ sơ cá nhân</h2>
+
+                            <div className="grid lg:grid-cols-3 gap-10">
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="h-40 w-40 overflow-hidden rounded-full border-2 border-[#e4c590]/40 bg-black/60">
+                                        {profile.avatar_url ? (
+                                            <img
+                                                src={buildCloudinaryUrl(profile.avatar_url)}
+                                                alt="Avatar khách hàng"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                                                    <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <label className="group cursor-pointer relative overflow-hidden px-8 py-2.5 border border-[#e4c590]/60 text-[#e4c590] rounded-lg">
+                                        <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                        <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">
+                                            {uploadingAvatar ? "Đang tải..." : "Thay ảnh"}
+                                        </span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleAvatarChange}
+                                            disabled={uploadingAvatar}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="lg:col-span-2">
+                                    <div className="space-y-5">
+                                        <label className="flex flex-col gap-1.5">
+                                            <span className="text-xs tracking-widest text-gray-400 uppercase">Tên khách hàng</span>
+                                            {isEditing ? (
+                                                <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
+                                                    <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                    <input
+                                                        type="text"
+                                                        name="full_name"
+                                                        value={profile.full_name}
+                                                        onChange={handleChange}
+                                                        className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="text-lg text-white">{profile.full_name}</p>
+                                            )}
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5">
+                                            <span className="text-xs tracking-widest text-gray-400 uppercase">Email</span>
+                                            {isEditing ? (
+                                                <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
+                                                    <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                        <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                                                    </svg>
+                                                    <input
+                                                        type="email"
+                                                        name="email"
+                                                        value={profile.email}
+                                                        onChange={handleChange}
+                                                        className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="text-lg text-white">{profile.email}</p>
+                                            )}
+                                        </label>
+
+                                        <label className="flex flex-col gap-1.5">
+                                            <span className="text-xs tracking-widest text-gray-400 uppercase">Số điện thoại</span>
+                                            {isEditing ? (
+                                                <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
+                                                    <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z" />
+                                                    </svg>
+                                                    <input
+                                                        type="text"
+                                                        name="phone_number"
+                                                        value={profile.phone_number}
+                                                        onChange={handleChange}
+                                                        className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="text-lg text-white">{profile.phone_number}</p>
+                                            )}
+                                        </label>
+                                    </div>
+
+                                    <div className="flex gap-4 mt-8">
+                                        {isEditing ? (
+                                            <>
+                                                <button
+                                                    onClick={handleSaveClick}
+                                                    className="group relative overflow-hidden px-6 py-2.5 border border-green-500/60 text-green-400 rounded-lg cursor-pointer"
+                                                >
+                                                    <span className="absolute inset-0 bg-green-500 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                                    <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">LƯU</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setIsEditing(false)}
+                                                    className="px-6 py-2.5 border border-gray-500/40 text-gray-400 rounded-lg cursor-pointer hover:border-gray-400 transition-colors text-sm font-semibold"
+                                                >
+                                                    HỦY
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={handleEditClick}
+                                                    className="group relative overflow-hidden px-6 py-2.5 border border-[#e4c590]/60 text-[#e4c590] rounded-lg cursor-pointer"
+                                                >
+                                                    <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                                    <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">CẬP NHẬT THÔNG TIN</span>
+                                                </button>
+                                                <button
+                                                    onClick={handleLogout}
+                                                    className="group relative overflow-hidden px-6 py-2.5 border border-red-500/40 text-red-400 rounded-lg cursor-pointer"
+                                                >
+                                                    <span className="absolute inset-0 bg-red-500 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                                    <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">ĐĂNG XUẤT</span>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-
-                            <label className="cursor-pointer rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
-                                {uploadingAvatar ? "Đang tải..." : "Đổi ảnh"}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleAvatarChange}
-                                    disabled={uploadingAvatar}
-                                    className="hidden"
-                                />
-                            </label>
-                        </div>
-
-                        <div>
-                            <p className="text-gray-400 mb-1">Tên khách hàng</p>
-                            {isEditing
-                                ? <input
-                                    type="text"
-                                    name="full_name"
-                                    value={profile.full_name}
-                                    onChange={handleChange}
-                                    className="p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                : <p className="text-lg">{profile.full_name}</p>}
-                        </div>
-                        <div>
-                            <p className="text-gray-400 mb-1">Email</p>
-                            {isEditing
-                                ? <input
-                                    type="text"
-                                    name="email"
-                                    value={profile.email}
-                                    onChange={handleChange}
-                                    className="p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                : <p className="text-lg">{profile.email}</p>}
-                        </div>
-                        <div>
-                            <p className="text-gray-400 mb-1">Số điện thoại</p>
-                            {isEditing
-                                ? <input
-                                    type="text"
-                                    name="phone_number"
-                                    value={profile.phone_number}
-                                    onChange={handleChange}
-                                    className="p-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                : <p className="text-lg">{profile.phone_number}</p>}
-                        </div>
-                        <div className="flex items-center gap-6 ml-auto">
-                            {isEditing
-                                ? <button className="cursor-pointer hover:underline text-green-500"
-                                    onClick={handleSaveClick}
-                                >
-                                    Lưu
-                                </button>
-                                : <button className="cursor-pointer hover:underline text-blue-500"
-                                    onClick={handleEditClick}
-                                >
-                                    Cập nhật thông tin
-                                </button>}
-                            <button className="ml-auto cursor-pointer hover:underline text-orange-500"
-                                onClick={handleLogout}
-                            >
-                                Đăng xuất
-                            </button>
                         </div>
                     </div>
                 )}
 
-                {/* Address Manager */}
-                <AddressManager />
+                <div data-aos="fade-up" data-aos-delay="100">
+                    <AddressManager />
+                </div>
 
                 {orders.length > 0 && (
-                    <div className="mt-8">
-                        <h2 className="text-2xl font-semibold mb-4">Đơn hàng của bạn</h2>
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-700">
-                                    <th className="p-3 border border-gray-600">Mã đơn hàng</th>
-                                    <th className="p-3 border border-gray-600">Tên người nhận</th>
-                                    <th className="p-3 border border-gray-600">Số điện thoại</th>
-                                    <th className="p-3 border border-gray-600">Địa chỉ</th>
-                                    <th className="p-3 border border-gray-600">Tổng tiền</th>
-                                    <th className="p-3 border border-gray-600">Trạng thái</th>
-                                    <th className="p-3 border border-gray-600">Đánh giá</th>
-                                    <th className="p-3 border border-gray-600">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {orders.map((order) => (
-                                    <tr key={order.order_code} className="border-t border-gray-600">
-                                        <td className="p-3 border border-gray-600">{order.order_code}</td>
-                                        <td className="p-3 border border-gray-600">{order.delivery_full_name}</td>
-                                        <td className="p-3 border border-gray-600">{order.delivery_phone}</td>
-                                        <td className="p-3 border border-gray-600">{order.delivery_address}</td>
-                                        <td className="p-3 border border-gray-600">{Number(order.total_amount).toLocaleString('vi-VN')}đ</td>
-                                        <td className="p-3 border border-gray-600">{order.status}</td>
-                                        <td className="p-3 border border-gray-600">
-                                            {order.rawStatus === "completed" ? (
-                                                order.has_review ? (
-                                                    <span className="text-yellow-400 text-sm">★ Đã đánh giá</span>
-                                                ) : (
+                    <div data-aos="fade-up" data-aos-delay="200" className="mt-16">
+                        <h2 className="text-2xl font-bold mb-6 text-[#e4c590]">Đơn hàng của bạn</h2>
+                        <div className="bg-black/30 border border-white/10 rounded-xl overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-black/60 border-b border-white/10">
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Mã đơn</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Người nhận</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Điện thoại</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Địa chỉ</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Tổng tiền</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Trạng thái</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Góp ý</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {orders.map((order) => (
+                                            <tr key={order.order_code} className="hover:bg-white/5 transition-colors">
+                                                <td className="p-4 text-sm text-white font-mono">{order.order_code}</td>
+                                                <td className="p-4 text-sm text-gray-300">{order.delivery_full_name}</td>
+                                                <td className="p-4 text-sm text-gray-400">{order.delivery_phone}</td>
+                                                <td className="p-4 text-sm text-gray-400 max-w-xs truncate">{order.delivery_address}</td>
+                                                <td className="p-4 text-sm font-semibold text-[#e4c590]">{Number(order.total_amount).toLocaleString('vi-VN')}đ</td>
+                                                <td className="p-4 text-sm">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.rawStatus === "completed" ? "bg-green-500/20 text-green-400" :
+                                                        order.rawStatus === "cancelled" ? "bg-red-500/20 text-red-400" :
+                                                            order.rawStatus === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                                                "bg-blue-500/20 text-blue-400"
+                                                        }`}>
+                                                        {order.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-sm">
+                                                    {order.rawStatus === "completed" ? (
+                                                        order.has_review ? (
+                                                            <span className="text-[#e4c590] font-semibold">★ Đã đánh giá</span>
+                                                        ) : (
+                                                            <button
+                                                                className="text-[#e4c590] cursor-pointer hover:underline font-semibold"
+                                                                onClick={() => navigate(`/orders/${order.order_code}`)}
+                                                            >
+                                                                Đánh giá
+                                                            </button>
+                                                        )
+                                                    ) : (
+                                                        <span className="text-gray-500">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-sm">
                                                     <button
-                                                        className="text-yellow-500 cursor-pointer hover:underline text-sm"
+                                                        className="px-3 py-1.5 bg-black/40 border border-[#e4c590]/30 text-[#e4c590] rounded-lg hover:bg-black/60 transition-colors text-xs font-semibold"
                                                         onClick={() => navigate(`/orders/${order.order_code}`)}
                                                     >
-                                                        Đánh giá ngay
+                                                        Chi tiết
                                                     </button>
-                                                )
-                                            ) : (
-                                                <span className="text-gray-500 text-sm">—</span>
-                                            )}
-                                        </td>
-                                        <td className="p-3 border border-gray-600">
-                                            <button
-                                                className="text-blue-500 cursor-pointer hover:underline"
-                                                onClick={() => navigate(`/orders/${order.order_code}`)}
-                                            >
-                                                Xem chi tiết
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

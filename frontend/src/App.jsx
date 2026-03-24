@@ -28,6 +28,7 @@ import WardManager from './pages/admin/WardManager'
 import VoucherManager from './pages/admin/VoucherManager'
 import ReviewManager from './pages/admin/ReviewManager'
 import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
+import CustomerToast from './components/customer/CustomerToast'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -112,41 +113,42 @@ const AdminLoginRoute = () => {
 
 const App = () => {
   return (
-    <Routes>
-      {/* Customer Routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/menus" element={<MenuPage />} />
-      <Route path="/about" element={<AboutUsPage />} />
-      <Route path="/contact" element={<ContactUsPage />} />
-      <Route path="/cart-items" element={<CartPage />} />
-      <Route path="/orders/:orderCode/checkout" element={<CheckoutPage />} />
-      <Route path="/orders/:orderCode" element={<OrderDetailPage />} />
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/menus" element={<MenuPage />} />
+        <Route path="/about" element={<AboutUsPage />} />
+        <Route path="/contact" element={<ContactUsPage />} />
+        <Route path="/cart-items" element={<CartPage />} />
+        <Route path="/orders/:orderCode/checkout" element={<CheckoutPage />} />
+        <Route path="/orders/:orderCode" element={<OrderDetailPage />} />
 
-      <Route path="/auth/register" element={<CustomerRegis />} />
-      <Route path="/auth/login" element={<CustomerLogin />} />
-      <Route path="/customers/me" element={<ProfilePage />} />
+        <Route path="/auth/register" element={<CustomerRegis />} />
+        <Route path="/auth/login" element={<CustomerLogin />} />
+        <Route path="/customers/me" element={<ProfilePage />} />
 
-      {/* Admin Routes */}
-      <Route path="/admin/login" element={<AdminLoginRoute />} />
-      <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
-      <Route path="/admin/statistics" element={<AdminRoute><StatisticsPage /></AdminRoute>} />
-      <Route path="/admin/orders" element={<OrderManagerRoute><OrderManager /></OrderManagerRoute>} />
-      <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
-      <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
-      <Route path="/admin/menu-categories" element={<AdminRoute><MenuCategoryManager /></AdminRoute>} />
-      <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
-      <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
-      <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
-      <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
-      <Route path="/admin/users" element={<AdminRoute><UserManagerPage /></AdminRoute>} />
-      <Route path="/admin/users/:id" element={<AdminRoute><UserDetailPage /></AdminRoute>} />
-      <Route path="/admin/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
-      <Route path="/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
-      <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
-      <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
-      <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />
-      <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
-    </Routes>
+        <Route path="/admin/login" element={<AdminLoginRoute />} />
+        <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+        <Route path="/admin/statistics" element={<AdminRoute><StatisticsPage /></AdminRoute>} />
+        <Route path="/admin/orders" element={<OrderManagerRoute><OrderManager /></OrderManagerRoute>} />
+        <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
+        <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
+        <Route path="/admin/menu-categories" element={<AdminRoute><MenuCategoryManager /></AdminRoute>} />
+        <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
+        <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
+        <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
+        <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><UserManagerPage /></AdminRoute>} />
+        <Route path="/admin/users/:id" element={<AdminRoute><UserDetailPage /></AdminRoute>} />
+        <Route path="/admin/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
+        <Route path="/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
+        <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
+        <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
+        <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />
+        <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
+      </Routes>
+      <CustomerToast />
+    </>
   );
 }
 

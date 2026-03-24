@@ -4,44 +4,63 @@ const CategorySection = ({
     selectedType,
     selectedCategory,
     onSelectType,
-    onSelectCategory
+    onSelectCategory,
+    index = 0
 }) => {
 
     const filteredCategories = categories.filter(
         cat => cat.menu_type_id === type.id
     );
 
+    const isTypeActive = selectedType === type.name;
+
     return (
-        <div>
-            <h3
+        <div
+            style={{
+                animation: `sidebarFadeIn 0.5s ease-out both`,
+                animationDelay: `${index * 120}ms`,
+            }}
+        >
+            <button
+                type="button"
                 onClick={() => {
                     onSelectType(type.name);
                     onSelectCategory(null);
                 }}
-                className={`font-bold text-xl mb-4 cursor-pointer transition-colors ${selectedType === type.name
-                    ? "text-yellow-500"
-                    : "hover:text-yellow-500"
-                    }`}
+                className="w-full flex items-center justify-between gap-2 mb-3 group cursor-pointer"
             >
-                {type.name}
-            </h3>
+                <span className={`font-bold text-base uppercase tracking-widest transition-colors ${isTypeActive ? "text-[#e4c590]" : "text-white/60 group-hover:text-white"
+                    }`}>
+                    {type.name}
+                </span>
+                <span className={`h-px flex-1 transition-colors ${isTypeActive ? "bg-[#e4c590]/40" : "bg-white/10"
+                    }`} />
+            </button>
 
-            <div className="flex flex-col gap-2 pl-2">
-                {filteredCategories.map(category => (
-                    <div
-                        key={category.id}
-                        onClick={() => {
-                            onSelectType(type.name);
-                            onSelectCategory(category.name);
-                        }}
-                        className={`px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 ${selectedCategory === category.name
-                            ? "bg-yellow-500 text-black font-medium"
-                            : "hover:bg-yellow-100 hover:text-black"
-                            }`}
-                    >
-                        {category.name}
-                    </div>
-                ))}
+            <div className="flex flex-col">
+                {filteredCategories.map(category => {
+                    const isActive = selectedCategory === category.name && isTypeActive;
+                    return (
+                        <div
+                            key={category.id}
+                            onClick={() => {
+                                onSelectType(type.name);
+                                onSelectCategory(category.name);
+                            }}
+                            className={`relative flex items-center gap-3 px-3 py-2 cursor-pointer transition-all duration-200 rounded-r-lg ${isActive
+                                ? "text-[#e4c590]"
+                                : "text-gray-400 hover:text-white"
+                                }`}
+                        >
+                            <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-full transition-all duration-300 ${isActive ? "h-5 bg-[#e4c590]" : "h-0 bg-[#e4c590]"
+                                }`} />
+                            <span className={`text-sm transition-all duration-200 ${isActive ? "font-semibold translate-x-1" : ""
+                                }`}>
+                                {category.name}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

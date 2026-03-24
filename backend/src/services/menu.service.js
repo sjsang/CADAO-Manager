@@ -71,9 +71,19 @@ const updateMenuItem = async (id, name, description, price, categoryId, isAvaila
     return await menuRepository.updateMenuItem(id, name, description, price, categoryId, imageUrl, availableValue);
 }
 
+const getFeaturedMenuItems = async () => {
+    return await menuRepository.getFeaturedMenuItems();
+};
+
+const toggleFeaturedMenuItem = async (id) => {
+    return await menuRepository.toggleFeaturedMenuItem(id);
+};
+
 module.exports = {
     getMenuItems,
     getMenuItemById,
     createMenuItem,
-    updateMenuItem
+    updateMenuItem,
+    getFeaturedMenuItems,
+    toggleFeaturedMenuItem
 };

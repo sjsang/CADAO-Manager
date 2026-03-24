@@ -597,7 +597,7 @@ const AdminOrderDetail = () => {
                                     <>
                                         <div className="flex items-center gap-2 mb-3">
                                             {[1, 2, 3, 4, 5].map((s) => (
-                                                <span key={s} className={`text-xl ${s <= order.review.rating ? "text-yellow-400" : "text-slate-300"}`}>★</span>
+                                                <span key={s} className={`text-xl ${s <= order.review.rating ? "text-[#e4c590]" : "text-slate-300"}`}>★</span>
                                             ))}
                                             <span className="text-sm text-slate-500">{order.review.rating}/5 sao</span>
                                         </div>

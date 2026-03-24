@@ -121,7 +121,7 @@ const CustomerDetail = () => {
                 />
 
                 <main className="p-6 space-y-6">
-                    {/* Back button */}
+                     Back button */}
                     <button
                         onClick={() => navigate("/admin/customers")}
                         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
@@ -139,7 +139,7 @@ const CustomerDetail = () => {
                         </div>
                     ) : (
                         <>
-                            {/* Basic info */}
+                             Basic info */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <div className="mb-6 flex items-start justify-between gap-6">
                                     <div className="flex flex-col items-center gap-3">
@@ -255,7 +255,7 @@ const CustomerDetail = () => {
                                 )}
                             </div>
 
-                            {/* Addresses */}
+                             Addresses */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <h2 className="mb-4 text-base font-semibold text-slate-800">
                                     Danh sách địa chỉ ({customer.addresses?.length ?? 0})
@@ -288,7 +288,7 @@ const CustomerDetail = () => {
                                 )}
                             </div>
 
-                            {/* Order history */}
+                             Order history */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <h2 className="mb-4 text-base font-semibold text-slate-800">
                                     Lịch sử đơn hàng ({customer.orders?.length ?? 0})

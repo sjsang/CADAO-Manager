@@ -10,7 +10,6 @@ const Header = ({ activePage }) => {
     const navItems = [
         { key: "home", label: "Trang chủ", path: "/" },
         { key: "menu", label: "Thực đơn", path: "/menus" },
-        { key: "promotion", label: "Khuyến mãi", path: "/promotions" },
         { key: "about", label: "Về chúng tôi", path: "/about" },
         { key: "contact", label: "Liên hệ", path: "/contact" }
     ];
@@ -119,7 +118,18 @@ const Header = ({ activePage }) => {
         };
 
         fetchCartItems();
-    }, [location.pathname]);
+
+        // Listen for cart updates
+        const handleCartUpdate = () => {
+            fetchCartItems();
+        };
+
+        window.addEventListener("cartUpdated", handleCartUpdate);
+
+        return () => {
+            window.removeEventListener("cartUpdated", handleCartUpdate);
+        };
+    }, []);
 
     useEffect(() => {
         const handleResize = () => {
@@ -166,11 +176,11 @@ const Header = ({ activePage }) => {
                     : "bg-transparent"
                 }`}
         >
-            <div className="max-w-7xl mx-auto flex items-center justify-between p-6  xl:px-0">
+            <div className="max-w-7xl mx-auto flex items-center justify-between p-3 xl:px-0">
 
                 <button
                     type="button"
-                    className="flex items-center justify-between gap-2 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 rounded-md"
+                    className="flex items-center justify-between gap-2 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590] rounded-md"
                     onClick={() => handleNavigate("/")}
                     aria-label="Về trang chủ"
                 >
@@ -192,11 +202,11 @@ const Header = ({ activePage }) => {
                                     <button
                                         type="button"
                                         onClick={() => handleNavigate(item.path)}
-                                        className={`group relative cursor-pointer pb-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 rounded-sm ${isActive ? "text-yellow-400" : "text-white/90 hover:text-yellow-300"}`}
+                                        className={`group relative cursor-pointer pb-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590] rounded-sm ${isActive ? "text-[#e4c590]" : "text-white/90 hover:text-yellow-300"}`}
                                     >
                                         {item.label}
                                         <span
-                                            className={`absolute left-0 -bottom-0.5 h-0.5 w-full origin-left bg-yellow-400 transition-transform duration-300 ${isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`}
+                                            className={`absolute left-0 -bottom-0.5 h-0.5 w-full origin-left bg-[#e4c590] transition-transform duration-300 ${isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"}`}
                                         />
                                     </button>
                                 </li>
@@ -208,13 +218,13 @@ const Header = ({ activePage }) => {
                 <div className="flex items-center gap-4">
                     <button
                         type="button"
-                        className="relative w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-yellow-500 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+                        className="relative w-12 h-12 text-[#e4c590] border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
                         onClick={() => handleNavigate("/cart-items")}
                         aria-label="Giỏ hàng"
                     >
                         <i className="fa-solid fa-bag-shopping text-xl"></i>
                         {cartCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-5 text-center shadow">
+                            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-5 text-center shadow">
                                 {cartCount > 99 ? "99+" : cartCount}
                             </span>
                         )}
@@ -223,18 +233,18 @@ const Header = ({ activePage }) => {
                         ? <button
                             type="button"
                             onClick={() => handleNavigate("/customers/me")}
-                            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+                            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
                             aria-label="Thông tin tài khoản"
                         >
                             <img
                                 src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${loggedInUser?.avatarUrl}`}
                                 alt={loggedInUser?.fullName}
-                                className="w-12 h-12 rounded-full object-cover cursor-pointer ring-2 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:ring-yellow-400"
+                                className="w-12 h-12 border-2 border-[#e4c590] rounded-full object-cover cursor-pointer ring-2 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:ring-[#e4c590]"
                             />
                         </button>
                         : <button
                             type="button"
-                            className="w-12 h-12 bg-gray-700/90 text-lg rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-yellow-500 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+                            className="relative w-12 h-12 text-[#e4c590] border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
                             onClick={() => handleNavigate("/auth/login")}
                             aria-label="Đăng nhập"
                         >
@@ -242,7 +252,7 @@ const Header = ({ activePage }) => {
                         </button>}
                     <button
                         type="button"
-                        className="md:hidden w-10 h-10 bg-gray-700/90 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-yellow-500 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+                        className="md:hidden w-12 h-12 text-[#e4c590] border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
                         onClick={() => setIsMobileMenuOpen((prev) => !prev)}
                         aria-label={isMobileMenuOpen ? "Đóng menu" : "Mở menu"}
                         aria-expanded={isMobileMenuOpen}
@@ -288,7 +298,7 @@ const Header = ({ activePage }) => {
                                             type="button"
                                             onClick={() => handleNavigate(item.path)}
                                             style={{ transitionDelay: isMobileMenuOpen ? `${index * 70}ms` : "0ms" }}
-                                            className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 ${isMobileMenuOpen ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"} ${isActive ? "bg-yellow-400 text-black font-semibold" : "bg-white/5 hover:bg-white/10 text-white"}`}
+                                            className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590] ${isMobileMenuOpen ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"} ${isActive ? "bg-[#e4c590] text-black font-semibold" : "bg-white/5 hover:bg-white/10 text-white"}`}
                                         >
                                             {item.label}
                                         </button>

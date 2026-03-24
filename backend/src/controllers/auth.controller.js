@@ -20,13 +20,16 @@ const loginAdmin = async (req, res) => {
 const registerCustomer = async (req, res) => {
     try {
         const { full_name, phone_number, email, password } = req.body;
-        const password_hash = await authService.hashPassword(password);
-        const customerData = { full_name, phone_number, email, password_hash };
+        const customerData = { full_name, phone_number, email, password };
         const customerId = await authService.registerCustomer(customerData);
         res.status(201).json({ message: "Customer registered successfully", customerId });
     } catch (err) {
+        if (err.status) {
+            return res.status(err.status).json({ message: err.message });
+        }
+
         console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
@@ -35,15 +38,19 @@ const loginCustomer = async (req, res) => {
         const { email, password } = req.body;
         const token = await authService.loginCustomer(email, password);
         if (!token) {
-            return res.status(401).json({ error: "Invalid email or password" });
+            return res.status(401).json({ message: "Invalid email or password" });
         }
         res.json({
             message: "Login successful",
             token: token
         });
     } catch (err) {
+        if (err.status) {
+            return res.status(err.status).json({ message: err.message });
+        }
+
         console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
 

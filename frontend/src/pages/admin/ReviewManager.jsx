@@ -14,6 +14,7 @@ const ReviewManager = () => {
     const [sortDir, setSortDir] = useState("desc");
     const [page, setPage] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
+    const [togglingId, setTogglingId] = useState(null);
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
 
     useEffect(() => {
@@ -48,6 +49,24 @@ const ReviewManager = () => {
     useEffect(() => {
         setPage(1);
     }, [search, ratingFilter, sortDir]);
+
+    const handleToggleFeatured = async (review) => {
+        setTogglingId(review.id);
+        try {
+            const response = await reviewApi.toggleFeatured(review.id);
+            if (response.data?.success) {
+                setReviews((prev) =>
+                    prev.map((r) =>
+                        r.id === review.id ? { ...r, is_featured: response.data.data.is_featured } : r
+                    )
+                );
+            }
+        } catch (error) {
+            console.error("Failed to toggle featured:", error);
+        } finally {
+            setTogglingId(null);
+        }
+    };
 
     return (
         <div className="flex min-h-screen bg-slate-100">
@@ -105,24 +124,25 @@ const ReviewManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Sao</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Nội dung</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày đánh giá</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide text-slate-500 uppercase">Nổi bật</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Đang tải danh sách đánh giá...
                                             </td>
                                         </tr>
                                     ) : reviews.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có đánh giá phù hợp.
                                             </td>
                                         </tr>
                                     ) : (
                                         reviews.map((review, index) => (
-                                            <tr key={review.id} className="hover:bg-slate-50">
+                                            <tr key={review.id} className={`hover:bg-slate-50 ${review.is_featured ? "bg-amber-50" : ""}`}>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{review.order_code}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">
@@ -132,6 +152,16 @@ const ReviewManager = () => {
                                                 <td className="px-4 py-3 text-sm text-amber-500">{"★".repeat(Number(review.rating || 0))}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{review.content}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{formatDateDDMMYYYY(review.created_at)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleToggleFeatured(review)}
+                                                        disabled={togglingId === review.id}
+                                                        title={review.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                                                        className={`text-xl transition-opacity ${togglingId === review.id ? "opacity-40" : "hover:opacity-70"} ${review.is_featured ? "text-amber-400" : "text-slate-300"}`}
+                                                    >
+                                                        {review.is_featured ? "★" : "☆"}
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     )}

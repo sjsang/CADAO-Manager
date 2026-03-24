@@ -24,6 +24,16 @@ axiosClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
+            const requestUrl = String(error.config?.url || "");
+            const isPublicAuthEndpoint =
+                requestUrl.includes("/auth/sessions") ||
+                requestUrl.includes("/auth/customers");
+
+            // Let login/register handle their own auth errors and show UI feedback.
+            if (isPublicAuthEndpoint) {
+                return Promise.reject(error);
+            }
+
             const token = sessionStorage.getItem("token");
             let role = null;
 
@@ -39,7 +49,7 @@ axiosClient.interceptors.response.use(
             const isAdminPath = window.location.pathname.startsWith("/admin");
             const isShipperPath = window.location.pathname.startsWith("/shipper");
             const isPortalProfilePath = window.location.pathname === "/profile";
-            const isAdminRequest = String(error.config?.url || "").includes("/auth/admin");
+            const isAdminRequest = requestUrl.includes("/auth/admin");
             const isPortalRole = ["admin", "shipper"].includes(role);
             const shouldRedirectToAdminLogin = isPortalRole || isAdminPath || isShipperPath || isPortalProfilePath || isAdminRequest;
 

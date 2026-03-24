@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import AOS from "aos"
 import menuApi from "../../api/menuApi"
 import categoryApi from "../../api/categoryApi"
 import menuTypeApi from "../../api/menu_typeApi"
@@ -18,118 +19,128 @@ const MenuPage = () => {
     const [sortOrder, setSortOrder] = useState("name_asc");
 
     useEffect(() => {
-        const fetchMenuTypes = async () => {
-            try {
-                const response = await menuTypeApi.getAll();
-                setMenuTypes(response.data);
-            } catch (error) {
-                console.error("Failed to fetch menu types:", error);
-            }
-        };
-
-        fetchMenuTypes();
+        AOS.init({ duration: 700, easing: "ease-out-cubic", once: false, offset: 60 });
     }, []);
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await categoryApi.getAll();
-                setCategories(response.data);
-            } catch (error) {
-                console.error("Failed to fetch categories:", error);
-            }
-        };
-
-        fetchCategories();
+        menuTypeApi.getAll()
+            .then((res) => setMenuTypes(res.data))
+            .catch(() => { });
     }, []);
 
     useEffect(() => {
-        const fetchMenuItems = async () => {
-            try {
-                const response = await menuApi.getAll({
-                    type: selectedType,
-                    category: selectedCategory,
-                    search: searchTerm,
-                    sort: sortOrder,
-                    available: true
-                });
+        categoryApi.getAll()
+            .then((res) => setCategories(res.data))
+            .catch(() => { });
+    }, []);
 
-                setMenuItems(response.data);
-            } catch (error) {
-                console.error("Failed to fetch menu items:", error);
-            }
-        };
-
-        fetchMenuItems();
+    useEffect(() => {
+        menuApi.getAll({
+            type: selectedType,
+            category: selectedCategory,
+            search: searchTerm,
+            sort: sortOrder,
+            available: true
+        })
+            .then((res) => { setMenuItems(res.data); AOS.refresh(); })
+            .catch(() => setMenuItems([]));
     }, [selectedType, selectedCategory, searchTerm, sortOrder]);
 
-    const handleCategorySelect = (categoryName) => {
-        setSelectedCategory(categoryName);
-    };
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    const handleCategorySelect = (categoryName) => setSelectedCategory(categoryName);
 
     const handleTypeSelect = (type) => {
         setSelectedType(type);
         setSelectedCategory(null);
     };
 
+    useEffect(() => {
+        const onScroll = () => setShowScrollTop(window.scrollY > 400);
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
     return (
         <>
             <Header activePage={"menu"} />
 
-            <div className="max-w-7xl mx-auto flex gap-8 py-10 text-white">
+            <div className="fixed top-34 left-0 bottom-0 w-56 border-r border-white/8 px-6 pt-4 overflow-y-auto text-white z-30">
+                <div className="flex flex-col gap-8">
+                    {menuTypes.map((type, index) => (
+                        <CategorySection
+                            key={type.id}
+                            index={index}
+                            type={type}
+                            categories={categories}
+                            selectedType={selectedType}
+                            selectedCategory={selectedCategory}
+                            onSelectType={handleTypeSelect}
+                            onSelectCategory={handleCategorySelect}
+                        />
+                    ))}
+                </div>
+            </div>
 
-                <div className="w-1/5 pr-8">
-                    <div className="fixed top-34 flex flex-col gap-8">
-                        {menuTypes.map(type => (
-                            <CategorySection
-                                key={type.id}
-                                type={type}
-                                categories={categories}
-                                selectedType={selectedType}
-                                selectedCategory={selectedCategory}
-                                onSelectType={handleTypeSelect}
-                                onSelectCategory={handleCategorySelect}
-                            />
-                        ))}
-                    </div>
+            <div className="py-20 text-white">
+                <div data-aos="fade-up" className="text-center mb-5">
+                    <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Hương vị đậm đà, trải nghiệm trọn vẹn</p>
+                    <h1 className="text-5xl font-bold mb-5">Khám phá thực đơn</h1>
+                    <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
                 </div>
 
-                <div className="flex-1">
-
-                    <div className="flex gap-3 mb-6">
+                <div className="w-7xl mx-auto">
+                    <div data-aos="fade-up" className="flex items-center gap-3 mb-8 bg-black/30 border border-white/10 rounded-xl px-4 py-2">
+                        <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        </svg>
                         <input
                             type="text"
                             placeholder="Tìm món..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none"
+                            className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none py-1"
                         />
-
+                        <div className="w-px h-5 bg-white/10 shrink-0" />
                         <select
                             value={sortOrder}
                             onChange={(e) => setSortOrder(e.target.value)}
-                            className="p-3 rounded-lg bg-gray-800 focus:outline-none"
+                            className="bg-transparent text-gray-400 focus:outline-none cursor-pointer text-sm hover:text-white transition-colors"
                         >
-                            <option value="name_asc">Tên: A → Z</option>
-                            <option value="name_desc">Tên: Z → A</option>
-                            <option value="price_asc">Giá: tăng dần</option>
-                            <option value="price_desc">Giá: giảm dần</option>
+                            <option className="text-black" value="name_asc">Tên: A → Z</option>
+                            <option className="text-black" value="name_desc">Tên: Z → A</option>
+                            <option className="text-black" value="price_asc">Giá: tăng dần</option>
+                            <option className="text-black" value="price_desc">Giá: giảm dần</option>
                         </select>
                     </div>
 
                     {menuItems.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-6">
-                            {menuItems.map(item => (
-                                <MenuItem key={item.id} item={item} />
+                        <div className="grid grid-cols-3 gap-8">
+                            {menuItems.map((item, index) => (
+                                <div key={item.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100}>
+                                    <MenuItem item={item} />
+                                </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center mt-40 text-gray-400">
+                        <div className="flex flex-col items-center justify-center mt-40 text-gray-500">
                             <p className="text-xl">Không tìm thấy món phù hợp.</p>
                         </div>
                     )}
                 </div>
             </div>
+
+            <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className={`fixed bottom-8 right-8 z-50 w-12 h-12 flex items-center justify-center rounded-full border-2 border-[#e4c590]/40 bg-black/60 backdrop-blur-sm text-[#e4c590] shadow-lg transition-all duration-300 cursor-pointer hover:bg-[#e4c590] hover:text-black hover:border-[#e4c590] ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+                    }`}
+                aria-label="Cuộn lên đầu trang"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path d="m18 15-6-6-6 6" />
+                </svg>
+            </button>
         </>
     );
 }

@@ -1,87 +1,124 @@
-import { Link, useNavigate } from 'react-router-dom';
-import authApi from '../../api/authApi';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import authApi from "../../api/authApi";
+import { notifyCustomer } from "../../utils/customerNotify";
+import AuthLayout from "../../components/auth/AuthLayout";
+import AuthField from "../../components/auth/AuthField";
 
 const CustomerLogin = () => {
     const navigate = useNavigate();
+    const [form, setForm] = useState({ email: "", password: "" });
+    const [errors, setErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+
+    const validateForm = () => {
+        const nextErrors = {};
+        const normalizedEmail = form.email.trim().toLowerCase();
+
+        if (!normalizedEmail) {
+            nextErrors.email = "Vui lòng nhập email.";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            nextErrors.email = "Email không hợp lệ.";
+        }
+
+        if (!form.password) {
+            nextErrors.password = "Vui lòng nhập mật khẩu.";
+        }
+
+        return nextErrors;
+    };
+
+    const handleFieldChange = (event) => {
+        const { name, value } = event.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+
+        const nextErrors = validateForm();
+        setErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) {
+            notifyCustomer({ message: "Vui lòng kiểm tra lại thông tin đăng nhập.", type: "warning" });
+            return;
+        }
+
+        setSubmitting(true);
+
         try {
             const response = await authApi.login({
-                email: formData.get('email'),
-                password: formData.get('password')
+                email: form.email.trim().toLowerCase(),
+                password: form.password
             });
 
             sessionStorage.setItem("token", response.data.token);
+            notifyCustomer({ message: "Đăng nhập thành công.", type: "success" });
             navigate('/');
         } catch (error) {
             console.error("Login failed:", error);
+            notifyCustomer({
+                message: error.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.",
+                type: "error"
+            });
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <div className='relative flex min-h-screen items-center justify-center px-4 py-8 text-white'>
-            <div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(56,189,248,0.25),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(20,184,166,0.2),transparent_35%)]' />
-
-            <div className='relative w-full max-w-md rounded-2xl border border-white/20 bg-slate-900/70 p-7 shadow-[0_20px_60px_rgba(2,6,23,0.55)] backdrop-blur-lg sm:p-8'>
-                <Link
-                    to='/'
-                    aria-label='Quay về trang chủ'
-                    className='absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-slate-900/80 text-2xl leading-none text-white transition hover:scale-105 hover:border-cyan-300 hover:text-cyan-200'
-                >
-                    ×
-                </Link>
-                <p className='mb-2 text-xs tracking-[0.24em] text-cyan-300/80 uppercase'>CADAO Customer</p>
-                <h1 className='mb-1 text-3xl font-extrabold text-white'>Đăng nhập</h1>
-                <p className='mb-6 text-sm text-slate-300'>Truy cập lịch sử đơn hàng, giỏ hàng và ưu đãi dành riêng cho bạn.</p>
-
-                <form onSubmit={handleLogin} className='flex flex-col gap-4'>
-                    <div className='space-y-1'>
-                        <label htmlFor='email' className='text-sm font-medium text-slate-200'>Email</label>
-                        <input
-                            id='email'
-                            type='email'
-                            name='email'
-                            placeholder='you@example.com'
-                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
-                        />
-                    </div>
-
-                    <div className='space-y-1'>
-                        <label htmlFor='password' className='text-sm font-medium text-slate-200'>Mật khẩu</label>
-                        <input
-                            id='password'
-                            type='password'
-                            name='password'
-                            placeholder='••••••••'
-                            className='w-full rounded-xl border border-slate-500/70 bg-slate-800/90 px-4 py-2.5 text-white placeholder:text-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
-                        />
-                    </div>
-
-                    <button
-                        type='submit'
-                        className='mt-2 rounded-xl bg-linear-to-r from-cyan-500 to-teal-500 px-4 py-2.5 font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 hover:from-cyan-400 hover:to-teal-400'
-                    >
-                        Đăng nhập
-                    </button>
-                </form>
-
-                <div className='mt-5 space-y-2 text-sm'>
+        <AuthLayout
+            mode="customer"
+            closeTo="/"
+            closeLabel="Quay về trang chủ"
+            eyebrow="Ca Dao Account"
+            title="Đăng nhập"
+            subtitle="Truy cập lịch sử đơn hàng, giỏ hàng và ưu đãi dành riêng cho bạn."
+            footer={(
+                <>
                     <button
                         onClick={() => navigate('/auth/register')}
-                        className='text-cyan-300 transition-colors hover:text-cyan-200'
+                        className="text-[#e4c590] transition-colors hover:text-[#f4d9a8] hover:underline cursor-pointer"
                     >
                         Chưa có tài khoản? Đăng ký tại đây
                     </button>
-                    <div>
-                        <Link to='/admin/login' className='text-teal-300 transition-colors hover:text-teal-200'>
-                            Bạn là nhân viên? Đăng nhập tại đây
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </div>
+                </>
+            )}
+        >
+            <form onSubmit={handleLogin} className="flex flex-col gap-4" noValidate>
+                <AuthField
+                    id="email"
+                    type="email"
+                    name="email"
+                    label="Email"
+                    value={form.email}
+                    onChange={handleFieldChange}
+                    placeholder="you@example.com"
+                    error={errors.email}
+                    mode="customer"
+                />
+
+                <AuthField
+                    id="password"
+                    type="password"
+                    name="password"
+                    label="Mật khẩu"
+                    value={form.password}
+                    onChange={handleFieldChange}
+                    placeholder="••••••••"
+                    error={errors.password}
+                    mode="customer"
+                />
+
+                <button
+                    type='submit'
+                    disabled={submitting}
+                    className="group mt-2 rounded-xl border border-[#e4c590]/60 bg-black/35 px-4 py-2.5 font-semibold text-[#e4c590] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                    {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
+                </button>
+            </form>
+        </AuthLayout>
     );
 }
 
