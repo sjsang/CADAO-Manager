@@ -27,8 +27,8 @@ const HomePage = () => {
         <>
             <Header activePage={"home"} />
 
-            <section className="h-150 w-7xl mx-auto mt-20 flex items-center justify-between">
-                <div className="text-white w-1/2 flex flex-col gap-6">
+            <section className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between">
+                <div className="text-white w-1/2 flex-1 flex flex-col gap-12">
                     <h1 className="text-5xl font-bold">Cadao Restaurant & Café</h1>
                     <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, Ca Dao tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
                         Mỗi món ăn tại Ca Dao là một “lời kể” về văn hóa, về con người Nam Bộ mộc mạc, chân chất.
@@ -43,50 +43,40 @@ const HomePage = () => {
                         Chọn món ngay
                     </div>
                 </div>
-                <img src="/spiner.png" alt="spiner" className="h-full animate-[spin_180s_linear_infinite]" />
+                <div className="flex-1">
+                    <img src="/spiner1.png" alt="spiner" className="animate-[spin_180s_linear_infinite]" />
+                </div>
             </section>
 
-            <section className="w-7xl mx-auto py-24">
-                <div className="grid md:grid-cols-2 gap-10 items-stretch">
+            <section className="w-7xl mx-auto py-20">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-white">Vì sao chọn chúng tôi?</h2>
+                    <p className="mt-3 text-gray-400">Ba giá trị cốt lõi tạo nên trải nghiệm ẩm thực khác biệt tại Ca Dao</p>
+                </div>
 
-                    <div className="group overflow-hidden rounded-2xl">
-                        <img
-                            src="/event-1.jpg"
-                            alt="Sự kiện 8/3 Ca Dao"
-                            className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                        />
+                <div className="grid gap-6 md:grid-cols-3">
+                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
+                        <img src="https://tastycs-react.vercel.app/img/icons/1.svg" alt="" />
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Thực đơn chuẩn cơm quê nhà</h3>
+                        <p className="text-gray-300 leading-relaxed">
+                            Món ăn đậm chất Việt, gần gũi như bữa cơm gia đình với hương vị thân thuộc và nguyên liệu tươi ngon mỗi ngày.
+                        </p>
                     </div>
 
-                    <div className="flex flex-col justify-between gap-6">
+                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
+                        <img src="https://tastycs-react.vercel.app/img/icons/2.svg" alt="" />
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Chất lượng tạo nên thương hiệu</h3>
+                        <p className="text-gray-300 leading-relaxed">
+                            Quy trình chế biến chỉn chu, kiểm soát chất lượng chặt chẽ để mỗi món ăn luôn ổn định và xứng đáng với niềm tin của khách hàng.
+                        </p>
+                    </div>
 
-                        <div className="group overflow-hidden rounded-2xl">
-                            <img
-                                src="/event-2.jpg"
-                                alt="Không gian nhà hàng"
-                                className="w-full h-80 object-cover transition duration-700 group-hover:scale-105"
-                            />
-                        </div>
-
-                        <div className="space-y-4">
-                            <h2 className="text-3xl font-bold text-white leading-tight">
-                                MỪNG NGÀY QUỐC TẾ PHỤ NỮ 8/3
-                            </h2>
-
-                            <p className="text-gray-300 leading-relaxed">
-                                Nhân ngày Quốc tế Phụ nữ 8/3, Nhà hàng Ca Dao xin gửi đến một nửa yêu thương của thế giới
-                                những lời chúc tốt đẹp và chân thành nhất. Chúc quý cô, quý chị luôn rạng rỡ,
-                                hạnh phúc và trọn vẹn trong từng khoảnh khắc của cuộc sống. Hãy để Ca Dao đồng hành
-                                cùng bạn trong ngày đặc biệt này bằng những bữa ăn ấm cúng, đậm đà hương vị quê nhà.
-                            </p>
-
-                            <button
-                                className="mt-4 w-fit px-6 py-3 bg-yellow-500 text-black font-semibold rounded-full hover:bg-yellow-400 transition cursor-pointer"
-                                onClick={() => navigate("/contact")}
-                            >
-                                Đặt bàn ngay
-                            </button>
-                        </div>
-
+                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
+                        <img src="https://tastycs-react.vercel.app/img/icons/3.svg" alt="" />
+                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Phục vụ nhanh chóng</h3>
+                        <p className="text-gray-300 leading-relaxed">
+                            Đội ngũ linh hoạt, thao tác nhanh gọn giúp bạn có món trong thời gian ngắn nhưng vẫn đảm bảo chất lượng và sự chu đáo.
+                        </p>
                     </div>
                 </div>
             </section>

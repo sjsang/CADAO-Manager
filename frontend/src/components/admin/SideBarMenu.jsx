@@ -58,11 +58,10 @@ const SideBarMenu = ({ activePage }) => {
             aria-label="Admin navigation"
         >
             <div className="flex items-center justify-between">
-                {!isCollapsed && <span className="text-sm font-bold text-white">ADMIN</span>}
                 <button
                     type="button"
                     onClick={toggleSidebar}
-                    className="inline-flex h-8 w-8 items-center justify-center text-xl rounded-lg border border-slate-800 text-slate-300 transition hover:bg-slate-900 hover:text-white"
+                    className="inline-flex h-10 w-full items-center justify-center text-xl rounded-lg border border-slate-800 text-slate-300 transition hover:bg-slate-900 hover:text-white"
                     title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
                 >
                     {isCollapsed ? "»" : "«"}
