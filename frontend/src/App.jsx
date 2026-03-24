@@ -16,6 +16,7 @@ import StatisticsPage from './pages/admin/StatisticsPage'
 import OrderManager from './pages/admin/OrderManager'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail'
 import MenuManager from './pages/admin/MenuManager'
+import MenuCategoryManager from './pages/admin/MenuCategoryManager'
 import MenuCreate from './pages/admin/MenuCreate'
 import MenuDetail from './pages/admin/MenuDetail'
 import CustomerManager from './pages/admin/CustomerManager'
@@ -132,6 +133,7 @@ const App = () => {
       <Route path="/admin/orders" element={<OrderManagerRoute><OrderManager /></OrderManagerRoute>} />
       <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
       <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
+      <Route path="/admin/menu-categories" element={<AdminRoute><MenuCategoryManager /></AdminRoute>} />
       <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
       <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
       <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />

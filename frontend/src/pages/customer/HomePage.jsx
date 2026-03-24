@@ -27,9 +27,9 @@ const HomePage = () => {
         <>
             <Header activePage={"home"} />
 
-            <section className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between">
-                <div className="text-white w-1/2 flex-1 flex flex-col gap-12">
-                    <h1 className="text-5xl font-bold">Cadao Restaurant & Café</h1>
+            <section className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between gap-6">
+                <div className="text-white w-1/2 flex-1 flex flex-col gap-6">
+                    <h1 className="text-5xl font-bold">Ca Dao Restaurant & Café</h1>
                     <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, Ca Dao tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
                         Mỗi món ăn tại Ca Dao là một “lời kể” về văn hóa, về con người Nam Bộ mộc mạc, chân chất.
                     </p>
@@ -37,10 +37,10 @@ const HomePage = () => {
                         Khám phá thực đơn đa dạng của chúng tôi, từ những món ăn truyền thống đậm đà hương vị đến những sáng tạo độc đáo, tất cả đều được chế biến từ những nguyên liệu tươi ngon nhất, mang đến trải nghiệm ẩm thực khó quên cho mọi thực khách.
                     </p>
                     <div
-                        onClick={() => navigate("/menus")}
-                        className="w-fit px-6 py-3 bg-yellow-500 text-black font-semibold rounded-full hover:bg-yellow-400 transition cursor-pointer"
+                        onClick={() => navigate("/contact")}
+                        className="w-fit px-6 py-3 bg-yellow-500 text-black font-semibold hover:bg-yellow-400 transition cursor-pointer"
                     >
-                        Chọn món ngay
+                        Đặt bàn ngay
                     </div>
                 </div>
                 <div className="flex-1">
@@ -50,32 +50,32 @@ const HomePage = () => {
 
             <section className="w-7xl mx-auto py-20">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold text-white">Vì sao chọn chúng tôi?</h2>
-                    <p className="mt-3 text-gray-400">Ba giá trị cốt lõi tạo nên trải nghiệm ẩm thực khác biệt tại Ca Dao</p>
+                    <h2 className="text-3xl font-bold text-white">Vì sao nên chọn chúng tôi?</h2>
+                    <p className="mt-3 text-gray-400">Chúng tôi luôn đặt chất lượng và trải nghiệm của bạn lên hàng đầu.</p>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
-                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
-                        <img src="https://tastycs-react.vercel.app/img/icons/1.svg" alt="" />
-                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Thực đơn chuẩn cơm quê nhà</h3>
-                        <p className="text-gray-300 leading-relaxed">
-                            Món ăn đậm chất Việt, gần gũi như bữa cơm gia đình với hương vị thân thuộc và nguyên liệu tươi ngon mỗi ngày.
+                <div className="flex gap-6 text-white">
+                    <div className="flex-1 flex flex-col items-center justify-between text-center gap-6 bg-black/50 p-6 rounded-2xl">
+                        <img src="/whychooseus1.png" alt="" />
+                        <h3 className="text-xl font-semibold">Thực phẩm đảm bảo vệ sinh</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Chúng tôi lựa chọn nguyên liệu tươi mỗi ngày từ nguồn cung uy tín và chế biến trong môi trường sạch sẽ. Mọi khâu đều tuân thủ tiêu chuẩn an toàn thực phẩm, giúp bạn yên tâm thưởng thức.
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
-                        <img src="https://tastycs-react.vercel.app/img/icons/2.svg" alt="" />
-                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Chất lượng tạo nên thương hiệu</h3>
-                        <p className="text-gray-300 leading-relaxed">
-                            Quy trình chế biến chỉn chu, kiểm soát chất lượng chặt chẽ để mỗi món ăn luôn ổn định và xứng đáng với niềm tin của khách hàng.
+                    <div className="flex-1 flex flex-col items-center justify-between text-center gap-6 bg-black/50 p-6 rounded-2xl">
+                        <img src="/whychooseus2.png" alt="" />
+                        <h3 className="text-xl font-semibold">Đầu bếp giàu kinh nghiệm</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Đội ngũ đầu bếp nhiều năm kinh nghiệm, am hiểu hương vị và kỹ thuật chế biến. Mỗi món ăn được chăm chút kỹ lưỡng từ nêm nếm đến trình bày, mang đến trải nghiệm ẩm thực ổn định và trọn vẹn.
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-gray-800 p-6 border border-gray-700">
-                        <img src="https://tastycs-react.vercel.app/img/icons/3.svg" alt="" />
-                        <h3 className="text-xl font-semibold text-yellow-400 mb-3">Phục vụ nhanh chóng</h3>
-                        <p className="text-gray-300 leading-relaxed">
-                            Đội ngũ linh hoạt, thao tác nhanh gọn giúp bạn có món trong thời gian ngắn nhưng vẫn đảm bảo chất lượng và sự chu đáo.
+                    <div className="flex-1 flex flex-col items-center justify-between text-center gap-6 bg-black/50 p-6 rounded-2xl">
+                        <img src="/whychooseus3.png" alt="" />
+                        <h3 className="text-xl font-semibold">Phục vụ nhanh chóng</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                            Đội ngũ nhân viên làm việc linh hoạt, phối hợp nhịp nhàng từ khâu tiếp nhận đến khâu giao hàng. Mọi thao tác đều được thực hiện nhanh gọn, chính xác, giúp bạn nhận món trong thời gian sớm nhất.
                         </p>
                     </div>
                 </div>

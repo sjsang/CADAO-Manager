@@ -191,6 +191,13 @@ const MenuManager = () => {
                             </button>
 
                             <button
+                                className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-700 transition hover:bg-indigo-100"
+                                onClick={() => navigate("/admin/menu-categories")}
+                            >
+                                Quản lý danh mục
+                            </button>
+
+                            <button
                                 className="rounded-lg bg-blue-500 p-3 text-white hover:bg-blue-600"
                                 onClick={() => navigate("/admin/menus/add")}
                             >
