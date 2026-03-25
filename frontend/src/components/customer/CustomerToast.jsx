@@ -59,7 +59,7 @@ const CustomerToast = () => {
     }
 
     return createPortal(
-        <div className="fixed top-20 right-5 z-90 flex w-[min(92vw,420px)] flex-col gap-3 pointer-events-none">
+        <div className="fixed top-18 right-5 z-90 flex w-[min(92vw,420px)] flex-col gap-3 pointer-events-none">
             {toasts.map((toast) => (
                 <div
                     key={toast.id}

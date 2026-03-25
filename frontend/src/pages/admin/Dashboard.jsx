@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dashboardApi from "../../api/dashboardApi";
 import { getStatusText } from "../../functions/formatOrderFields";
+import { notifyCustomer } from "../../utils/customerNotify";
 import {
     Bar,
     BarChart,
@@ -250,7 +251,6 @@ const Dashboard = () => {
                 />
 
                 <main className="space-y-6 p-6">
-
                     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {statCards.map((card) => (
                             <article key={card.label} className={`rounded-3xl border p-5 shadow-sm ${card.panelClass}`}>

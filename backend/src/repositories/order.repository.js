@@ -319,7 +319,7 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
 
         const orderQuery = `UPDATE orders SET status='pending', delivery_full_name=$1, delivery_phone=$2, delivery_address=$3,
             delivery_ward_name=$4, shipping_fee=$5, subtotal=$6, discount_amount=$7, total_amount=$8, notes=$9,
-            updated_at=CURRENT_TIMESTAMP
+            created_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
             WHERE order_code=$10 RETURNING id, order_code`;
         const orderResult = await db.query(orderQuery, [
             orderData.delivery_full_name,
