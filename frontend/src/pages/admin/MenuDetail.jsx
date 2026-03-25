@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import categoryApi from "../../api/categoryApi";
 import menuApi from "../../api/menuApi";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const buildCloudinaryUrl = (publicId) => {
     if (!publicId) {
@@ -55,7 +56,7 @@ const MenuDetail = () => {
                 setOriginalImageId(item?.image_url || "");
             } catch (error) {
                 console.error("Failed to fetch menu item detail:", error);
-                alert("Không tải được chi tiết món ăn.");
+                notifyCustomer({ message: "Không tải được chi tiết món ăn.", type: "error" });
                 navigate("/admin/menus");
             } finally {
                 setIsLoading(false);
@@ -90,17 +91,17 @@ const MenuDetail = () => {
 
     const validateForm = () => {
         if (!form.name.trim()) {
-            alert("Vui lòng nhập tên món.");
+            notifyCustomer({ message: "Vui lòng nhập tên món.", type: "warning" });
             return false;
         }
 
         if (!form.price || Number(form.price) < 0) {
-            alert("Giá món ăn không hợp lệ.");
+            notifyCustomer({ message: "Giá món ăn không hợp lệ.", type: "warning" });
             return false;
         }
 
         if (!form.categoryId) {
-            alert("Vui lòng chọn danh mục.");
+            notifyCustomer({ message: "Vui lòng chọn danh mục.", type: "warning" });
             return false;
         }
 
@@ -129,11 +130,11 @@ const MenuDetail = () => {
             }
 
             await menuApi.update(id, payload);
-            alert("Đã cập nhật món ăn thành công.");
+            notifyCustomer({ message: "Đã cập nhật món ăn thành công.", type: "success" });
             navigate("/admin/menus");
         } catch (error) {
             console.error("Failed to update menu item:", error);
-            alert("Không thể cập nhật món ăn. Vui lòng thử lại.");
+            notifyCustomer({ message: "Không thể cập nhật món ăn. Vui lòng thử lại.", type: "error" });
         } finally {
             setIsSaving(false);
         }

@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import categoryApi from "../../api/categoryApi";
 import menuApi from "../../api/menuApi";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const MenuCreate = () => {
     const navigate = useNavigate();
@@ -28,7 +29,7 @@ const MenuCreate = () => {
                 setCategories(response.data || []);
             } catch (error) {
                 console.error("Failed to fetch categories:", error);
-                alert("Không tải được danh mục món ăn.");
+                notifyCustomer({ message: "Không tải được danh mục món ăn.", type: "error" });
             }
         };
 
@@ -66,17 +67,17 @@ const MenuCreate = () => {
 
     const validateForm = () => {
         if (!form.name.trim()) {
-            alert("Vui lòng nhập tên món.");
+            notifyCustomer({ message: "Vui lòng nhập tên món.", type: "warning" });
             return false;
         }
 
         if (!form.price || Number(form.price) < 0) {
-            alert("Giá món ăn không hợp lệ.");
+            notifyCustomer({ message: "Giá món ăn không hợp lệ.", type: "warning" });
             return false;
         }
 
         if (!form.categoryId) {
-            alert("Vui lòng chọn danh mục.");
+            notifyCustomer({ message: "Vui lòng chọn danh mục.", type: "warning" });
             return false;
         }
 
@@ -105,11 +106,11 @@ const MenuCreate = () => {
             }
 
             await menuApi.create(payload);
-            alert("Đã thêm món ăn thành công.");
+            notifyCustomer({ message: "Đã thêm món ăn thành công.", type: "success" });
             navigate("/admin/menus");
         } catch (error) {
             console.error("Failed to create menu item:", error);
-            alert("Không thể thêm món ăn. Vui lòng thử lại.");
+            notifyCustomer({ message: "Không thể thêm món ăn. Vui lòng thử lại.", type: "error" });
         } finally {
             setIsSubmitting(false);
         }

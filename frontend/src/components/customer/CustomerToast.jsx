@@ -15,6 +15,8 @@ const TYPE_DOT_CLASS = {
     info: "bg-[#e4c590]"
 };
 
+const TOAST_EXIT_MS = 220;
+
 const CustomerToast = () => {
     const [toasts, setToasts] = useState([]);
 
@@ -33,10 +35,18 @@ const CustomerToast = () => {
             counter += 1;
             const id = `${Date.now()}-${counter}`;
 
-            setToasts((prev) => [...prev, { id, message, type }]);
+            setToasts((prev) => [...prev, { id, message, type, leaving: false }]);
 
             window.setTimeout(() => {
-                setToasts((prev) => prev.filter((toast) => toast.id !== id));
+                setToasts((prev) =>
+                    prev.map((toast) =>
+                        toast.id === id ? { ...toast, leaving: true } : toast
+                    )
+                );
+
+                window.setTimeout(() => {
+                    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+                }, TOAST_EXIT_MS);
             }, duration);
         };
 
@@ -53,7 +63,7 @@ const CustomerToast = () => {
             {toasts.map((toast) => (
                 <div
                     key={toast.id}
-                    className={`pointer-events-auto rounded-xl border bg-black/85 px-4 py-3 shadow-2xl backdrop-blur-sm animate-[toastIn_220ms_ease-out] ${TYPE_CLASS[toast.type] || TYPE_CLASS.info}`}
+                    className={`pointer-events-auto rounded-xl border bg-black/85 px-4 py-3 shadow-2xl backdrop-blur-sm ${toast.leaving ? "animate-[toastOut_220ms_ease-in_forwards]" : "animate-[toastIn_220ms_ease-out]"} ${TYPE_CLASS[toast.type] || TYPE_CLASS.info}`}
                 >
                     <div className="flex items-start gap-3">
                         <span className={`mt-1 h-2.5 w-2.5 rounded-full ${TYPE_DOT_CLASS[toast.type] || TYPE_DOT_CLASS.info}`} />

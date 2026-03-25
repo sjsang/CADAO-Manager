@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const buildCloudinaryUrl = (publicId) => {
     if (!publicId) {
@@ -51,7 +52,7 @@ const UserProfilePage = () => {
                 await loadProfile();
             } catch (error) {
                 console.error("Failed to load profile:", error);
-                alert("Không tải được thông tin cá nhân.");
+                notifyCustomer({ message: "Không tải được thông tin cá nhân.", type: "error" });
             } finally {
                 setLoading(false);
             }
@@ -62,7 +63,7 @@ const UserProfilePage = () => {
 
     const handleSave = async () => {
         if (form.password && form.password.length < 6) {
-            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            notifyCustomer({ message: "Mật khẩu phải có ít nhất 6 ký tự.", type: "warning" });
             return;
         }
 
@@ -76,10 +77,10 @@ const UserProfilePage = () => {
             setProfile(res.data?.data || profile);
             setForm((prev) => ({ ...prev, password: "" }));
             setIsEditing(false);
-            alert("Cập nhật thông tin thành công.");
+            notifyCustomer({ message: "Cập nhật thông tin thành công.", type: "success" });
         } catch (error) {
             console.error("Failed to save profile:", error);
-            alert(error.response?.data?.message || "Không thể cập nhật thông tin.");
+            notifyCustomer({ message: error.response?.data?.message || "Không thể cập nhật thông tin.", type: "error" });
         } finally {
             setSaving(false);
         }
@@ -106,7 +107,7 @@ const UserProfilePage = () => {
             }
         } catch (error) {
             console.error("Failed to update avatar:", error);
-            alert(error.response?.data?.message || "Không thể cập nhật ảnh đại diện.");
+            notifyCustomer({ message: error.response?.data?.message || "Không thể cập nhật ảnh đại diện.", type: "error" });
         } finally {
             setUploadingAvatar(false);
             event.target.value = "";

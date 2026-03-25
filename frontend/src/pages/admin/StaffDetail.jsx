@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import userApi from "../../api/userApi";
 import { getStatusText } from "../../functions/formatOrderFields";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const ROLE_BADGE = {
     admin: "border border-rose-200 bg-rose-50 text-rose-700",
@@ -98,7 +99,7 @@ const UserDetailPage = () => {
             setUser((prev) => ({ ...prev, is_active: updated.is_active }));
         } catch (error) {
             console.error("Error toggling user status:", error);
-            alert(error?.response?.data?.message || "Không thể cập nhật trạng thái tài khoản.");
+            notifyCustomer({ message: error?.response?.data?.message || "Không thể cập nhật trạng thái tài khoản.", type: "error" });
         } finally {
             setToggling(false);
         }
@@ -111,11 +112,11 @@ const UserDetailPage = () => {
 
     const handleEditSave = async () => {
         if (!editForm.role) {
-            alert("Vai trò không được để trống.");
+            notifyCustomer({ message: "Vai trò không được để trống.", type: "warning" });
             return;
         }
         if (editForm.password && editForm.password.length < 6) {
-            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            notifyCustomer({ message: "Mật khẩu phải có ít nhất 6 ký tự.", type: "warning" });
             return;
         }
         setSaving(true);
@@ -130,7 +131,7 @@ const UserDetailPage = () => {
             setIsEditing(false);
         } catch (error) {
             console.error("Error saving user:", error);
-            alert(error.response?.data?.message || "Không thể lưu thay đổi.");
+            notifyCustomer({ message: error.response?.data?.message || "Không thể lưu thay đổi.", type: "error" });
         } finally {
             setSaving(false);
         }

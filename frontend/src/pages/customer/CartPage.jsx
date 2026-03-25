@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AOS from "aos";
 import Header from "../../components/customer/Header";
 import AddToCartModal from "../../components/customer/AddToCartModal";
+import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal";
 import cartApi from "../../api/cartApi";
 import orderApi from "../../api/orderApi";
 import authApi from "../../api/authApi";
@@ -15,6 +16,10 @@ const CartPage = () => {
     const [modalItem, setModalItem] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [customerInfo, setCustomerInfo] = useState(null);
+    const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
+    const [isDeletingAll, setIsDeletingAll] = useState(false);
+    const [deleteItemId, setDeleteItemId] = useState(null);
+    const [isDeletingItem, setIsDeletingItem] = useState(false);
 
     const navigate = useNavigate();
 
@@ -61,7 +66,7 @@ const CartPage = () => {
     const handleModalSubmit = async ({ quantity, note }) => {
         try {
             await cartApi.updateCartItem(modalItem.menu_item_id, { quantity, note });
-            setCartItems(cartItems.map(item =>
+            setCartItems((prev) => prev.map(item =>
                 item.menu_item_id === modalItem.menu_item_id
                     ? { ...item, quantity, note }
                     : item
@@ -69,8 +74,10 @@ const CartPage = () => {
             window.dispatchEvent(new Event("cartUpdated"));
         } catch (error) {
             console.error("Failed to update cart item:", error);
+            notifyCustomer({ message: "Không thể cập nhật món trong giỏ hàng.", type: "error" });
         } finally {
             setIsModalOpen(false);
+            setModalItem(null);
         }
     };
 
@@ -96,28 +103,44 @@ const CartPage = () => {
             navigate(`/orders/${orderCode}/checkout`);
         } catch (error) {
             console.error("Failed to create order:", error);
+            notifyCustomer({
+                message: error.response?.data?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
+                type: "error"
+            });
         }
     };
 
     const handleDeleteAll = async () => {
+        setIsDeletingAll(true);
         try {
-            if (confirm('Xóa toàn bộ giỏ hàng?')) {
-                await cartApi.deleteAllCartItems();
-                setCartItems([]);
-                window.dispatchEvent(new Event("cartUpdated"));
-            }
+            await cartApi.deleteAllCartItems();
+            setCartItems([]);
+            window.dispatchEvent(new Event("cartUpdated"));
         } catch (error) {
             console.error("Failed to delete all cart items:", error);
+            notifyCustomer({ message: "Không thể xóa toàn bộ giỏ hàng.", type: "error" });
+        } finally {
+            setIsDeletingAll(false);
+            setIsDeleteAllConfirmOpen(false);
         }
     };
 
-    const handleDelete = async (menuItemId) => {
+    const handleDelete = (menuItemId) => {
+        setDeleteItemId(menuItemId);
+    };
+
+    const handleDeleteItemConfirmed = async () => {
+        setIsDeletingItem(true);
         try {
-            await cartApi.deleteCartItem(menuItemId);
-            setCartItems(cartItems.filter(item => item.menu_item_id !== menuItemId));
+            await cartApi.deleteCartItem(deleteItemId);
+            setCartItems((prev) => prev.filter(item => item.menu_item_id !== deleteItemId));
             window.dispatchEvent(new Event("cartUpdated"));
         } catch (error) {
             console.error("Failed to delete cart item:", error);
+            notifyCustomer({ message: "Không thể xóa món khỏi giỏ hàng.", type: "error" });
+        } finally {
+            setIsDeletingItem(false);
+            setDeleteItemId(null);
         }
     };
 
@@ -165,7 +188,7 @@ const CartPage = () => {
                                     </button>
                                     <button
                                         className="group relative overflow-hidden px-8 py-3 border border-red-500/40 text-red-400 rounded-lg cursor-pointer"
-                                        onClick={handleDeleteAll}
+                                        onClick={() => setIsDeleteAllConfirmOpen(true)}
                                     >
                                         <span className="absolute inset-0 bg-red-500 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
                                         <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">XÓA TẤT CẢ</span>
@@ -176,7 +199,7 @@ const CartPage = () => {
 
                         <div className="space-y-2">
                             {cartItems.map((item, index) => (
-                                <div key={item.id} data-aos="fade-up" data-aos-delay={index * 50} className="bg-black/30 border border-white/10 rounded-lg p-3 hover:border-white/20 transition-colors flex items-center gap-12">
+                                <div key={`cart-${item.menu_item_id}`} data-aos="fade-up" data-aos-delay={index * 50} className="bg-black/30 border border-white/10 rounded-lg p-3 hover:border-white/20 transition-colors flex items-center gap-12">
                                     <div className="h-20 w-20 rounded-lg overflow-hidden bg-black/60">
                                         <img
                                             src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${item.image_url}`}
@@ -238,6 +261,30 @@ const CartPage = () => {
                     initialNote={modalItem.note || ""}
                 />
             )}
+
+            <CustomerConfirmModal
+                isOpen={isDeleteAllConfirmOpen}
+                title="Xóa toàn bộ giỏ hàng?"
+                description="Hành động này sẽ xóa tất cả các món trong giỏ hàng và không thể hoàn tác."
+                confirmText="Xóa tất cả"
+                cancelText="Hủy"
+                tone="danger"
+                busy={isDeletingAll}
+                onConfirm={handleDeleteAll}
+                onClose={() => setIsDeleteAllConfirmOpen(false)}
+            />
+
+            <CustomerConfirmModal
+                isOpen={deleteItemId !== null}
+                title="Xóa món ăn khỏi giỏ hàng?"
+                description="Món ăn này sẽ bị xóa khỏi giỏ hàng của bạn."
+                confirmText="Xóa"
+                cancelText="Giữ lại"
+                tone="danger"
+                busy={isDeletingItem}
+                onConfirm={handleDeleteItemConfirmed}
+                onClose={() => setDeleteItemId(null)}
+            />
         </div>
     );
 };

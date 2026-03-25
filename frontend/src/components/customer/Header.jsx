@@ -119,7 +119,6 @@ const Header = ({ activePage }) => {
 
         fetchCartItems();
 
-        // Listen for cart updates
         const handleCartUpdate = () => {
             fetchCartItems();
         };
@@ -172,7 +171,7 @@ const Header = ({ activePage }) => {
             className={`w-full text-white sticky top-0 left-0 z-50 transition-colors duration-500 ${isMobileMenuOpen
                 ? "bg-gray-950 shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
                 : isScrolled
-                    ? "bg-gray-900/90 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                    ? "bg-gray-950/80 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
                     : "bg-transparent"
                 }`}
         >

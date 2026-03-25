@@ -1,12 +1,15 @@
 import Header from "../../components/customer/Header";
 import AOS from "aos";
+import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal";
 import orderApi from "../../api/orderApi";
 import cartApi from "../../api/cartApi";
 import customerApi from "../../api/customerApi";
 import voucherApi from "../../api/voucherApi";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { notifyCustomer } from "../../utils/customerNotify";
+
+const deliveryPhoneRegex = /^(0|\+84)\d{9,10}$/;
 
 const CheckoutPage = () => {
     const { orderCode } = useParams();
@@ -19,6 +22,9 @@ const CheckoutPage = () => {
     const [voucherMessage, setVoucherMessage] = useState("");
     const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
     const [appliedVoucher, setAppliedVoucher] = useState(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isMountedRef = useRef(true);
     const [form, setForm] = useState({
         delivery_full_name: "",
         delivery_phone: "",
@@ -28,24 +34,39 @@ const CheckoutPage = () => {
         paymentMethod: "cash"
     });
 
+    const loadAddresses = async () => {
+        const addressRes = await customerApi.getAddresses();
+        const addrs = addressRes.data.data || [];
+        setAddresses(addrs);
+        setSelectedAddressId((prev) => {
+            if (!prev) return prev;
+            return addrs.some((addr) => addr.id === prev) ? prev : null;
+        });
+        return addrs;
+    };
+
     useEffect(() => {
         AOS.init({ duration: 800, easing: "ease-out-cubic", once: false, offset: 80 });
     }, []);
 
     useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
         const fetchData = async () => {
             try {
-                const [orderRes, addressRes] = await Promise.all([
+                const [orderRes, addrs] = await Promise.all([
                     orderApi.getByOrderCode(orderCode),
-                    customerApi.getAddresses()
+                    loadAddresses()
                 ]);
                 const order = orderRes.data.data;
-                const addrs = addressRes.data.data || [];
                 setOrderDetails(order);
                 setShippingFee(Number(order.shipping_fee || 0));
                 setVoucherCode(order.voucher_code || "");
                 setAppliedVoucher(order.voucher_id ? { id: order.voucher_id, code: order.voucher_code || "" } : null);
-                setAddresses(addrs);
                 setForm({
                     delivery_full_name: order.delivery_full_name,
                     delivery_phone: order.delivery_phone,
@@ -65,6 +86,19 @@ const CheckoutPage = () => {
         };
         fetchData();
     }, [orderCode]);
+
+    useEffect(() => {
+        const handleAddressUpdated = async () => {
+            try {
+                await loadAddresses();
+            } catch (error) {
+                console.error("Failed to refresh addresses:", error);
+            }
+        };
+
+        window.addEventListener("customerAddressUpdated", handleAddressUpdated);
+        return () => window.removeEventListener("customerAddressUpdated", handleAddressUpdated);
+    }, []);
 
     const handleAddressSelect = (addr) => {
         setSelectedAddressId(addr.id);
@@ -103,6 +137,8 @@ const CheckoutPage = () => {
                 orderValue: Number(orderDetails.subtotal || 0)
             });
 
+            if (!isMountedRef.current) return;
+
             const voucherData = response.data?.data;
 
             setOrderDetails((prev) => ({
@@ -119,6 +155,7 @@ const CheckoutPage = () => {
             setVoucherCode(voucherData.code || voucherCode.trim().toUpperCase());
             setVoucherMessage(`Áp dụng voucher ${voucherData.code} thành công.`);
         } catch (error) {
+            if (!isMountedRef.current) return;
             const message = error.response?.data?.message || "Không thể áp dụng voucher.";
             setVoucherMessage(message);
             setAppliedVoucher(null);
@@ -129,7 +166,9 @@ const CheckoutPage = () => {
                 voucher_code: null
             }));
         } finally {
-            setIsApplyingVoucher(false);
+            if (isMountedRef.current) {
+                setIsApplyingVoucher(false);
+            }
         }
     };
 
@@ -147,6 +186,37 @@ const CheckoutPage = () => {
 
     const handleConfirm = async (e) => {
         e.preventDefault();
+
+        if (!form.delivery_full_name.trim()) {
+            notifyCustomer({ message: "Vui lòng nhập họ tên người nhận.", type: "warning" });
+            return;
+        }
+
+        if (!deliveryPhoneRegex.test(form.delivery_phone.trim())) {
+            notifyCustomer({ message: "Số điện thoại giao hàng không hợp lệ.", type: "warning" });
+            return;
+        }
+
+        if (!form.delivery_address.trim() || !form.delivery_ward_name.trim()) {
+            notifyCustomer({ message: "Vui lòng nhập đầy đủ địa chỉ giao hàng.", type: "warning" });
+            return;
+        }
+
+        if (!["cash", "transfer"].includes(form.paymentMethod)) {
+            notifyCustomer({ message: "Phương thức thanh toán không hợp lệ.", type: "warning" });
+            return;
+        }
+
+        if (!orderDetails || !Array.isArray(orderDetails.items) || orderDetails.items.length === 0) {
+            notifyCustomer({ message: "Đơn hàng không hợp lệ hoặc không có sản phẩm.", type: "error" });
+            return;
+        }
+
+        setIsConfirmOpen(true);
+    };
+
+    const handleConfirmSubmit = async () => {
+        setIsSubmitting(true);
         try {
             const computedTotal = Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0);
             const payload = {
@@ -165,6 +235,9 @@ const CheckoutPage = () => {
         } catch (error) {
             console.error("Failed to confirm order:", error);
             notifyCustomer({ message: "Xác nhận đơn hàng thất bại!", type: "error" });
+        } finally {
+            setIsSubmitting(false);
+            setIsConfirmOpen(false);
         }
     };
 
@@ -441,6 +514,18 @@ const CheckoutPage = () => {
                     </div>
                 )}
             </div>
+
+            <CustomerConfirmModal
+                isOpen={isConfirmOpen}
+                title="Xác nhận đặt hàng?"
+                description={`Tổng thanh toán: ${computedTotal.toLocaleString('vi-VN')}đ. Bạn có chắc chắn muốn đặt hàng không?`}
+                confirmText="Xác nhận đặt hàng"
+                cancelText="Kiểm tra lại"
+                tone="default"
+                busy={isSubmitting}
+                onConfirm={handleConfirmSubmit}
+                onClose={() => setIsConfirmOpen(false)}
+            />
         </div>
     );
 };

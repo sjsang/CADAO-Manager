@@ -5,7 +5,6 @@ const Footer = () => {
     const quickLinks = [
         { label: "Trang chủ", to: "/" },
         { label: "Thực đơn", to: "/menus" },
-        { label: "Khuyến mãi", to: "/promotions" },
         { label: "Về chúng tôi", to: "/about" },
         { label: "Liên hệ", to: "/contact" }
     ];

@@ -16,7 +16,7 @@ const AddToCartModal = ({ item, isOpen, onClose, onSubmit, initialQuantity = 1, 
     if (!isOpen || typeof document === "undefined") return null;
 
     const handleSubmit = () => {
-        if (quantity <= 0) {
+        if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 99) {
             notifyCustomer({ message: "Số lượng không hợp lệ!", type: "warning" });
             return;
         }
@@ -72,8 +72,9 @@ const AddToCartModal = ({ item, isOpen, onClose, onSubmit, initialQuantity = 1, 
                         <input
                             type="number"
                             min="1"
+                            max="99"
                             value={quantity}
-                            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
                             className="flex-1 bg-transparent text-center text-white font-bold text-xl focus:outline-none"
                         />
                         <button

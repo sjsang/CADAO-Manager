@@ -5,6 +5,7 @@ import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const PAGE_SIZE = 8;
 
@@ -106,12 +107,12 @@ const UserManagerPage = () => {
         };
 
         if (!payload.username || !payload.password || !payload.role) {
-            alert("Vui lòng nhập username, mật khẩu và vai trò.");
+            notifyCustomer({ message: "Vui lòng nhập username, mật khẩu và vai trò.", type: "warning" });
             return;
         }
 
         if (payload.password.length < 6) {
-            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            notifyCustomer({ message: "Mật khẩu phải có ít nhất 6 ký tự.", type: "warning" });
             return;
         }
 
@@ -122,10 +123,10 @@ const UserManagerPage = () => {
             await fetchUsers();
             setIsCreateOpen(false);
             resetCreateForm();
-            alert("Thêm tài khoản thành công.");
+            notifyCustomer({ message: "Thêm tài khoản thành công.", type: "success" });
         } catch (error) {
             console.error("Error creating user:", error);
-            alert(error?.response?.data?.message || "Không thể thêm tài khoản.");
+            notifyCustomer({ message: error?.response?.data?.message || "Không thể thêm tài khoản.", type: "error" });
         } finally {
             setCreating(false);
         }

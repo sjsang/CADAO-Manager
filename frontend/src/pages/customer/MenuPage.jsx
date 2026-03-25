@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import AOS from "aos"
 import menuApi from "../../api/menuApi"
 import categoryApi from "../../api/categoryApi"
@@ -17,6 +17,7 @@ const MenuPage = () => {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("name_asc");
+    const requestVersionRef = useRef(0);
 
     useEffect(() => {
         AOS.init({ duration: 700, easing: "ease-out-cubic", once: false, offset: 60 });
@@ -35,6 +36,9 @@ const MenuPage = () => {
     }, []);
 
     useEffect(() => {
+        requestVersionRef.current += 1;
+        const requestVersion = requestVersionRef.current;
+
         menuApi.getAll({
             type: selectedType,
             category: selectedCategory,
@@ -42,8 +46,15 @@ const MenuPage = () => {
             sort: sortOrder,
             available: true
         })
-            .then((res) => { setMenuItems(res.data); AOS.refresh(); })
-            .catch(() => setMenuItems([]));
+            .then((res) => {
+                if (requestVersion !== requestVersionRef.current) return;
+                setMenuItems(res.data);
+                AOS.refresh();
+            })
+            .catch(() => {
+                if (requestVersion !== requestVersionRef.current) return;
+                setMenuItems([]);
+            });
     }, [selectedType, selectedCategory, searchTerm, sortOrder]);
 
     const [showScrollTop, setShowScrollTop] = useState(false);
@@ -90,7 +101,7 @@ const MenuPage = () => {
                 </div>
 
                 <div className="w-7xl mx-auto">
-                    <div data-aos="fade-up" className="flex items-center gap-3 mb-8 bg-black/30 border border-white/10 rounded-xl px-4 py-2">
+                    <div data-aos="fade-up" className="flex items-center gap-3 mb-8 bg-black/30 border border-white/10 rounded-xl px-4 py-2 focus-within:border-[#e4c590] transition-colors">
                         <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                         </svg>
@@ -105,7 +116,7 @@ const MenuPage = () => {
                         <select
                             value={sortOrder}
                             onChange={(e) => setSortOrder(e.target.value)}
-                            className="bg-transparent text-gray-400 focus:outline-none cursor-pointer text-sm hover:text-white transition-colors"
+                            className="bg-transparent text-gray-400 focus:outline-none cursor-pointer text-sm hover:text-[#e4c590] transition-colors"
                         >
                             <option className="text-black" value="name_asc">Tên: A → Z</option>
                             <option className="text-black" value="name_desc">Tên: Z → A</option>

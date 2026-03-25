@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const buildCloudinaryUrl = (publicId) => {
     if (!publicId) return "";
@@ -85,11 +86,11 @@ const CustomerDetail = () => {
 
     const handleEditSave = async () => {
         if (!editForm.full_name.trim() || !editForm.phone_number.trim()) {
-            alert("Họ tên và số điện thoại không được để trống.");
+            notifyCustomer({ message: "Họ tên và số điện thoại không được để trống.", type: "warning" });
             return;
         }
         if (editForm.password && editForm.password.length < 6) {
-            alert("Mật khẩu phải có ít nhất 6 ký tự.");
+            notifyCustomer({ message: "Mật khẩu phải có ít nhất 6 ký tự.", type: "warning" });
             return;
         }
         setSaving(true);
@@ -104,7 +105,7 @@ const CustomerDetail = () => {
             setIsEditing(false);
         } catch (error) {
             console.error("Error saving customer:", error);
-            alert(error.response?.data?.message || "Không thể lưu thay đổi.");
+            notifyCustomer({ message: error.response?.data?.message || "Không thể lưu thay đổi.", type: "error" });
         } finally {
             setSaving(false);
         }
@@ -121,7 +122,7 @@ const CustomerDetail = () => {
                 />
 
                 <main className="p-6 space-y-6">
-                     Back button */}
+                    {/* Back button */}
                     <button
                         onClick={() => navigate("/admin/customers")}
                         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
@@ -139,7 +140,7 @@ const CustomerDetail = () => {
                         </div>
                     ) : (
                         <>
-                             Basic info */}
+                            {/* Basic info */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <div className="mb-6 flex items-start justify-between gap-6">
                                     <div className="flex flex-col items-center gap-3">
@@ -255,7 +256,7 @@ const CustomerDetail = () => {
                                 )}
                             </div>
 
-                             Addresses */}
+                            {/* Addresses */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <h2 className="mb-4 text-base font-semibold text-slate-800">
                                     Danh sách địa chỉ ({customer.addresses?.length ?? 0})
@@ -288,7 +289,7 @@ const CustomerDetail = () => {
                                 )}
                             </div>
 
-                             Order history */}
+                            {/* Order history */}
                             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                 <h2 className="mb-4 text-base font-semibold text-slate-800">
                                     Lịch sử đơn hàng ({customer.orders?.length ?? 0})

@@ -122,7 +122,7 @@ const HomePage = () => {
 
         const getNearestSectionTarget = () => {
             const viewportCenter = window.innerHeight / 2;
-            const threshold = window.innerHeight * 0.25;
+            const threshold = window.innerHeight * 0.3;
             let nearest = null;
 
             sectionDots.forEach((section) => {
@@ -316,7 +316,7 @@ const HomePage = () => {
                 )}
             </section>
 
-            <section id="home-why" className="w-7xl mx-auto py-20 text-center">
+            <section id="home-why" className="w-7xl mx-auto py-20">
                 <div data-aos="fade-up" className="text-center mb-16">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Chúng tôi luôn đặt chất lượng và trải nghiệm của bạn lên hàng đầu</p>
                     <h1 className="text-5xl font-bold mb-5 text-white">Vì sao nên chọn chúng tôi?</h1>
@@ -352,14 +352,16 @@ const HomePage = () => {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => navigate("/contact")}
-                    data-aos="fade-up" data-aos-delay="450"
-                    className="group relative overflow-hidden w-fit px-6 py-3 mt-6 text-[#e4c590] border cursor-pointer"
-                >
-                    <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></span>
-                    <span className="relative z-10 transition-colors duration-500 text-sm tracking-widest font-bold group-hover:text-black">ĐẶT BÀN NGAY</span>
-                </button>
+                <div className="text-center">
+                    <button
+                        onClick={() => navigate("/about")}
+                        data-aos="fade-up"
+                        className="group relative overflow-hidden w-fit px-6 py-3 mt-16 text-[#e4c590] border cursor-pointer"
+                    >
+                        <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></span>
+                        <span className="relative z-10 transition-colors duration-500 text-sm tracking-widest font-bold group-hover:text-black">XEM CÂU CHUYỆN</span>
+                    </button>
+                </div>
             </section>
 
             {reviews.length > 0 && (
@@ -377,17 +379,17 @@ const HomePage = () => {
                                 style={{ transform: `translateX(-${activeReview * 100}%)` }}
                             >
                                 {reviews.map((review) => (
-                                    <div key={review.id} className="w-full shrink-0 px-16">
-                                        <div className="flex gap-10 w-5xl mx-auto overflow-hidden bg-black/50 rounded-2xl border border-white/10">
+                                    <div key={review.id} className="w-full shrink-0">
+                                        <div className="flex w-5xl mx-auto overflow-hidden bg-black/50 rounded-2xl border border-white/10">
                                             <img
                                                 src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${review.customer_avatar}`}
                                                 alt={review.customer_name}
                                                 className="h-80 object-cover"
                                             />
-                                            <div className="flex flex-col gap-3 mt-10">
+                                            <div className="flex flex-col gap-3 p-6">
                                                 <StarRow rating={Number(review.rating)} />
                                                 <p className="leading-relaxed font-medium text-gray-300 text-lg">{review.content}</p>
-                                                <p className="font-bold text-white text-lg mt-10">- {review.customer_name}</p>
+                                                <p className="font-bold text-white text-lg">- {review.customer_name}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -424,6 +426,17 @@ const HomePage = () => {
                                 ))}
                             </div>
                         )}
+                    </div>
+
+                    <div className="text-center">
+                        <button
+                            onClick={() => navigate("/contact")}
+                            data-aos="fade-up"
+                            className="group relative overflow-hidden w-fit px-6 py-3 mt-16 text-[#e4c590] border cursor-pointer"
+                        >
+                            <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></span>
+                            <span className="relative z-10 transition-colors duration-500 text-sm tracking-widest font-bold group-hover:text-black">ĐẶT BÀN NGAY</span>
+                        </button>
                     </div>
                 </section>
             )}
