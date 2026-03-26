@@ -1,12 +1,26 @@
 const db = require("../config/db");
 
+const MENU_RATING_AGGREGATE_SQL = `
+    LEFT JOIN (
+        SELECT
+            ori.menu_item_id,
+            ROUND(AVG(ori.rating)::numeric, 2) AS avg_rating,
+            COUNT(*)::int AS rating_count
+        FROM order_review_items ori
+        GROUP BY ori.menu_item_id
+    ) menu_rating_stats ON menu_rating_stats.menu_item_id = menu_items.id
+`;
+
 const getMenuItems = async ({ type, category, search, sort, available, featured, page, limit } = {}) => {
 
     let query = `
-        SELECT menu_items.*
+        SELECT menu_items.*,
+               COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating,
+               COALESCE(menu_rating_stats.rating_count, 0)::int AS rating_count
         FROM menu_items
         JOIN categories ON menu_items.category_id = categories.id
         JOIN menu_types ON categories.menu_type_id = menu_types.id
+        ${MENU_RATING_AGGREGATE_SQL}
     `;
 
     const conditions = [];
@@ -48,6 +62,18 @@ const getMenuItems = async ({ type, category, search, sort, available, featured,
         case "price_desc":
             query += ` ORDER BY menu_items.price DESC`;
             break;
+        case "sold_desc":
+            query += ` ORDER BY menu_items.sold_count DESC, menu_items.name ASC`;
+            break;
+        case "sold_asc":
+            query += ` ORDER BY menu_items.sold_count ASC, menu_items.name ASC`;
+            break;
+        case "rating_desc":
+            query += ` ORDER BY COALESCE(menu_rating_stats.avg_rating, 0) DESC, menu_items.name ASC`;
+            break;
+        case "rating_asc":
+            query += ` ORDER BY COALESCE(menu_rating_stats.avg_rating, 0) ASC, menu_items.name ASC`;
+            break;
         case "name_desc":
             query += ` ORDER BY menu_items.name DESC`;
             break;
@@ -86,8 +112,11 @@ const getMenuItems = async ({ type, category, search, sort, available, featured,
 
 const getMenuItemById = async (id) => {
     const query = `
-        SELECT menu_items.*
+        SELECT menu_items.*, 
+               COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating,
+               COALESCE(menu_rating_stats.rating_count, 0)::int AS rating_count
         FROM menu_items
+        ${MENU_RATING_AGGREGATE_SQL}
         WHERE menu_items.id = $1
     `;
     const result = await db.query(query, [id]);
@@ -128,8 +157,19 @@ const getFeaturedMenuItems = async () => {
             mi.name,
             mi.description,
             mi.price,
-            mi.image_url
+            mi.image_url,
+            COALESCE(mi.sold_count, 0)::int AS sold_count,
+            COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating,
+            COALESCE(menu_rating_stats.rating_count, 0)::int AS rating_count
         FROM menu_items mi
+        LEFT JOIN (
+            SELECT
+                ori.menu_item_id,
+                ROUND(AVG(ori.rating)::numeric, 2) AS avg_rating,
+                COUNT(*)::int AS rating_count
+            FROM order_review_items ori
+            GROUP BY ori.menu_item_id
+        ) menu_rating_stats ON menu_rating_stats.menu_item_id = mi.id
         WHERE mi.is_featured = TRUE AND mi.is_available = TRUE
         ORDER BY mi.price DESC
         LIMIT 3

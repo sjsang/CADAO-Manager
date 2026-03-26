@@ -70,7 +70,7 @@ const getReviewsForAdmin = async ({ search = "", rating = "all", featured = "all
     const parsedRating = Number(rating);
     if (Number.isInteger(parsedRating) && parsedRating >= 1 && parsedRating <= 5) {
         params.push(parsedRating);
-        conditions.push(`r.rating = $${params.length}`);
+        conditions.push(`ROUND(r.rating) = $${params.length}`);
     }
 
     if (featured === "true" || featured === "false") {

@@ -29,7 +29,7 @@ const VnpayReturnPage = () => {
     return (
         <div>
             <Header />
-            <div className="w-7xl mx-auto py-16 text-white">
+            <div className="w-7xl mx-auto py-10 text-white">
                 <div className="max-w-2xl mx-auto bg-black/30 border border-white/10 rounded-xl p-8 text-center">
                     <h1 className={`text-3xl font-bold mb-4 ${success ? "text-green-400" : "text-red-400"}`}>
                         {success ? "Thanh toán thành công" : "Thanh toán thất bại"}

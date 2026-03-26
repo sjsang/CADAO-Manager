@@ -217,6 +217,10 @@ const MenuManager = () => {
                                 <option value="name_desc">Tên: Z → A</option>
                                 <option value="price_asc">Giá: tăng dần</option>
                                 <option value="price_desc">Giá: giảm dần</option>
+                                <option value="sold_desc">Lượt bán: cao nhất</option>
+                                <option value="sold_asc">Lượt bán: thấp nhất</option>
+                                <option value="rating_desc">Đánh giá: cao nhất</option>
+                                <option value="rating_asc">Đánh giá: thấp nhất</option>
                             </select>
 
                             <button

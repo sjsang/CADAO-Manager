@@ -76,11 +76,6 @@ const AdminLogin = () => {
             eyebrow="CADAO Portal"
             title="Đăng nhập quản trị"
             subtitle="Dành cho quản trị viên và shipper vận hành hệ thống."
-            footer={(
-                <Link to='/auth/login' className='text-sky-300 transition-colors hover:text-sky-200'>
-                    Quay lại đăng nhập khách hàng
-                </Link>
-            )}
         >
             <form onSubmit={handleLogin} className='flex flex-col gap-4' noValidate>
                 <AuthField

@@ -93,7 +93,7 @@ const MenuPage = () => {
                 </div>
             </div>
 
-            <div className="py-20 text-white">
+            <div className="py-10 text-white">
                 <div data-aos="fade-up" className="text-center mb-5">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Hương vị đậm đà, trải nghiệm trọn vẹn</p>
                     <h1 className="text-5xl font-bold mb-5">Khám phá thực đơn</h1>
@@ -122,6 +122,10 @@ const MenuPage = () => {
                             <option className="text-black" value="name_desc">Tên: Z → A</option>
                             <option className="text-black" value="price_asc">Giá: tăng dần</option>
                             <option className="text-black" value="price_desc">Giá: giảm dần</option>
+                            <option className="text-black" value="sold_desc">Lượt bán: cao nhất</option>
+                            <option className="text-black" value="sold_asc">Lượt bán: thấp nhất</option>
+                            <option className="text-black" value="rating_desc">Đánh giá: cao nhất</option>
+                            <option className="text-black" value="rating_asc">Đánh giá: thấp nhất</option>
                         </select>
                     </div>
 

@@ -289,12 +289,12 @@ const getDashboardStatistics = async (rawFilters = {}) => {
     `;
 
     const reviewBreakdownQuery = `
-        SELECT r.rating, COUNT(*)::int AS count
+        SELECT ROUND(r.rating)::int AS rating, COUNT(*)::int AS count
         FROM order_reviews r
         JOIN orders o ON o.id = r.order_id
         ${whereClause}
-        GROUP BY r.rating
-        ORDER BY r.rating DESC
+        GROUP BY ROUND(r.rating)
+        ORDER BY ROUND(r.rating) DESC
     `;
 
     const menuMetricsQuery = `

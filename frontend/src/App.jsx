@@ -28,8 +28,10 @@ import UserProfilePage from './pages/admin/UserProfile'
 import WardManager from './pages/admin/WardManager'
 import VoucherManager from './pages/admin/VoucherManager'
 import ReviewManager from './pages/admin/ReviewManager'
+import ChatManager from './pages/admin/ChatManager'
 import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
 import CustomerToast from './components/customer/CustomerToast'
+import CustomerChatWidget from './components/customer/CustomerChatWidget'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -147,9 +149,11 @@ const App = () => {
         <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
         <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
         <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />
+        <Route path="/admin/chats" element={<AdminRoute><ChatManager /></AdminRoute>} />
         <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
       </Routes>
       <CustomerToast />
+      <CustomerChatWidget />
     </>
   );
 }

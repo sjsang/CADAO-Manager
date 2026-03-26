@@ -20,6 +20,7 @@ const buildCloudinaryUrl = (publicId) => {
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^(0|\+84)\d{9,10}$/;
+const CUSTOMER_ORDER_PAGE_SIZE = 6;
 
 const ProfilePage = () => {
     const [profile, setProfile] = useState(null);
@@ -30,6 +31,15 @@ const ProfilePage = () => {
     });
     const [isEditing, setIsEditing] = useState(false);
     const [orders, setOrders] = useState([]);
+    const [orderSearch, setOrderSearch] = useState("");
+    const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+    const [orderPage, setOrderPage] = useState(1);
+    const [orderPagination, setOrderPagination] = useState({
+        page: 1,
+        limit: CUSTOMER_ORDER_PAGE_SIZE,
+        totalItems: 0,
+        totalPages: 1
+    });
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -64,21 +74,36 @@ const ProfilePage = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const response = await orderApi.getByCustomerId();
-                const ordersData = response.data.data;
+                const response = await orderApi.getByCustomerId({
+                    search: orderSearch,
+                    status: orderStatusFilter,
+                    page: orderPage,
+                    limit: CUSTOMER_ORDER_PAGE_SIZE
+                });
+                const ordersData = response.data?.data || [];
                 const mappedOrders = ordersData.map((order) => ({
                     ...order,
                     rawStatus: order.status,
                     status: getStatusText(order.status)
                 }));
                 setOrders(mappedOrders);
+                setOrderPagination(response.data?.pagination || {
+                    page: orderPage,
+                    limit: CUSTOMER_ORDER_PAGE_SIZE,
+                    totalItems: mappedOrders.length,
+                    totalPages: 1
+                });
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
             }
         };
 
         fetchOrders();
-    }, []);
+    }, [orderSearch, orderStatusFilter, orderPage]);
+
+    useEffect(() => {
+        setOrderPage(1);
+    }, [orderSearch, orderStatusFilter]);
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
@@ -204,14 +229,17 @@ const ProfilePage = () => {
             <div>
                 <Header />
 
-                <div className="w-7xl mx-auto py-16 text-white">
+                <div className="w-7xl mx-auto py-10 text-white">
+                    <div data-aos="fade-up" className="text-center mb-12">
+                        <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Thông tin cá nhân, địa chỉ, đơn hàng</p>
+                        <h1 className="text-5xl font-bold mb-5">Hồ sơ</h1>
+                        <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
+                    </div>
                     {profile && (
                         <div data-aos="fade-up" className="mb-12">
                             <div className="bg-black/30 border border-white/10 rounded-2xl p-10">
-                                <h2 className="text-3xl font-bold mb-8 text-[#e4c590]">Hồ sơ cá nhân</h2>
-
                                 <div className="grid lg:grid-cols-3 gap-10">
-                                    <div className="flex flex-col items-center gap-6">
+                                    <div className="flex flex-col items-center justify-center gap-6">
                                         <div className="h-40 w-40 overflow-hidden rounded-full border-2 border-[#e4c590]/40 bg-black/60">
                                             {profile.avatar_url ? (
                                                 <img
@@ -352,73 +380,116 @@ const ProfilePage = () => {
                         <AddressManager />
                     </div>
 
-                    {orders.length > 0 && (
-                        <div data-aos="fade-up" data-aos-delay="200" className="mt-16">
-                            <h2 className="text-2xl font-bold mb-6 text-[#e4c590]">Đơn hàng của bạn</h2>
-                            <div className="bg-black/30 border border-white/10 rounded-xl overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left">
-                                        <thead>
-                                            <tr className="bg-black/60 border-b border-white/10">
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Mã đơn</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Người nhận</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Điện thoại</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Địa chỉ</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Tổng tiền</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Trạng thái</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Góp ý</th>
-                                                <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Hành động</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {orders.map((order) => (
-                                                <tr key={order.order_code} className="hover:bg-white/5 transition-colors">
-                                                    <td className="p-4 text-sm text-white font-mono">{order.order_code}</td>
-                                                    <td className="p-4 text-sm text-gray-300">{order.delivery_full_name}</td>
-                                                    <td className="p-4 text-sm text-gray-400">{order.delivery_phone}</td>
-                                                    <td className="p-4 text-sm text-gray-400 max-w-xs truncate">{order.delivery_address}</td>
-                                                    <td className="p-4 text-sm font-semibold text-[#e4c590]">{Number(order.total_amount).toLocaleString('vi-VN')}đ</td>
-                                                    <td className="p-4 text-sm">
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.rawStatus === "completed" ? "bg-green-500/20 text-green-400" :
-                                                            order.rawStatus === "cancelled" ? "bg-red-500/20 text-red-400" :
-                                                                order.rawStatus === "pending" ? "bg-yellow-500/20 text-yellow-400" :
-                                                                    "bg-blue-500/20 text-blue-400"
-                                                            }`}>
-                                                            {order.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-4 text-sm">
-                                                        {order.rawStatus === "completed" ? (
-                                                            order.has_review ? (
-                                                                <span className="text-[#e4c590] font-semibold">★ Đã đánh giá</span>
-                                                            ) : (
-                                                                <button
-                                                                    className="text-[#e4c590] cursor-pointer hover:underline font-semibold"
-                                                                    onClick={() => navigate(`/orders/${order.order_code}`)}
-                                                                >
-                                                                    Đánh giá
-                                                                </button>
-                                                            )
-                                                        ) : (
-                                                            <span className="text-gray-500">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-4 text-sm">
-                                                        <button
-                                                            className="px-3 py-1.5 bg-black/40 border border-[#e4c590]/30 text-[#e4c590] rounded-lg hover:bg-black/60 transition-colors text-xs font-semibold"
-                                                            onClick={() => navigate(`/orders/${order.order_code}`)}
-                                                        >
-                                                            Chi tiết
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                    <div data-aos="fade-up" data-aos-delay="200" className="mt-16">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-[#e4c590]">Đơn hàng của bạn</h2>
+
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 w-full md:w-auto md:min-w-130">
+                                <input
+                                    type="text"
+                                    value={orderSearch}
+                                    onChange={(e) => setOrderSearch(e.target.value)}
+                                    placeholder="Tìm theo mã đơn, người nhận, số điện thoại..."
+                                    className="px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#e4c590]"
+                                />
+                                <select
+                                    value={orderStatusFilter}
+                                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                                    className="px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#e4c590]"
+                                >
+                                    <option value="all" className="text-black">Tất cả trạng thái</option>
+                                    <option value="pending" className="text-black">Chờ xác nhận</option>
+                                    <option value="confirmed" className="text-black">Đã xác nhận</option>
+                                    <option value="preparing" className="text-black">Đang chuẩn bị</option>
+                                    <option value="shipping" className="text-black">Đang giao hàng</option>
+                                    <option value="completed" className="text-black">Đã hoàn thành</option>
+                                    <option value="cancelled" className="text-black">Đã hủy</option>
+                                </select>
                             </div>
                         </div>
-                    )}
+
+                        <div className="bg-black/30 border border-white/10 rounded-xl overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-black/60 border-b border-white/10">
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Mã đơn</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Người nhận</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Điện thoại</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Địa chỉ</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Tổng tiền</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Trạng thái</th>
+                                            <th className="p-4 text-sm font-semibold text-[#e4c590] uppercase tracking-wider">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {orders.map((order) => (
+                                            <tr key={order.order_code} className="hover:bg-white/5 transition-colors">
+                                                <td className="p-4 text-sm text-white font-mono">{order.order_code}</td>
+                                                <td className="p-4 text-sm text-gray-300">{order.delivery_full_name}</td>
+                                                <td className="p-4 text-sm text-gray-400">{order.delivery_phone}</td>
+                                                <td className="p-4 text-sm text-gray-400 max-w-xs truncate">{order.delivery_address}</td>
+                                                <td className="p-4 text-sm font-semibold text-[#e4c590]">{Number(order.total_amount).toLocaleString('vi-VN')}đ</td>
+                                                <td className="p-4 text-sm">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.rawStatus === "completed" ? "bg-green-500/20 text-green-400" :
+                                                        order.rawStatus === "cancelled" ? "bg-red-500/20 text-red-400" :
+                                                            order.rawStatus === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                                                "bg-blue-500/20 text-blue-400"
+                                                        }`}>
+                                                        {order.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-sm">
+                                                    <button
+                                                        className="px-3 py-1.5 bg-black/40 border border-[#e4c590]/30 text-[#e4c590] rounded-lg hover:bg-black/60 transition-colors text-xs font-semibold"
+                                                        onClick={() => navigate(`/orders/${order.order_code}`)}
+                                                    >
+                                                        Chi tiết
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+
+                                        {orders.length === 0 && (
+                                            <tr>
+                                                <td colSpan={8} className="p-6 text-sm text-center text-gray-400">Không có đơn hàng phù hợp bộ lọc.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {orderPagination.totalItems > 0 && (
+                                <div className="flex items-center justify-between px-4 py-3 border-t border-white/10">
+                                    <p className="text-sm text-gray-400">
+                                        Tổng đơn: <span className="text-white font-semibold">{orderPagination.totalItems}</span>
+                                    </p>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={orderPagination.page <= 1}
+                                            onClick={() => setOrderPage((prev) => Math.max(1, prev - 1))}
+                                            className="px-3 py-1.5 text-sm border border-white/20 rounded-lg text-gray-200 hover:border-[#e4c590]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Trước
+                                        </button>
+                                        <span className="text-sm text-gray-300">
+                                            Trang {orderPagination.page}/{Math.max(1, orderPagination.totalPages)}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            disabled={orderPagination.page >= orderPagination.totalPages}
+                                            onClick={() => setOrderPage((prev) => Math.min(orderPagination.totalPages, prev + 1))}
+                                            className="px-3 py-1.5 text-sm border border-white/20 rounded-lg text-gray-200 hover:border-[#e4c590]/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Sau
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 

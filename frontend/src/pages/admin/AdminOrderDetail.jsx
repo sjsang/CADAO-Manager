@@ -157,6 +157,8 @@ const AdminOrderDetail = () => {
     const [nowTs, setNowTs] = useState(Date.now());
     const [noticeMessage, setNoticeMessage] = useState("");
     const [pendingStatusAction, setPendingStatusAction] = useState(null);
+    const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+    const [isMarkingRefunded, setIsMarkingRefunded] = useState(false);
 
     const loadOrder = useCallback(async () => {
         const response = await orderApi.getByOrderCode(orderCode);
@@ -521,6 +523,51 @@ const AdminOrderDetail = () => {
                                     </div>
                                 ) : null}
 
+                                {order?.payment?.method === "transfer" && order?.payment?.payment_status === "pending" && (
+                                    <button
+                                        type="button"
+                                        disabled={isMarkingPaid}
+                                        onClick={async () => {
+                                            setIsMarkingPaid(true);
+                                            try {
+                                                await orderApi.markTransferPaid(orderCode);
+                                                await loadOrder();
+                                            } catch (error) {
+                                                setNoticeMessage(error.response?.data?.message || "Không thể cập nhật trạng thái thanh toán.");
+                                            } finally {
+                                                setIsMarkingPaid(false);
+                                            }
+                                        }}
+                                        className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 transition disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                        {isMarkingPaid ? "Đang xử lý..." : "Xác nhận đã nhận thanh toán"}
+                                    </button>
+                                )}
+
+                                {(order?.status === "cancelled" &&
+                                    (order?.payment?.method === "transfer" || order?.payment?.method === "vnpay") &&
+                                    order?.payment?.payment_status === "paid" &&
+                                    order?.payment?.refund_requested_at) && (
+                                        <button
+                                            type="button"
+                                            disabled={isMarkingRefunded}
+                                            onClick={async () => {
+                                                setIsMarkingRefunded(true);
+                                                try {
+                                                    await orderApi.markPaymentRefunded(orderCode);
+                                                    await loadOrder();
+                                                } catch (error) {
+                                                    setNoticeMessage(error.response?.data?.message || "Không thể cập nhật trạng thái hoàn tiền.");
+                                                } finally {
+                                                    setIsMarkingRefunded(false);
+                                                }
+                                            }}
+                                            className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 transition disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        >
+                                            {isMarkingRefunded ? "Đang xử lý..." : "Đánh dấu đã hoàn tiền"}
+                                        </button>
+                                    )}
+
                                 <button
                                     type="button"
                                     onClick={handlePrintInvoice}
@@ -552,6 +599,24 @@ const AdminOrderDetail = () => {
                             ))}
                         </div>
                     </section>
+
+                    {(order?.payment?.refund_requested_at || order?.payment?.payment_status === "refunded") && (
+                        <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
+                            <div className="border-b border-amber-200 pb-4">
+                                <h3 className="text-lg font-semibold text-amber-900">Thông tin hoàn tiền khách hàng cung cấp</h3>
+                                <p className="mt-1 text-sm text-amber-800">Hệ thống hiện chỉ hỗ trợ hoàn tiền qua chuyển khoản ngân hàng.</p>
+                            </div>
+
+                            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                <InfoRow label="Ngân hàng" value={order.payment?.refund_bank_name} />
+                                <InfoRow label="Số tài khoản" value={order.payment?.refund_account_number} />
+                                <InfoRow label="Chủ tài khoản" value={order.payment?.refund_account_name} />
+                                <InfoRow label="Khách gửi lúc" value={formatDateTime(order.payment?.refund_requested_at)} />
+                                <InfoRow label="Admin xác nhận hoàn" value={formatDateTime(order.payment?.refund_marked_at)} />
+                                <InfoRow label="Ghi chú" value={order.payment?.refund_note} />
+                            </div>
+                        </section>
+                    )}
 
                     <section className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="border-b border-slate-200 px-5 py-4">

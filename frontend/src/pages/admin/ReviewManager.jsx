@@ -161,7 +161,7 @@ const ReviewManager = () => {
                                                     <p className="font-medium text-slate-800">{review.customer_name || "-"}</p>
                                                     <p className="text-xs text-slate-500">{review.customer_phone || "-"}</p>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-amber-500">{"★".repeat(Number(review.rating || 0))}</td>
+                                                <td className="px-4 py-3 text-sm text-amber-500">{"★".repeat(Math.round(Number(review.rating || 0)))} <span className="text-xs text-slate-500">({Number(review.rating || 0).toFixed(2)})</span></td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{review.content}</td>
                                                 <td className="px-4 py-3 text-sm text-slate-700">{formatDateDDMMYYYY(review.created_at)}</td>
                                                 <td className="px-4 py-3 text-center">

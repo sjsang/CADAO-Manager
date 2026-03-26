@@ -12,7 +12,7 @@ const AboutUsPage = () => {
         <>
             <Header activePage={"about"} />
 
-            <div className="w-7xl mx-auto py-20 text-white">
+            <div className="w-7xl mx-auto py-10 text-white">
 
                 <div data-aos="fade-up" className="text-center mb-16">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Hơn 20 năm hương vị Việt</p>

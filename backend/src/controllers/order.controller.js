@@ -57,8 +57,14 @@ const getAllOrders = async (req, res) => {
 const getOrdersByCustomerId = async (req, res) => {
     try {
         const customerId = req.user.id;
-        const result = await orderService.getOrdersByCustomerId(customerId);
-        res.status(200).json({ success: true, data: result });
+        const queryOptions = {
+            search: String(req.query.search || "").trim(),
+            status: String(req.query.status || "all").trim(),
+            page: Number(req.query.page || 1),
+            limit: Number(req.query.limit || 8)
+        };
+        const result = await orderService.getOrdersByCustomerId(customerId, queryOptions);
+        res.status(200).json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) {
         console.error("Error fetching orders:", error);
         res.status(500).json({ success: false, message: "Failed to fetch orders" });
@@ -98,16 +104,18 @@ const submitOrderReview = async (req, res) => {
     try {
         const orderCode = req.params.orderCode;
         const customerId = req.user.id;
-        const { rating, content } = req.body;
+        const { content, itemRatings } = req.body;
 
-        const result = await orderService.submitOrderReview(orderCode, customerId, rating, content);
+        const result = await orderService.submitOrderReview(orderCode, customerId, content, itemRatings);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error submitting order review:", error);
 
         const errorMap = {
-            INVALID_RATING: { status: 400, message: "Số sao phải từ 1 đến 5." },
             INVALID_REVIEW_CONTENT: { status: 400, message: "Nội dung đánh giá không được để trống." },
+            INVALID_ITEM_RATINGS: { status: 400, message: "Vui lòng chấm sao cho từng món trong đơn." },
+            INVALID_ITEM_RATING_VALUE: { status: 400, message: "Số sao mỗi món phải từ 1 đến 5." },
+            MISSING_ITEM_RATING: { status: 400, message: "Bạn cần đánh giá đầy đủ tất cả món trong đơn." },
             ORDER_NOT_FOUND_OR_FORBIDDEN: { status: 404, message: "Không tìm thấy đơn hàng của bạn." },
             ORDER_NOT_COMPLETED: { status: 400, message: "Chỉ có thể đánh giá khi đơn hàng đã hoàn thành." }
         };
@@ -379,14 +387,28 @@ const confirmOrder = async (req, res) => {
 const cancelOrder = async (req, res) => {
     try {
         const orderCode = req.params.orderCode;
-        const result = await orderService.cancelOrder(orderCode);
+        const customerId = req.user?.id;
+        const refundInfo = req.body?.refundInfo || null;
+        const result = await orderService.cancelOrder(orderCode, customerId, refundInfo);
         if (result) {
-            res.status(200).json({ success: true, data: { orderId: result } });
+            res.status(200).json({ success: true, data: result });
         } else {
             res.status(400).json({ success: false, message: "Failed to cancel order. Order may not be pending." });
         }
     } catch (error) {
         console.error("Error cancelling order:", error);
+        const errorMap = {
+            ORDER_NOT_FOUND: { status: 404, message: "Không tìm thấy đơn hàng." },
+            FORBIDDEN_ORDER_ACCESS: { status: 403, message: "Bạn không có quyền hủy đơn hàng này." },
+            ORDER_NOT_CANCELLABLE: { status: 400, message: "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đã xác nhận." },
+            REFUND_INFO_REQUIRED: { status: 400, message: "Đơn hàng đã thanh toán. Vui lòng cung cấp thông tin chuyển khoản để hoàn tiền." }
+        };
+
+        const mapped = errorMap[error.message];
+        if (mapped) {
+            return res.status(mapped.status).json({ success: false, message: mapped.message });
+        }
+
         res.status(500).json({ success: false, message: "Failed to cancel order" });
     }
 };
@@ -470,6 +492,78 @@ const completeDelivery = async (req, res) => {
     }
 };
 
+const markTransferPaymentPaidByAdmin = async (req, res) => {
+    try {
+        const orderCode = String(req.params.orderCode || '').trim();
+
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng.' });
+        }
+
+        const payment = await paymentRepository.getPaymentByOrderId(order.id);
+        if (!payment) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi thanh toán.' });
+        }
+
+        if (payment.method !== 'transfer') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng không dùng phương thức chuyển khoản.' });
+        }
+
+        if (payment.payment_status === 'paid') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng đã được thanh toán trước đó.' });
+        }
+
+        const updated = await paymentRepository.markTransferPaymentPaid(order.id);
+        return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Error marking transfer payment paid:', error);
+        return res.status(500).json({ success: false, message: 'Không thể cập nhật trạng thái thanh toán.' });
+    }
+};
+
+const markPaymentRefundedByAdmin = async (req, res) => {
+    try {
+        const orderCode = String(req.params.orderCode || '').trim();
+
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng.' });
+        }
+
+        if (order.status !== 'cancelled') {
+            return res.status(400).json({ success: false, message: 'Chỉ hoàn tiền cho đơn đã hủy.' });
+        }
+
+        const payment = await paymentRepository.getPaymentByOrderId(order.id);
+        if (!payment) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi thanh toán.' });
+        }
+
+        if (!(payment.method === 'transfer' || payment.method === 'vnpay')) {
+            return res.status(400).json({ success: false, message: 'Đơn hàng này không yêu cầu hoàn tiền chuyển khoản.' });
+        }
+
+        if (payment.payment_status === 'refunded') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng đã được cập nhật hoàn tiền trước đó.' });
+        }
+
+        if (payment.payment_status !== 'paid') {
+            return res.status(400).json({ success: false, message: 'Chỉ có thể hoàn tiền cho đơn đã thanh toán.' });
+        }
+
+        if (!payment.refund_requested_at || !payment.refund_bank_name || !payment.refund_account_number || !payment.refund_account_name) {
+            return res.status(400).json({ success: false, message: 'Khách hàng chưa cung cấp đủ thông tin hoàn tiền.' });
+        }
+
+        const updated = await paymentRepository.markOrderPaymentRefundedByAdmin(order.id);
+        return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Error marking payment refunded:', error);
+        return res.status(500).json({ success: false, message: 'Không thể cập nhật trạng thái hoàn tiền.' });
+    }
+};
+
 module.exports = {
     createQr,
     vnpayReturn,
@@ -483,5 +577,7 @@ module.exports = {
     getShippers,
     getMyDeliveries,
     getMyDeliveryHistory,
-    completeDelivery
+    completeDelivery,
+    markTransferPaymentPaidByAdmin,
+    markPaymentRefundedByAdmin
 };

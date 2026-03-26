@@ -480,7 +480,7 @@ const Dashboard = () => {
                                                     <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">{review.order_code}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-sm font-semibold text-amber-500">{"★".repeat(review.rating)}<span className="text-slate-300">{"★".repeat(Math.max(0, 5 - review.rating))}</span></p>
+                                                    <p className="text-sm font-semibold text-amber-500">{"★".repeat(Math.round(Number(review.rating || 0)))}<span className="text-slate-300">{"★".repeat(Math.max(0, 5 - Math.round(Number(review.rating || 0))))}</span></p>
                                                     <p className="mt-1 text-xs text-slate-400">{formatDateTime(review.created_at)}</p>
                                                 </div>
                                             </div>

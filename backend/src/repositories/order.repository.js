@@ -1,5 +1,12 @@
 const db = require('../config/db');
-const { getPaymentByOrderId, createPayment, markCashPaymentPaid, markOrderPaymentFailed, markOrderPaymentRefunded } = require('./payment.repository');
+const {
+    getPaymentByOrderId,
+    createPayment,
+    markCashPaymentPaid,
+    markOrderPaymentFailed,
+    markOrderPaymentRefunded,
+    saveRefundRequestInfo
+} = require('./payment.repository');
 
 const toSafeNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -112,9 +119,49 @@ const getOrderReviewByOrderId = async (orderId) => {
     return result.rows[0] || null;
 };
 
+const getOrderReviewItemsByOrderId = async (orderId) => {
+    const query = `
+        SELECT
+            ori.menu_item_id,
+            ori.rating,
+            mi.name AS menu_item_name
+        FROM order_review_items ori
+        JOIN menu_items mi ON mi.id = ori.menu_item_id
+        WHERE ori.order_id = $1
+        ORDER BY mi.name ASC
+    `;
+    const result = await db.query(query, [orderId]);
+    return result.rows;
+};
+
+const applySoldCountDeltaByOrder = async (orderId, delta, client = db) => {
+    const safeDelta = Number(delta);
+
+    if (!Number.isInteger(safeDelta) || safeDelta === 0) {
+        return;
+    }
+
+    await client.query(
+        `
+            UPDATE menu_items mi
+            SET sold_count = GREATEST(0, COALESCE(mi.sold_count, 0) + src.delta_quantity)
+            FROM (
+                SELECT
+                    oi.menu_item_id,
+                    (SUM(oi.quantity)::int * $2) AS delta_quantity
+                FROM order_items oi
+                WHERE oi.order_id = $1
+                GROUP BY oi.menu_item_id
+            ) src
+            WHERE mi.id = src.menu_item_id
+        `,
+        [orderId, safeDelta]
+    );
+};
+
 const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at", sortDir = "desc", page = 1, limit = 5 } = {}) => {
     const params = [];
-    const conditions = [];
+    const conditions = ["o.status <> 'cart'"];
 
     const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
     const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 100) : 5;
@@ -134,9 +181,7 @@ const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at"
         conditions.push(`o.status = $${params.length}`);
     }
 
-    if (conditions.length > 0) {
-        fromWhere += ` WHERE ${conditions.join(" AND ")}`;
-    }
+    fromWhere += ` WHERE ${conditions.join(" AND ")}`;
 
     const countQuery = `SELECT COUNT(*)::int AS total ${fromWhere}`;
     const countResult = await db.query(countQuery, params);
@@ -175,18 +220,58 @@ const getAllOrders = async ({ search = "", status = "all", sortBy = "created_at"
     };
 };
 
-const getOrdersByCustomerId = async (customerId) => {
-    const query = `
-        SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
-               o.total_amount, o.status,
-               CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS has_review
+const getOrdersByCustomerId = async (customerId, { search = "", status = "all", page = 1, limit = 8 } = {}) => {
+    const params = [customerId];
+    const conditions = ["o.customer_id = $1", "o.status <> 'cart'"];
+
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 50) : 8;
+    const offset = (safePage - 1) * safeLimit;
+
+    if (search) {
+        params.push(`%${search}%`);
+        conditions.push(`(o.order_code ILIKE $${params.length} OR o.delivery_full_name ILIKE $${params.length} OR o.delivery_phone ILIKE $${params.length})`);
+    }
+
+    if (["pending", "confirmed", "preparing", "shipping", "completed", "cancelled"].includes(status)) {
+        params.push(status);
+        conditions.push(`o.status = $${params.length}`);
+    }
+
+    const fromWhere = `
         FROM orders o
         LEFT JOIN order_reviews r ON r.order_id = o.id
-        WHERE o.customer_id = $1 AND o.status != 'cart'
-        ORDER BY o.created_at DESC
+        WHERE ${conditions.join(" AND ")}
     `;
-    const result = await db.query(query, [customerId]);
-    return result.rows;
+
+    const countQuery = `SELECT COUNT(*)::int AS total ${fromWhere}`;
+    const countResult = await db.query(countQuery, params);
+    const totalItems = countResult.rows[0]?.total || 0;
+
+    params.push(safeLimit);
+    const limitParam = params.length;
+    params.push(offset);
+    const offsetParam = params.length;
+
+    const query = `
+        SELECT o.order_code, o.delivery_full_name, o.delivery_phone, o.delivery_address,
+               o.total_amount, o.status, o.created_at,
+               CASE WHEN r.id IS NOT NULL THEN TRUE ELSE FALSE END AS has_review
+        ${fromWhere}
+        ORDER BY o.created_at DESC
+        LIMIT $${limitParam} OFFSET $${offsetParam}
+    `;
+    const result = await db.query(query, params);
+
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const generateOrderCode = () => {
@@ -409,6 +494,7 @@ const getOrderByOrderCode = async (orderCode) => {
                 o.delivery_ward_name, o.shipping_fee, o.subtotal, o.discount_amount, o.total_amount, o.status, o.notes,
                 o.created_at, o.updated_at, ov.voucher_id, v.code AS voucher_code,
                 json_agg(json_build_object(
+                    'menu_item_id', oi.menu_item_id,
                     'name', mi.name,
                     'quantity', oi.quantity,
                     'price', oi.price,
@@ -429,14 +515,21 @@ const getOrderByOrderCode = async (orderCode) => {
         const payment = await getPaymentByOrderId(order.id);
         const statusHistory = await getOrderStatusHistoryByOrderId(order.id);
         const review = await getOrderReviewByOrderId(order.id);
+        const reviewItems = review ? await getOrderReviewItemsByOrderId(order.id) : [];
+
         order.payment = payment;
         order.status_history = statusHistory;
-        order.review = review;
+        order.review = review
+            ? {
+                ...review,
+                items: reviewItems
+            }
+            : null;
     }
     return order;
 };
 
-const submitOrderReview = async (orderCode, customerId, rating, content) => {
+const submitOrderReview = async (orderCode, customerId, content, itemRatings) => {
     try {
         await db.query("BEGIN");
 
@@ -450,7 +543,7 @@ const submitOrderReview = async (orderCode, customerId, rating, content) => {
             [orderCode]
         );
 
-        if (orderResult.rowCount === 0 || orderResult.rows[0].customer_id !== customerId) {
+        if (orderResult.rowCount === 0 || Number(orderResult.rows[0].customer_id) !== Number(customerId)) {
             throw new Error("ORDER_NOT_FOUND_OR_FORBIDDEN");
         }
 
@@ -459,6 +552,51 @@ const submitOrderReview = async (orderCode, customerId, rating, content) => {
         if (order.status !== "completed") {
             throw new Error("ORDER_NOT_COMPLETED");
         }
+
+        const orderItemsResult = await db.query(
+            `
+                SELECT DISTINCT menu_item_id
+                FROM order_items
+                WHERE order_id = $1
+            `,
+            [order.id]
+        );
+        const orderMenuItemIds = new Set(orderItemsResult.rows.map((row) => Number(row.menu_item_id)));
+
+        if (!Array.isArray(itemRatings) || itemRatings.length === 0) {
+            throw new Error("INVALID_ITEM_RATINGS");
+        }
+
+        const normalizedMap = new Map();
+
+        for (const item of itemRatings) {
+            const menuItemId = Number(item?.menuItemId);
+            const itemRating = Number(item?.rating);
+
+            if (!Number.isInteger(menuItemId) || !orderMenuItemIds.has(menuItemId)) {
+                throw new Error("INVALID_ITEM_RATINGS");
+            }
+
+            if (!Number.isInteger(itemRating) || itemRating < 1 || itemRating > 5) {
+                throw new Error("INVALID_ITEM_RATING_VALUE");
+            }
+
+            normalizedMap.set(menuItemId, itemRating);
+        }
+
+        for (const menuItemId of orderMenuItemIds) {
+            if (!normalizedMap.has(menuItemId)) {
+                throw new Error("MISSING_ITEM_RATING");
+            }
+        }
+
+        const normalizedRatings = Array.from(normalizedMap.entries()).map(([menuItemId, itemRating]) => ({
+            menuItemId,
+            rating: itemRating
+        }));
+
+        const averageRating = normalizedRatings.reduce((sum, row) => sum + row.rating, 0) / normalizedRatings.length;
+        const roundedAverage = Number(averageRating.toFixed(2));
 
         const reviewResult = await db.query(
             `
@@ -471,51 +609,105 @@ const submitOrderReview = async (orderCode, customerId, rating, content) => {
                     updated_at = CURRENT_TIMESTAMP
                 RETURNING id, order_id, customer_id, rating, content, created_at, updated_at
             `,
-            [order.id, customerId, rating, content]
+            [order.id, customerId, roundedAverage, content]
         );
 
+        await db.query(`DELETE FROM order_review_items WHERE order_id = $1`, [order.id]);
+
+        const insertReviewItemQuery = `
+            INSERT INTO order_review_items (order_id, menu_item_id, rating)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (order_id, menu_item_id)
+            DO UPDATE SET rating = EXCLUDED.rating
+        `;
+
+        for (const row of normalizedRatings) {
+            await db.query(insertReviewItemQuery, [order.id, row.menuItemId, row.rating]);
+        }
+
+        const reviewItems = await getOrderReviewItemsByOrderId(order.id);
+
         await db.query("COMMIT");
-        return reviewResult.rows[0];
+        return {
+            ...reviewResult.rows[0],
+            items: reviewItems
+        };
     } catch (error) {
         await db.query("ROLLBACK");
         throw error;
     }
 };
 
-const cancelOrder = async (orderCode) => {
+const cancelOrder = async (orderCode, customerId, refundInfo = null) => {
     try {
         await db.query("BEGIN");
 
         const currentOrderResult = await db.query(
-            `SELECT id, status FROM orders WHERE order_code = $1 FOR UPDATE`,
+            `SELECT id, customer_id, status FROM orders WHERE order_code = $1 FOR UPDATE`,
             [orderCode]
         );
 
         if (currentOrderResult.rowCount === 0) {
-            await db.query("ROLLBACK");
-            return null;
+            throw new Error("ORDER_NOT_FOUND");
         }
 
         const currentOrder = currentOrderResult.rows[0];
+
+        if (Number(currentOrder.customer_id) !== Number(customerId)) {
+            throw new Error("FORBIDDEN_ORDER_ACCESS");
+        }
+
+        if (!['pending', 'confirmed'].includes(currentOrder.status)) {
+            throw new Error("ORDER_NOT_CANCELLABLE");
+        }
 
         const query = `UPDATE orders SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE order_code=$1 RETURNING id`;
         const result = await db.query(query, [orderCode]);
 
         if (result.rowCount > 0) {
             const payment = await getPaymentByOrderId(result.rows[0].id, db);
-            if ((payment?.method === 'vnpay' || payment?.method === 'transfer') && payment.payment_status === 'paid') {
-                await markOrderPaymentRefunded(result.rows[0].id, db);
+
+            const requiresRefundInfo =
+                (payment?.method === 'vnpay' || payment?.method === 'transfer') &&
+                payment?.payment_status === 'paid';
+
+            if (requiresRefundInfo) {
+                if (!refundInfo) {
+                    throw new Error("REFUND_INFO_REQUIRED");
+                }
+
+                const normalizedBankName = String(refundInfo.bankName || '').trim();
+                const normalizedAccountNumber = String(refundInfo.accountNumber || '').trim();
+                const normalizedAccountName = String(refundInfo.accountName || '').trim();
+                const normalizedNote = String(refundInfo.note || '').trim();
+
+                if (!normalizedBankName || !normalizedAccountNumber || !normalizedAccountName) {
+                    throw new Error("REFUND_INFO_REQUIRED");
+                }
+
+                await saveRefundRequestInfo(
+                    result.rows[0].id,
+                    {
+                        bankName: normalizedBankName,
+                        accountNumber: normalizedAccountNumber,
+                        accountName: normalizedAccountName,
+                        note: normalizedNote
+                    },
+                    db
+                );
             } else {
                 await markOrderPaymentFailed(result.rows[0].id, db);
             }
 
             await createOrderStatusHistory(result.rows[0].id, currentOrder.status, 'cancelled', null, 'Khách hàng hủy đơn');
             await db.query("COMMIT");
-            return result.rows[0].id;
+            return {
+                orderId: result.rows[0].id,
+                refundRequired: requiresRefundInfo
+            };
         }
 
-        await db.query("ROLLBACK");
-        return null;
+        throw new Error("CANCEL_FAILED");
     } catch (error) {
         await db.query("ROLLBACK");
         throw error;
@@ -573,6 +765,7 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, note = nul
         if (result.rows[0]) {
             if (status === 'completed') {
                 await markCashPaymentPaid(result.rows[0].id, db);
+                await applySoldCountDeltaByOrder(result.rows[0].id, 1, db);
             } else if (status === 'cancelled') {
                 const payment = await getPaymentByOrderId(result.rows[0].id, db);
                 if ((payment?.method === 'vnpay' || payment?.method === 'transfer') && payment.payment_status === 'paid') {
@@ -639,6 +832,7 @@ const completeDelivery = async (orderCode, shipperId) => {
         );
 
         await markCashPaymentPaid(result.rows[0].id, db);
+        await applySoldCountDeltaByOrder(result.rows[0].id, 1, db);
         await createOrderStatusHistory(result.rows[0].id, 'shipping', 'completed', shipperId, null);
 
         await db.query("COMMIT");

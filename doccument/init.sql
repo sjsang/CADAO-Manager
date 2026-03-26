@@ -19,12 +19,14 @@ CREATE TABLE menu_items (
     price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
     category_id INT NOT NULL REFERENCES categories(id),
     image_url TEXT,
+    sold_count INT NOT NULL DEFAULT 0 CHECK (sold_count >= 0),
     is_available BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
 -- ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS sold_count INT NOT NULL DEFAULT 0;
 
 -- 4. Người dùng nội bộ
 CREATE TABLE users (
@@ -127,8 +129,8 @@ CREATE TABLE order_reviews (
         REFERENCES orders(id) ON DELETE CASCADE,
     customer_id INT NOT NULL
         REFERENCES customers(id) ON DELETE CASCADE,
-    rating INT NOT NULL
-        CHECK (rating BETWEEN 1 AND 5),
+    rating NUMERIC(3,2) NOT NULL
+        CHECK (rating >= 1 AND rating <= 5),
     content TEXT NOT NULL
         CHECK (char_length(trim(content)) > 0),
     is_featured BOOLEAN DEFAULT FALSE,
@@ -137,6 +139,27 @@ CREATE TABLE order_reviews (
 );
 -- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
 -- ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE order_reviews ALTER COLUMN rating TYPE NUMERIC(3,2) USING rating::NUMERIC(3,2);
+
+-- 8b. Đánh giá từng món trong đơn
+CREATE TABLE order_review_items (
+    id SERIAL PRIMARY KEY,
+    order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    menu_item_id INT NOT NULL REFERENCES menu_items(id),
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(order_id, menu_item_id)
+);
+
+-- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
+-- CREATE TABLE IF NOT EXISTS order_review_items (
+--     id SERIAL PRIMARY KEY,
+--     order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+--     menu_item_id INT NOT NULL REFERENCES menu_items(id),
+--     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     UNIQUE(order_id, menu_item_id)
+-- );
 
 -- 9. Thanh toán
 CREATE TABLE payments (
@@ -153,6 +176,12 @@ CREATE TABLE payments (
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
 
     paid_at TIMESTAMP,
+    refund_bank_name VARCHAR(150),
+    refund_account_number VARCHAR(50),
+    refund_account_name VARCHAR(150),
+    refund_note TEXT,
+    refund_requested_at TIMESTAMP,
+    refund_marked_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -230,3 +259,71 @@ CREATE TABLE order_status_history (
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 17. Hội thoại chat khách hàng - admin
+CREATE TABLE chat_conversations (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
+    admin_user_id INT NOT NULL REFERENCES users(id),
+    is_bot_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 18. Tin nhắn chat
+CREATE TABLE chat_messages (
+    id SERIAL PRIMARY KEY,
+    conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    sender_type VARCHAR(20) NOT NULL CHECK (sender_type IN ('customer', 'admin', 'bot')),
+    sender_customer_id INT REFERENCES customers(id),
+    sender_user_id INT REFERENCES users(id),
+    text TEXT NOT NULL CHECK (char_length(trim(text)) > 0),
+    is_read_by_customer BOOLEAN NOT NULL DEFAULT FALSE,
+    is_read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CHECK (
+        (sender_type = 'customer' AND sender_customer_id IS NOT NULL AND sender_user_id IS NULL)
+        OR
+        (sender_type IN ('admin', 'bot') AND sender_user_id IS NOT NULL AND sender_customer_id IS NULL)
+    )
+);
+
+CREATE INDEX idx_chat_messages_conversation_created_at
+    ON chat_messages(conversation_id, created_at DESC);
+
+CREATE INDEX idx_chat_messages_admin_unread
+    ON chat_messages(conversation_id)
+    WHERE sender_type = 'customer' AND is_read_by_admin = FALSE;
+
+CREATE INDEX idx_chat_messages_customer_unread
+    ON chat_messages(conversation_id)
+    WHERE sender_type IN ('admin', 'bot') AND is_read_by_customer = FALSE;
+
+-- Migration (nếu DB đã có sẵn):
+-- CREATE TABLE IF NOT EXISTS chat_conversations (
+--     id SERIAL PRIMARY KEY,
+--     customer_id INT NOT NULL UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
+--     admin_user_id INT NOT NULL REFERENCES users(id),
+--     is_bot_active BOOLEAN NOT NULL DEFAULT TRUE,
+--     last_message TEXT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+--
+-- CREATE TABLE IF NOT EXISTS chat_messages (
+--     id SERIAL PRIMARY KEY,
+--     conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+--     sender_type VARCHAR(20) NOT NULL CHECK (sender_type IN ('customer', 'admin', 'bot')),
+--     sender_customer_id INT REFERENCES customers(id),
+--     sender_user_id INT REFERENCES users(id),
+--     text TEXT NOT NULL CHECK (char_length(trim(text)) > 0),
+--     is_read_by_customer BOOLEAN NOT NULL DEFAULT FALSE,
+--     is_read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     CHECK (
+--         (sender_type = 'customer' AND sender_customer_id IS NOT NULL AND sender_user_id IS NULL)
+--         OR
+--         (sender_type IN ('admin', 'bot') AND sender_user_id IS NOT NULL AND sender_customer_id IS NULL)
+--     )
+-- );

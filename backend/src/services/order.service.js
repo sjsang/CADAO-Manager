@@ -13,8 +13,8 @@ const getAllOrders = async (queryOptions) => {
     return await orderRepository.getAllOrders(queryOptions);
 };
 
-const getOrdersByCustomerId = async (customerId) => {
-    return await orderRepository.getOrdersByCustomerId(customerId);
+const getOrdersByCustomerId = async (customerId, queryOptions) => {
+    return await orderRepository.getOrdersByCustomerId(customerId, queryOptions);
 };
 
 const createOrUpdateOrder = async (customerId, orderData) => {
@@ -25,32 +25,36 @@ const getOrderByOrderCode = async (orderCode) => {
     return await orderRepository.getOrderByOrderCode(orderCode);
 };
 
-const submitOrderReview = async (orderCode, customerId, rating, content) => {
-    const normalizedRating = Number(rating);
+const submitOrderReview = async (orderCode, customerId, content, itemRatings) => {
     const normalizedContent = typeof content === "string" ? content.trim() : "";
-
-    if (!Number.isInteger(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
-        throw new Error("INVALID_RATING");
-    }
 
     if (!normalizedContent) {
         throw new Error("INVALID_REVIEW_CONTENT");
     }
 
-    return await orderRepository.submitOrderReview(orderCode, customerId, normalizedRating, normalizedContent);
+    if (!Array.isArray(itemRatings) || itemRatings.length === 0) {
+        throw new Error("INVALID_ITEM_RATINGS");
+    }
+
+    return await orderRepository.submitOrderReview(orderCode, customerId, normalizedContent, itemRatings);
 };
 
 const confirmOrder = async (orderCode, orderData, paymentMethod) => {
     return await orderRepository.confirmOrder(orderCode, orderData, paymentMethod);
 };
 
-const cancelOrder = async (orderCode) => {
+const cancelOrder = async (orderCode, customerId, refundInfo = null) => {
     const order = await orderRepository.getOrderByOrderCode(orderCode);
-    if (order.status !== 'pending') {
-        throw new Error("Only pending orders can be cancelled");
-    } else {
-        return await orderRepository.cancelOrder(orderCode);
+
+    if (!order) {
+        throw new Error("ORDER_NOT_FOUND");
     }
+
+    if (!['pending', 'confirmed'].includes(order.status)) {
+        throw new Error("ORDER_NOT_CANCELLABLE");
+    }
+
+    return await orderRepository.cancelOrder(orderCode, customerId, refundInfo);
 };
 
 const getShippers = async () => {

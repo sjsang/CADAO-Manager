@@ -18,6 +18,8 @@ router.get("/:orderCode", authenticate, requireAnyRole("customer", "admin"), ord
 router.post("/:orderCode/review", authenticate, requireRole("customer"), orderController.submitOrderReview);
 router.patch("/:orderCode/status", authenticate, requireRole("customer"), orderController.updateOrderStatus);
 router.patch("/:orderCode/admin-status", authenticate, requireRole("admin"), orderController.updateOrderStatusByAdmin);
+router.patch("/:orderCode/admin-payment", authenticate, requireRole("admin"), orderController.markTransferPaymentPaidByAdmin);
+router.patch("/:orderCode/admin-payment-refunded", authenticate, requireRole("admin"), orderController.markPaymentRefundedByAdmin);
 router.patch("/:orderCode/shipper-complete", authenticate, requireRole("shipper"), orderController.completeDelivery);
 
 module.exports = router;

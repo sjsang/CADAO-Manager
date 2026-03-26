@@ -26,6 +26,7 @@ const CheckoutPage = () => {
     const [appliedVoucher, setAppliedVoucher] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [transferQrOrder, setTransferQrOrder] = useState(null);
     const isMountedRef = useRef(true);
     const [form, setForm] = useState({
         delivery_full_name: "",
@@ -273,7 +274,18 @@ const CheckoutPage = () => {
                     throw new Error("VNPAY_URL_NOT_FOUND");
                 }
 
+                notifyCustomer({ message: "Đang chuyển hướng đến cổng thanh toán VNPay...", type: "info" });
                 window.location.href = paymentUrl;
+                return;
+            }
+
+            if (form.paymentMethod === "transfer") {
+                setTransferQrOrder({
+                    orderCode,
+                    totalAmount: computedTotal
+                });
+                setIsConfirmOpen(false);
+                setIsSubmitting(false);
                 return;
             }
 
@@ -292,11 +304,44 @@ const CheckoutPage = () => {
         ? Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0)
         : 0;
 
+    if (transferQrOrder) {
+        const qrUrl = `https://img.vietqr.io/image/970423-0706348339-print.png?amount=${Math.round(transferQrOrder.totalAmount)}&addInfo=${encodeURIComponent(transferQrOrder.orderCode)}&accountName=NGUYEN%20THANH%20SANG`;
+        return (
+            <div>
+                <Header />
+                <div className="w-7xl mx-auto py-10 text-white">
+                    <div data-aos="fade-up" className="text-center mb-12">
+                        <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Thanh toán chuyển khoản</p>
+                        <h1 className="text-5xl font-bold mb-5">Quét mã QR</h1>
+                        <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
+                    </div>
+
+                    <div className="max-w-lg mx-auto space-y-6">
+                        <img
+                            src={qrUrl}
+                            alt="QR chuyển khoản ngân hàng"
+                            className="w-full rounded-lg border-3 border-[#e4c590]"
+                        />
+
+                        <button
+                            type="button"
+                            onClick={() => navigate("/")}
+                            className="w-full group relative overflow-hidden px-8 py-4 border border-[#e4c590]/60 text-[#e4c590] rounded-lg cursor-pointer"
+                        >
+                            <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                            <span className="relative z-10 text-sm font-bold tracking-widest group-hover:text-black transition-colors">VỀ TRANG CHỦ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <Header />
 
-            <div className="w-7xl mx-auto py-16 text-white">
+            <div className="w-7xl mx-auto py-10 text-white">
                 <div data-aos="fade-up" className="text-center mb-12">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Hoàn tất đơn hàng</p>
                     <h1 className="text-5xl font-bold mb-5">Thanh toán</h1>

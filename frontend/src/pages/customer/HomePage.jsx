@@ -60,10 +60,7 @@ const HomePage = () => {
             try {
                 const featured = await reviewApi.getFeaturedReviews();
                 const featuredData = featured.data?.data || [];
-                const data = featuredData.length > 0
-                    ? featuredData
-                    : (await reviewApi.getRecentReviews(6)).data?.data || [];
-                setReviews(data);
+                setReviews(featuredData);
             } catch {
                 setReviews([]);
             } finally {

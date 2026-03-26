@@ -96,6 +96,45 @@ const markOrderPaymentRefunded = async (orderId, client = db) => {
     return result.rows[0] || null;
 };
 
+const saveRefundRequestInfo = async (orderId, refundInfo, client = db) => {
+    const result = await client.query(
+        `
+            UPDATE payments
+            SET refund_bank_name = $2,
+                refund_account_number = $3,
+                refund_account_name = $4,
+                refund_note = $5,
+                refund_requested_at = CURRENT_TIMESTAMP
+            WHERE order_id = $1
+            RETURNING *
+        `,
+        [
+            orderId,
+            refundInfo.bankName,
+            refundInfo.accountNumber,
+            refundInfo.accountName,
+            refundInfo.note || null
+        ]
+    );
+
+    return result.rows[0] || null;
+};
+
+const markOrderPaymentRefundedByAdmin = async (orderId, client = db) => {
+    const result = await client.query(
+        `
+            UPDATE payments
+            SET payment_status = 'refunded',
+                refund_marked_at = CURRENT_TIMESTAMP
+            WHERE order_id = $1
+            RETURNING *
+        `,
+        [orderId]
+    );
+
+    return result.rows[0] || null;
+};
+
 module.exports = {
     getPaymentByOrderId,
     createPayment,
@@ -103,5 +142,7 @@ module.exports = {
     markTransferPaymentPaid,
     markVnpayPaymentPaid,
     markOrderPaymentFailed,
-    markOrderPaymentRefunded
+    markOrderPaymentRefunded,
+    saveRefundRequestInfo,
+    markOrderPaymentRefundedByAdmin
 };

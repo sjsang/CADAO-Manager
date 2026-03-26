@@ -39,6 +39,7 @@ const SideBarMenu = ({ activePage }) => {
         { key: "wards", label: "Phường", path: "/admin/wards", dot: "bg-teal-400" },
         { key: "vouchers", label: "Voucher", path: "/admin/vouchers", dot: "bg-orange-400" },
         { key: "reviews", label: "Đánh giá", path: "/admin/reviews", dot: "bg-[#e4c590]" },
+        { key: "chat", label: "Hội thoại", path: "/admin/chats", dot: "bg-sky-300" },
         { key: "users", label: "Tài khoản", path: "/admin/users", dot: "bg-rose-400" }
     ]), []);
 
