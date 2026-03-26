@@ -10,6 +10,10 @@ router.get("/my-deliveries", authenticate, requireRole("shipper"), orderControll
 router.get("/my-deliveries/history", authenticate, requireRole("shipper"), orderController.getMyDeliveryHistory);
 router.get("/", authenticate, requireRole("admin"), orderController.getAllOrders);
 router.get("/me", authenticate, requireRole("customer"), orderController.getOrdersByCustomerId);
+
+router.post('/create-qr', authenticate, requireRole('customer'), orderController.createQr);
+router.get('/check-payment-vnpay', orderController.vnpayReturn);
+
 router.get("/:orderCode", authenticate, requireAnyRole("customer", "admin"), orderController.getOrderByOrderCode);
 router.post("/:orderCode/review", authenticate, requireRole("customer"), orderController.submitOrderReview);
 router.patch("/:orderCode/status", authenticate, requireRole("customer"), orderController.updateOrderStatus);

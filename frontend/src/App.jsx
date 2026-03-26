@@ -9,6 +9,7 @@ import CustomerLogin from './pages/auth/CustomerLogin'
 import CheckoutPage from './pages/customer/CheckoutPage'
 import ProfilePage from './pages/customer/ProfilePage'
 import OrderDetailPage from './pages/customer/OrderDetailPage'
+import VnpayReturnPage from './pages/customer/VnpayReturnPage'
 
 import AdminLogin from './pages/auth/AdminLogin'
 import Dashboard from './pages/admin/Dashboard'
@@ -122,6 +123,7 @@ const App = () => {
         <Route path="/cart-items" element={<CartPage />} />
         <Route path="/orders/:orderCode/checkout" element={<CheckoutPage />} />
         <Route path="/orders/:orderCode" element={<OrderDetailPage />} />
+        <Route path="/vnpay-return" element={<VnpayReturnPage />} />
 
         <Route path="/auth/register" element={<CustomerRegis />} />
         <Route path="/auth/login" element={<CustomerLogin />} />

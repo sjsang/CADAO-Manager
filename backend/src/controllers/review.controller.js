@@ -26,6 +26,7 @@ const getReviewsForAdmin = async (req, res) => {
         const queryOptions = {
             search: String(req.query.search || "").trim(),
             rating: String(req.query.rating || "all").trim(),
+            featured: String(req.query.featured || "all").trim(),
             page: Number(req.query.page || 1),
             limit: Number(req.query.limit || 10),
             sortDir: String(req.query.sortDir || "desc").trim()

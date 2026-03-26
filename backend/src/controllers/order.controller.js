@@ -1,4 +1,40 @@
 const orderService = require("../services/order.service");
+const orderRepository = require("../repositories/order.repository");
+const paymentRepository = require("../repositories/payment.repository");
+const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
+
+const getClientIp = (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        return String(forwarded).split(',')[0].trim();
+    }
+
+    const ip = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+    if (ip === '::1' || ip === '::ffff:127.0.0.1') {
+        return '127.0.0.1';
+    }
+
+    return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+};
+
+const buildVnpayClient = () => {
+    const tmnCode = process.env.VNPAY_TMN_CODE;
+    const secureSecret = process.env.VNPAY_HASH_SECRET;
+    const vnpayHost = process.env.VNPAY_HOST || 'https://sandbox.vnpayment.vn';
+
+    if (!tmnCode || !secureSecret) {
+        throw new Error('VNPAY_CONFIG_MISSING');
+    }
+
+    return new VNPay({
+        tmnCode,
+        secureSecret,
+        vnpayHost,
+        testMode: true,
+        hashAlgorithm: 'SHA512',
+        loggerFn: ignoreLogger,
+    });
+};
 
 const getAllOrders = async (req, res) => {
     try {
@@ -85,6 +121,230 @@ const submitOrderReview = async (req, res) => {
     }
 };
 
+const createQr = async (req, res) => {
+    try {
+        const { orderCode } = req.body;
+        const normalizedOrderCode = String(orderCode || '').trim();
+
+        if (!normalizedOrderCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu hoặc sai thông tin thanh toán VNPay.'
+            });
+        }
+
+        const order = await orderRepository.getOrderByOrderCode(normalizedOrderCode);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng.' });
+        }
+
+        if (Number(order.customer_id) !== Number(req.user.id)) {
+            return res.status(403).json({ success: false, message: 'Bạn không có quyền thanh toán đơn hàng này.' });
+        }
+
+        if (order.status !== 'pending') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng chưa sẵn sàng để thanh toán.' });
+        }
+
+        const payment = await paymentRepository.getPaymentByOrderId(order.id);
+
+        if (!payment || payment.method !== 'vnpay') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng không dùng phương thức VNPay.' });
+        }
+
+        if (payment.payment_status === 'paid') {
+            return res.status(400).json({ success: false, message: 'Đơn hàng đã được thanh toán.' });
+        }
+
+        const orderAmount = Number(order.total_amount);
+
+        if (!Number.isFinite(orderAmount) || orderAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Số tiền đơn hàng không hợp lệ.' });
+        }
+
+        const vnpay = buildVnpayClient();
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const returnUrl = process.env.VNPAY_RETURN_URL || 'http://localhost:3000/api/orders/check-payment-vnpay';
+        const paymentUrl = vnpay.buildPaymentUrl({
+            vnp_Amount: Math.round(orderAmount),
+            vnp_IpAddr: getClientIp(req),
+            vnp_TxnRef: normalizedOrderCode,
+            vnp_OrderInfo: `Thanh toan don hang ${normalizedOrderCode}`,
+            vnp_OrderType: ProductCode.Other,
+            vnp_ReturnUrl: returnUrl,
+            vnp_Locale: VnpLocale.VN,
+            vnp_CreateDate: dateFormat(new Date()),
+            vnp_ExpireDate: dateFormat(tomorrow)
+        });
+
+        return res.status(201).json({
+            success: true,
+            data: {
+                paymentUrl,
+                orderCode: normalizedOrderCode,
+                amount: orderAmount
+            }
+        });
+    } catch (error) {
+        console.error('Error creating VNPay payment URL:', error);
+
+        if (error.message === 'VNPAY_CONFIG_MISSING') {
+            return res.status(500).json({ success: false, message: 'Thiếu cấu hình VNPay trên server.' });
+        }
+
+        return res.status(500).json({ success: false, message: 'Không thể tạo link thanh toán VNPay.' });
+    }
+};
+
+const vnpayReturn = async (req, res) => {
+    const frontendBase = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const wantsJson = String(req.query.format || '').toLowerCase() === 'json';
+    const redirectToFrontend = (success, orderCode = '', message = '', code = '') => {
+        const params = new URLSearchParams({
+            success: success ? '1' : '0',
+            orderCode: String(orderCode || ''),
+            message: String(message || ''),
+            code: String(code || '')
+        });
+        return res.redirect(`${frontendBase}/vnpay-return?${params.toString()}`);
+    };
+
+    try {
+        if (!process.env.VNPAY_HASH_SECRET || !process.env.VNPAY_TMN_CODE) {
+            if (wantsJson) {
+                return res.status(500).json({ success: false, message: 'Thiếu cấu hình bảo mật VNPay.' });
+            }
+            return redirectToFrontend(false, '', 'missing_vnpay_config', '500');
+        }
+
+        const verifyQuery = { ...req.query };
+        delete verifyQuery.format;
+
+        if (!verifyQuery.vnp_SecureHash) {
+            if (wantsJson) {
+                return res.status(400).json({ success: false, message: 'Thiếu chữ ký phản hồi VNPay.' });
+            }
+            return redirectToFrontend(false, '', 'missing_secure_hash', '400');
+        }
+
+        const vnpay = buildVnpayClient();
+        const verifyResult = vnpay.verifyReturnUrl(verifyQuery);
+
+        if (!verifyResult.isVerified) {
+            if (wantsJson) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Chữ ký VNPay không hợp lệ.',
+                    data: verifyResult
+                });
+            }
+            return redirectToFrontend(false, '', 'invalid_signature', '400');
+        }
+
+        const orderCode = String(verifyResult.vnp_TxnRef || '').trim();
+
+        if (!orderCode) {
+            if (wantsJson) {
+                return res.status(400).json({ success: false, message: 'Thiếu mã đơn hàng từ VNPay.' });
+            }
+            return redirectToFrontend(false, '', 'missing_order_code', '400');
+        }
+
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+
+        if (!order) {
+            if (wantsJson) {
+                return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng.', data: req.query });
+            }
+            return redirectToFrontend(false, orderCode, 'order_not_found', '404');
+        }
+
+        const payment = await paymentRepository.getPaymentByOrderId(order.id);
+
+        if (!payment) {
+            if (wantsJson) {
+                return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi thanh toán.', data: req.query });
+            }
+            return redirectToFrontend(false, orderCode, 'payment_not_found', '404');
+        }
+
+        if (payment.method !== 'vnpay') {
+            if (wantsJson) {
+                return res.status(400).json({ success: false, message: 'Đơn hàng không dùng phương thức VNPay.', data: req.query });
+            }
+            return redirectToFrontend(false, orderCode, 'invalid_payment_method', '400');
+        }
+
+        const responseCode = String(verifyResult.vnp_ResponseCode || '');
+        const transactionStatus = String(verifyResult.vnp_TransactionStatus || '');
+        const paidAmount = Number(verifyResult.vnp_Amount || 0);
+        const orderAmount = Number(order.total_amount || 0);
+        const amountMatched = Math.abs(paidAmount - orderAmount) < 0.01;
+        const isSuccess = verifyResult.isSuccess && transactionStatus === '00' && amountMatched;
+
+        // Idempotent callback handling: keep paid state if already marked paid.
+        if (payment.payment_status === 'paid') {
+            if (wantsJson) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Đơn hàng đã thanh toán trước đó.',
+                    data: {
+                        ...req.query,
+                        payment_status: payment.payment_status,
+                        order_code: orderCode
+                    }
+                });
+            }
+            return redirectToFrontend(true, orderCode, 'already_paid', '00');
+        }
+
+        if (isSuccess) {
+            const updatedPayment = await paymentRepository.markVnpayPaymentPaid(order.id);
+            const successPayload = {
+                success: true,
+                message: 'Thanh toán thành công',
+                data: {
+                    ...req.query,
+                    payment_status: updatedPayment?.payment_status || payment.payment_status,
+                    order_code: orderCode
+                }
+            };
+            if (wantsJson) {
+                return res.status(200).json(successPayload);
+            }
+            return redirectToFrontend(true, orderCode, 'payment_success', responseCode || '00');
+        }
+
+        await paymentRepository.markOrderPaymentFailed(order.id);
+
+        const failMessage = !amountMatched
+            ? 'Thanh toán không hợp lệ do sai số tiền.'
+            : 'Thanh toán thất bại';
+
+        const failedPayload = {
+            success: false,
+            message: failMessage,
+            data: {
+                ...req.query,
+                order_code: orderCode
+            }
+        };
+        if (wantsJson) {
+            return res.status(400).json(failedPayload);
+        }
+        return redirectToFrontend(false, orderCode, amountMatched ? 'payment_failed' : 'invalid_amount', responseCode || '99');
+    } catch (error) {
+        console.error('Error handling VNPay return:', error);
+        if (wantsJson) {
+            return res.status(500).json({ success: false, message: 'Lỗi xử lý callback VNPay.' });
+        }
+        return redirectToFrontend(false, '', 'server_error', '500');
+    }
+};
+
 const confirmOrder = async (req, res) => {
     try {
         const orderCode = req.params.orderCode;
@@ -102,6 +362,7 @@ const confirmOrder = async (req, res) => {
             VOUCHER_USAGE_LIMIT_REACHED: { status: 400, message: "Voucher đã hết lượt sử dụng." },
             VOUCHER_MIN_ORDER_NOT_MET: { status: 400, message: "Đơn hàng chưa đạt giá trị tối thiểu để áp dụng voucher." },
             INVALID_PAYMENT_METHOD: { status: 400, message: "Phương thức thanh toán không hợp lệ." },
+            INVALID_DELIVERY_WARD: { status: 400, message: "Phường giao hàng không hợp lệ." },
             "Order not found": { status: 404, message: "Không tìm thấy đơn hàng." }
         };
 
@@ -210,6 +471,8 @@ const completeDelivery = async (req, res) => {
 };
 
 module.exports = {
+    createQr,
+    vnpayReturn,
     getAllOrders,
     getOrdersByCustomerId,
     createOrUpdateOrder,

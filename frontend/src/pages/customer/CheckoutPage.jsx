@@ -4,6 +4,7 @@ import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal
 import orderApi from "../../api/orderApi";
 import cartApi from "../../api/cartApi";
 import customerApi from "../../api/customerApi";
+import wardApi from "../../api/wardApi";
 import voucherApi from "../../api/voucherApi";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     const [orderDetails, setOrderDetails] = useState(null);
     const [addresses, setAddresses] = useState([]);
+    const [wards, setWards] = useState([]);
     const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [shippingFee, setShippingFee] = useState(0);
     const [voucherCode, setVoucherCode] = useState("");
@@ -45,6 +47,18 @@ const CheckoutPage = () => {
         return addrs;
     };
 
+    const loadWards = async () => {
+        const response = await wardApi.getWards({
+            page: 1,
+            limit: 100,
+            sortBy: "name",
+            sortDir: "asc"
+        });
+        const wardList = response.data.data || response.data || [];
+        setWards(wardList);
+        return wardList;
+    };
+
     useEffect(() => {
         AOS.init({ duration: 800, easing: "ease-out-cubic", once: false, offset: 80 });
     }, []);
@@ -60,7 +74,8 @@ const CheckoutPage = () => {
             try {
                 const [orderRes, addrs] = await Promise.all([
                     orderApi.getByOrderCode(orderCode),
-                    loadAddresses()
+                    loadAddresses(),
+                    loadWards()
                 ]);
                 const order = orderRes.data.data;
                 setOrderDetails(order);
@@ -116,6 +131,18 @@ const CheckoutPage = () => {
             setSelectedAddressId(null);
         }
         setForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleWardChange = (e) => {
+        const { value } = e.target;
+        const selectedWard = wards.find((ward) => ward.name === value);
+
+        setSelectedAddressId(null);
+        setShippingFee(Number(selectedWard?.shipping_fee || 0));
+        setForm((prev) => ({
+            ...prev,
+            delivery_ward_name: value
+        }));
     };
 
     const handleApplyVoucher = async () => {
@@ -202,7 +229,12 @@ const CheckoutPage = () => {
             return;
         }
 
-        if (!["cash", "transfer"].includes(form.paymentMethod)) {
+        if (!wards.some((ward) => ward.name === form.delivery_ward_name.trim())) {
+            notifyCustomer({ message: "Vui lòng chọn phường từ danh sách có sẵn.", type: "warning" });
+            return;
+        }
+
+        if (!["cash", "transfer", "vnpay"].includes(form.paymentMethod)) {
             notifyCustomer({ message: "Phương thức thanh toán không hợp lệ.", type: "warning" });
             return;
         }
@@ -228,9 +260,24 @@ const CheckoutPage = () => {
                 voucher_id: appliedVoucher?.id || null
             };
             await orderApi.confirm(orderCode, payload, form.paymentMethod);
-            notifyCustomer({ message: `Đơn hàng xác nhận thành công! Mã đơn hàng: ${orderCode}`, type: "success" });
             await cartApi.deleteAllCartItems();
             window.dispatchEvent(new Event("cartUpdated"));
+
+            if (form.paymentMethod === "vnpay") {
+                const vnpayResponse = await orderApi.getVnpayUrl(orderCode);
+                const paymentUrl = typeof vnpayResponse.data === "string"
+                    ? vnpayResponse.data
+                    : vnpayResponse.data?.paymentUrl || vnpayResponse.data?.url || vnpayResponse.data?.data?.paymentUrl;
+
+                if (!paymentUrl) {
+                    throw new Error("VNPAY_URL_NOT_FOUND");
+                }
+
+                window.location.href = paymentUrl;
+                return;
+            }
+
+            notifyCustomer({ message: `Đơn hàng xác nhận thành công! Mã đơn hàng: ${orderCode}`, type: "success" });
             navigate("/");
         } catch (error) {
             console.error("Failed to confirm order:", error);
@@ -349,13 +396,19 @@ const CheckoutPage = () => {
                                         <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                                         </svg>
-                                        <input
-                                            type="text"
+                                        <select
                                             name="delivery_ward_name"
                                             value={form.delivery_ward_name}
-                                            onChange={handleChange}
-                                            className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
-                                        />
+                                            onChange={handleWardChange}
+                                            className="flex-1 bg-transparent text-white focus:outline-none text-sm"
+                                        >
+                                            <option value="" className="bg-[#111] text-gray-400">-- Chọn phường --</option>
+                                            {wards.map((ward) => (
+                                                <option key={ward.id} value={ward.name} className="bg-[#111] text-white">
+                                                    {ward.name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </label>
 
@@ -403,6 +456,18 @@ const CheckoutPage = () => {
                                     />
                                     <span className="text-white font-semibold">Chuyển khoản ngân hàng</span>
                                 </label>
+                                <label className="flex items-center gap-3 p-4 border border-white/10 rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value="vnpay"
+                                        checked={form.paymentMethod === "vnpay"}
+                                        onChange={handleChange}
+                                        className="w-4 h-4 accent-[#e4c590]"
+                                    />
+                                    <span className="text-white font-semibold">Thanh toán VNPay</span>
+                                </label>
+
                             </div>
                         </div>
 

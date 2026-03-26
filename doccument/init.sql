@@ -145,7 +145,7 @@ CREATE TABLE payments (
         REFERENCES orders(id) ON DELETE CASCADE,
 
     method VARCHAR(50)
-        CHECK (method IN ('cash', 'transfer')),
+        CHECK (method IN ('cash', 'transfer', 'vnpay')),
 
     payment_status VARCHAR(20) DEFAULT 'pending'
         CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),

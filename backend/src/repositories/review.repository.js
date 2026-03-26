@@ -47,7 +47,7 @@ const getRecentReviews = async (limit = 6) => {
     return result.rows;
 };
 
-const getReviewsForAdmin = async ({ search = "", rating = "all", page = 1, limit = 10, sortDir = "desc" } = {}) => {
+const getReviewsForAdmin = async ({ search = "", rating = "all", featured = "all", page = 1, limit = 10, sortDir = "desc" } = {}) => {
     const params = [];
     const conditions = [];
 
@@ -71,6 +71,11 @@ const getReviewsForAdmin = async ({ search = "", rating = "all", page = 1, limit
     if (Number.isInteger(parsedRating) && parsedRating >= 1 && parsedRating <= 5) {
         params.push(parsedRating);
         conditions.push(`r.rating = $${params.length}`);
+    }
+
+    if (featured === "true" || featured === "false") {
+        params.push(featured === "true");
+        conditions.push(`r.is_featured = $${params.length}`);
     }
 
     if (conditions.length > 0) {

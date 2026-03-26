@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-const getMenuItems = async ({ type, category, search, sort, available, page, limit } = {}) => {
+const getMenuItems = async ({ type, category, search, sort, available, featured, page, limit } = {}) => {
 
     let query = `
         SELECT menu_items.*
@@ -30,6 +30,11 @@ const getMenuItems = async ({ type, category, search, sort, available, page, lim
     if (available !== null && available !== undefined) {
         values.push(available);
         conditions.push(`menu_items.is_available = $${values.length}`);
+    }
+
+    if (featured !== null && featured !== undefined) {
+        values.push(featured);
+        conditions.push(`menu_items.is_featured = $${values.length}`);
     }
 
     if (conditions.length > 0) {

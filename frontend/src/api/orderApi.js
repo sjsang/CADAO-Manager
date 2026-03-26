@@ -4,6 +4,7 @@ const orderApi = {
     getByCustomerId: () => axiosClient.get(`/orders/me`),
     create: (orderData) => axiosClient.post('/orders', orderData),
     getByOrderCode: (orderCode) => axiosClient.get(`/orders/${orderCode}`),
+    getVnpayUrl: (orderCode) => axiosClient.post('/orders/create-qr', { orderCode }),
     confirm: (orderCode, payload, paymentMethod) =>
         axiosClient.patch(`/orders/${orderCode}/status`, { ...payload, paymentMethod, status: "confirmed" }),
     cancel: (orderCode) => axiosClient.patch(`/orders/${orderCode}/status`, { status: "cancelled" }),

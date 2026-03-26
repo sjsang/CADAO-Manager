@@ -35,7 +35,6 @@ const SideBarMenu = ({ activePage }) => {
         { key: "statistics", label: "Thống kê", path: "/admin/statistics", dot: "bg-lime-400" },
         { key: "orders", label: "Đơn hàng", path: "/admin/orders", dot: "bg-emerald-400" },
         { key: "menu", label: "Thực đơn", path: "/admin/menus", dot: "bg-amber-400" },
-        { key: "menu-categories", label: "Danh mục món", path: "/admin/menu-categories", dot: "bg-indigo-400" },
         { key: "customers", label: "Khách hàng", path: "/admin/customers", dot: "bg-violet-400" },
         { key: "wards", label: "Phường", path: "/admin/wards", dot: "bg-teal-400" },
         { key: "vouchers", label: "Voucher", path: "/admin/vouchers", dot: "bg-orange-400" },

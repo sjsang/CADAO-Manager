@@ -176,7 +176,7 @@ const MenuCategoryManager = () => {
 
     return (
         <div className="flex min-h-screen bg-slate-100">
-            <SideBarMenu activePage="menu-categories" />
+            <SideBarMenu activePage="menu" />
 
             <div className="flex-1">
                 <AdminHeader

@@ -24,14 +24,16 @@ const parseBoolean = (value) => {
     return null;
 };
 
-const getMenuItems = async ({ type, category, search, sort, available, page, limit }) => {
+const getMenuItems = async ({ type, category, search, sort, available, featured, page, limit }) => {
     const availableFilter = parseBoolean(available);
+    const featuredFilter = parseBoolean(featured);
     return await menuRepository.getMenuItems({
         type,
         category,
         search,
         sort,
         available: availableFilter,
+        featured: featuredFilter,
         page,
         limit
     });

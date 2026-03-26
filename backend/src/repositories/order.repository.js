@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { getPaymentByOrderId, createPayment, markCashPaymentPaid, markOrderPaymentFailed } = require('./payment.repository');
+const { getPaymentByOrderId, createPayment, markCashPaymentPaid, markOrderPaymentFailed, markOrderPaymentRefunded } = require('./payment.repository');
 
 const toSafeNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -57,6 +57,26 @@ const calculateVoucherDiscount = (voucher, subtotal) => {
     }
 
     return Math.max(0, Math.min(discountAmount, subtotal));
+};
+
+const getWardByName = async (name, client = db) => {
+    const normalizedName = String(name || "").trim();
+
+    if (!normalizedName) {
+        return null;
+    }
+
+    const result = await client.query(
+        `
+            SELECT id, name, shipping_fee
+            FROM wards
+            WHERE name = $1
+            LIMIT 1
+        `,
+        [normalizedName]
+    );
+
+    return result.rows[0] || null;
 };
 
 const createOrderStatusHistory = async (orderId, fromStatus, toStatus, changedBy = null, note = null) => {
@@ -298,8 +318,14 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
             throw new Error("ORDER_NOT_IN_CART");
         }
 
+        const selectedWard = await getWardByName(orderData.delivery_ward_name, db);
+
+        if (!selectedWard) {
+            throw new Error("INVALID_DELIVERY_WARD");
+        }
+
         const subtotal = Math.max(0, toSafeNumber(orderData.subtotal, 0));
-        const shippingFee = Math.max(0, toSafeNumber(orderData.shipping_fee, 0));
+        const shippingFee = Math.max(0, toSafeNumber(selectedWard.shipping_fee, 0));
         const voucherId = orderData.voucher_id ? Number(orderData.voucher_id) : null;
 
         let discountAmount = 0;
@@ -325,7 +351,7 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
             orderData.delivery_full_name,
             orderData.delivery_phone,
             orderData.delivery_address,
-            orderData.delivery_ward_name,
+            selectedWard.name,
             shippingFee,
             subtotal,
             discountAmount,
@@ -457,24 +483,43 @@ const submitOrderReview = async (orderCode, customerId, rating, content) => {
 };
 
 const cancelOrder = async (orderCode) => {
-    const currentOrderResult = await db.query(`SELECT id, status FROM orders WHERE order_code = $1`, [orderCode]);
+    try {
+        await db.query("BEGIN");
 
-    if (currentOrderResult.rowCount === 0) {
+        const currentOrderResult = await db.query(
+            `SELECT id, status FROM orders WHERE order_code = $1 FOR UPDATE`,
+            [orderCode]
+        );
+
+        if (currentOrderResult.rowCount === 0) {
+            await db.query("ROLLBACK");
+            return null;
+        }
+
+        const currentOrder = currentOrderResult.rows[0];
+
+        const query = `UPDATE orders SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE order_code=$1 RETURNING id`;
+        const result = await db.query(query, [orderCode]);
+
+        if (result.rowCount > 0) {
+            const payment = await getPaymentByOrderId(result.rows[0].id, db);
+            if ((payment?.method === 'vnpay' || payment?.method === 'transfer') && payment.payment_status === 'paid') {
+                await markOrderPaymentRefunded(result.rows[0].id, db);
+            } else {
+                await markOrderPaymentFailed(result.rows[0].id, db);
+            }
+
+            await createOrderStatusHistory(result.rows[0].id, currentOrder.status, 'cancelled', null, 'Khách hàng hủy đơn');
+            await db.query("COMMIT");
+            return result.rows[0].id;
+        }
+
+        await db.query("ROLLBACK");
         return null;
+    } catch (error) {
+        await db.query("ROLLBACK");
+        throw error;
     }
-
-    const currentOrder = currentOrderResult.rows[0];
-
-    const query = `UPDATE orders SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE order_code=$1 RETURNING id`;
-    const result = await db.query(query, [orderCode]);
-
-    if (result.rowCount > 0) {
-        await markOrderPaymentFailed(result.rows[0].id, db);
-        await createOrderStatusHistory(result.rows[0].id, currentOrder.status, 'cancelled', null, 'Khách hàng hủy đơn');
-        return result.rows[0].id;
-    }
-
-    return null;
 };
 
 const getDeliveryHistoryByShipperId = async (shipperId) => {
@@ -529,7 +574,12 @@ const updateOrderStatus = async (orderCode, status, changedBy = null, note = nul
             if (status === 'completed') {
                 await markCashPaymentPaid(result.rows[0].id, db);
             } else if (status === 'cancelled') {
-                await markOrderPaymentFailed(result.rows[0].id, db);
+                const payment = await getPaymentByOrderId(result.rows[0].id, db);
+                if ((payment?.method === 'vnpay' || payment?.method === 'transfer') && payment.payment_status === 'paid') {
+                    await markOrderPaymentRefunded(result.rows[0].id, db);
+                } else {
+                    await markOrderPaymentFailed(result.rows[0].id, db);
+                }
             }
 
             await createOrderStatusHistory(result.rows[0].id, currentOrder.status, status, changedBy, note);

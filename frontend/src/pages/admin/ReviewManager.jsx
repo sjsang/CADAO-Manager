@@ -11,6 +11,7 @@ const ReviewManager = () => {
     const [reviews, setReviews] = useState([]);
     const [search, setSearch] = useState("");
     const [ratingFilter, setRatingFilter] = useState("all");
+    const [featuredFilter, setFeaturedFilter] = useState("all");
     const [sortDir, setSortDir] = useState("desc");
     const [page, setPage] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +25,7 @@ const ReviewManager = () => {
                 const response = await reviewApi.getReviewsForAdmin({
                     search,
                     rating: ratingFilter,
+                    featured: featuredFilter,
                     sortDir,
                     page,
                     limit: PAGE_SIZE
@@ -44,11 +46,11 @@ const ReviewManager = () => {
         };
 
         fetchReviews();
-    }, [search, ratingFilter, sortDir, page]);
+    }, [search, ratingFilter, featuredFilter, sortDir, page]);
 
     useEffect(() => {
         setPage(1);
-    }, [search, ratingFilter, sortDir]);
+    }, [search, ratingFilter, featuredFilter, sortDir]);
 
     const handleToggleFeatured = async (review) => {
         setTogglingId(review.id);
@@ -109,6 +111,16 @@ const ReviewManager = () => {
                             >
                                 <option value="desc">Mới nhất</option>
                                 <option value="asc">Cũ nhất</option>
+                            </select>
+
+                            <select
+                                value={featuredFilter}
+                                onChange={(event) => setFeaturedFilter(event.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Nổi bật: Tất cả</option>
+                                <option value="true">Đang nổi bật</option>
+                                <option value="false">Không nổi bật</option>
                             </select>
                         </div>
                     </div>

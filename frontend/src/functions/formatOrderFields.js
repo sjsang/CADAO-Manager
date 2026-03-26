@@ -34,6 +34,9 @@ const getPaymentMethodText = (method) => {
         case 'transfer':
             methodText = 'Chuyển khoản ngân hàng';
             break;
+        case 'vnpay':
+            methodText = 'Thanh toán VNPay';
+            break;
         default:
             methodText = method;
     }

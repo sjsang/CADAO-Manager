@@ -2,7 +2,7 @@ const menuService = require("../services/menu.service");
 
 const getMenuItems = async (req, res) => {
     try {
-        const { type, category, search, sort, available, page, limit } = req.query;
+        const { type, category, search, sort, available, featured, page, limit } = req.query;
 
         const result = await menuService.getMenuItems({
             type,
@@ -10,6 +10,7 @@ const getMenuItems = async (req, res) => {
             search,
             sort,
             available,
+            featured,
             page,
             limit
         });

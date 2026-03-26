@@ -20,6 +20,7 @@ const MenuManager = () => {
     const [typeFilter, setTypeFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [availabilityFilter, setAvailabilityFilter] = useState("all");
+    const [featuredFilter, setFeaturedFilter] = useState("all");
     const [sortOrder, setSortOrder] = useState("name_asc");
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
@@ -89,6 +90,10 @@ const MenuManager = () => {
                     params.available = availabilityFilter;
                 }
 
+                if (featuredFilter !== "all") {
+                    params.featured = featuredFilter;
+                }
+
                 const response = await menuApi.getAll(params);
                 const data = response.data?.data || [];
 
@@ -100,11 +105,11 @@ const MenuManager = () => {
         };
 
         fetchMenuItems();
-    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, sortOrder, page]);
+    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, featuredFilter, sortOrder, page]);
 
     useEffect(() => {
         setPage(1);
-    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, sortOrder]);
+    }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, featuredFilter, sortOrder]);
 
     const availableCount = useMemo(() => {
         return menuItems.filter((item) => item.is_available).length;
@@ -117,6 +122,7 @@ const MenuManager = () => {
         setTypeFilter("all");
         setCategoryFilter("all");
         setAvailabilityFilter("all");
+        setFeaturedFilter("all");
         setSortOrder("name_asc");
     };
 
@@ -190,6 +196,16 @@ const MenuManager = () => {
                                 <option value="all">Trạng thái: Tất cả</option>
                                 <option value="true">Có sẵn</option>
                                 <option value="false">Hết hàng</option>
+                            </select>
+
+                            <select
+                                value={featuredFilter}
+                                onChange={(e) => setFeaturedFilter(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            >
+                                <option value="all">Nổi bật: Tất cả</option>
+                                <option value="true">Đang nổi bật</option>
+                                <option value="false">Không nổi bật</option>
                             </select>
 
                             <select
