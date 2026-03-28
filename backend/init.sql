@@ -24,9 +24,6 @@ CREATE TABLE menu_items (
     is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
--- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
--- ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
--- ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS sold_count INT NOT NULL DEFAULT 0;
 
 -- 4. Người dùng nội bộ
 CREATE TABLE users (
@@ -137,9 +134,6 @@ CREATE TABLE order_reviews (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
--- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
--- ALTER TABLE order_reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
--- ALTER TABLE order_reviews ALTER COLUMN rating TYPE NUMERIC(3,2) USING rating::NUMERIC(3,2);
 
 -- 8b. Đánh giá từng món trong đơn
 CREATE TABLE order_review_items (
@@ -150,16 +144,6 @@ CREATE TABLE order_review_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(order_id, menu_item_id)
 );
-
--- Migration (nếu bảng đã tồn tại, chạy lệnh này trong DB):
--- CREATE TABLE IF NOT EXISTS order_review_items (
---     id SERIAL PRIMARY KEY,
---     order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
---     menu_item_id INT NOT NULL REFERENCES menu_items(id),
---     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     UNIQUE(order_id, menu_item_id)
--- );
 
 -- 9. Thanh toán
 CREATE TABLE payments (
@@ -300,30 +284,81 @@ CREATE INDEX idx_chat_messages_customer_unread
     ON chat_messages(conversation_id)
     WHERE sender_type IN ('admin', 'bot') AND is_read_by_customer = FALSE;
 
--- Migration (nếu DB đã có sẵn):
--- CREATE TABLE IF NOT EXISTS chat_conversations (
---     id SERIAL PRIMARY KEY,
---     customer_id INT NOT NULL UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
---     admin_user_id INT NOT NULL REFERENCES users(id),
---     is_bot_active BOOLEAN NOT NULL DEFAULT TRUE,
---     last_message TEXT,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
---
--- CREATE TABLE IF NOT EXISTS chat_messages (
---     id SERIAL PRIMARY KEY,
---     conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
---     sender_type VARCHAR(20) NOT NULL CHECK (sender_type IN ('customer', 'admin', 'bot')),
---     sender_customer_id INT REFERENCES customers(id),
---     sender_user_id INT REFERENCES users(id),
---     text TEXT NOT NULL CHECK (char_length(trim(text)) > 0),
---     is_read_by_customer BOOLEAN NOT NULL DEFAULT FALSE,
---     is_read_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     CHECK (
---         (sender_type = 'customer' AND sender_customer_id IS NOT NULL AND sender_user_id IS NULL)
---         OR
---         (sender_type IN ('admin', 'bot') AND sender_user_id IS NOT NULL AND sender_customer_id IS NULL)
---     )
--- );
+
+-- 19. Chương trình khuyến mãi
+CREATE TABLE promotions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+
+    discount_percent INT CHECK (discount_percent BETWEEN 0 AND 100),
+    discount_amount NUMERIC(12,2),
+
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+
+    priority INT DEFAULT 0, -- xử lý khi trùng nhiều promotion
+    is_active BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CHECK (
+        (discount_percent IS NOT NULL AND discount_amount IS NULL)
+        OR
+        (discount_percent IS NULL AND discount_amount IS NOT NULL)
+    ),
+
+    CHECK (end_time > start_time)
+);
+
+-- 19.1 Promotion - Menu type
+CREATE TABLE promotion_menu_types (
+    promotion_id INT 
+        REFERENCES promotions(id) ON DELETE CASCADE,
+    menu_type_id INT 
+        REFERENCES menu_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (promotion_id, menu_type_id)
+);
+
+-- 19.2 Promotion - Category
+CREATE TABLE promotion_categories (
+    promotion_id INT 
+        REFERENCES promotions(id) ON DELETE CASCADE,
+    category_id INT 
+        REFERENCES categories(id) ON DELETE CASCADE,
+    PRIMARY KEY (promotion_id, category_id)
+);
+
+-- 19.3 Promotion - Menu item
+CREATE TABLE promotion_menu_items (
+    promotion_id INT 
+        REFERENCES promotions(id) ON DELETE CASCADE,
+    menu_item_id INT 
+        REFERENCES menu_items(id) ON DELETE CASCADE,
+    PRIMARY KEY (promotion_id, menu_item_id)
+);
+
+-- 20. Lịch sử áp dụng khuyến mãi cho đơn hàng
+CREATE TABLE order_item_promotions (
+    id SERIAL PRIMARY KEY,
+
+    order_item_id INT NOT NULL
+        REFERENCES order_items(id) ON DELETE CASCADE,
+
+    promotion_id INT
+        REFERENCES promotions(id),
+
+    promotion_name VARCHAR(200) NOT NULL,
+
+    discount_percent INT,
+    discount_amount NUMERIC(12,2) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_order_item_promotions_order_item_id
+    ON order_item_promotions(order_item_id);
+CREATE INDEX idx_order_item_promotions_promotion_id
+    ON order_item_promotions(promotion_id);
+CREATE INDEX idx_order_item_promotions_order_item_promotion
+    ON order_item_promotions(order_item_id, promotion_id);

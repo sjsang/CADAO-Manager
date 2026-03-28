@@ -285,6 +285,13 @@ const HomePage = () => {
                                         </span>
                                     </div>
 
+                                    <div className="flex items-center justify-center gap-3 text-xs mb-3">
+                                        <span className="text-gray-500">Đã bán: {Number(item.sold_count || 0)}</span>
+                                        {item.avg_rating > 0 &&
+                                            <span className="text-amber-300 font-semibold">★ {Number(item.avg_rating).toFixed(1)}/5</span>
+                                        }
+                                    </div>
+
                                     <p className="text-gray-400 text-sm leading-relaxed mb-4 min-h-20 text-center">
                                         {item.description || "Món ăn được thực khách lựa chọn nhiều nhất tại Ca Dao."}
                                     </p>

@@ -32,6 +32,7 @@ import ChatManager from './pages/admin/ChatManager'
 import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
 import CustomerToast from './components/customer/CustomerToast'
 import CustomerChatWidget from './components/customer/CustomerChatWidget'
+import PromotionManager from './pages/admin/PromotionManager'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -150,6 +151,7 @@ const App = () => {
         <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
         <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />
         <Route path="/admin/chats" element={<AdminRoute><ChatManager /></AdminRoute>} />
+        <Route path="/admin/promotions" element={<AdminRoute><PromotionManager /></AdminRoute>} />
         <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
       </Routes>
       <CustomerToast />

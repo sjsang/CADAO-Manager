@@ -31,16 +31,20 @@ const SideBarMenu = ({ activePage }) => {
     }
 
     const menuItems = useMemo(() => ([
-        { key: "dashboard", label: "Tổng quan", path: "/admin/dashboard", dot: "bg-cyan-400" },
-        { key: "statistics", label: "Thống kê", path: "/admin/statistics", dot: "bg-lime-400" },
-        { key: "orders", label: "Đơn hàng", path: "/admin/orders", dot: "bg-emerald-400" },
-        { key: "menu", label: "Thực đơn", path: "/admin/menus", dot: "bg-amber-400" },
-        { key: "customers", label: "Khách hàng", path: "/admin/customers", dot: "bg-violet-400" },
-        { key: "wards", label: "Phường", path: "/admin/wards", dot: "bg-teal-400" },
-        { key: "vouchers", label: "Voucher", path: "/admin/vouchers", dot: "bg-orange-400" },
-        { key: "reviews", label: "Đánh giá", path: "/admin/reviews", dot: "bg-[#e4c590]" },
-        { key: "chat", label: "Hội thoại", path: "/admin/chats", dot: "bg-sky-300" },
-        { key: "users", label: "Tài khoản", path: "/admin/users", dot: "bg-rose-400" }
+        { key: "dashboard", label: "Tổng quan", path: "/admin/dashboard", icon: "fa-solid fa-chart-pie text-sky-500" },
+        { key: "orders", label: "Đơn hàng", path: "/admin/orders", icon: "fa-solid fa-receipt text-emerald-500" },
+        { key: "chat", label: "Hội thoại", path: "/admin/chats", icon: "fa-solid fa-comments text-indigo-500" },
+        { key: "reviews", label: "Đánh giá", path: "/admin/reviews", icon: "fa-solid fa-star text-amber-500" },
+
+        { key: "menu", label: "Thực đơn", path: "/admin/menus", icon: "fa-solid fa-utensils text-orange-500" },
+        { key: "promotions", label: "Khuyến mãi", path: "/admin/promotions", icon: "fa-solid fa-gift text-pink-500" },
+        { key: "vouchers", label: "Voucher", path: "/admin/vouchers", icon: "fa-solid fa-ticket text-rose-500" },
+
+        { key: "customers", label: "Khách hàng", path: "/admin/customers", icon: "fa-solid fa-users text-violet-500" },
+        { key: "statistics", label: "Thống kê", path: "/admin/statistics", icon: "fa-solid fa-chart-line text-blue-500" },
+
+        { key: "wards", label: "Phường", path: "/admin/wards", icon: "fa-solid fa-map text-teal-500" },
+        { key: "users", label: "Nhân sự", path: "/admin/users", icon: "fa-solid fa-user text-red-500" }
     ]), []);
 
     const toggleSidebar = () => {
@@ -51,7 +55,7 @@ const SideBarMenu = ({ activePage }) => {
 
     const itemClass = "group flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm text-slate-300 transition hover:border-slate-800 hover:bg-slate-900 hover:text-white";
     const activeClass = "border-sky-500/40 bg-sky-500/10 text-sky-300";
-    const dotClass = "inline-block h-2.5 w-2.5 rounded-full";
+    const iconClass = "text-lg";
 
     return (
         <aside
@@ -70,7 +74,7 @@ const SideBarMenu = ({ activePage }) => {
             </div>
 
             <div className="mt-5 border-t border-slate-800 pt-4">
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                     {menuItems.map((item) => (
                         <li key={item.key}>
                             <button
@@ -79,7 +83,7 @@ const SideBarMenu = ({ activePage }) => {
                                 onClick={() => navigate(item.path)}
                                 title={item.label}
                             >
-                                <span className={`${dotClass} ${item.dot}`} />
+                                <i className={`${item.icon} ${iconClass}`} />
                                 {!isCollapsed ? <span className="truncate">{item.label}</span> : null}
                             </button>
                         </li>

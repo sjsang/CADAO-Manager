@@ -13,6 +13,7 @@ const voucherRoutes = require("./routes/voucher.routes");
 const reviewRoutes = require("./routes/review.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const chatRoutes = require("./routes/chat.routes");
+const promotionRoutes = require("./routes/promotion.routes");
 
 const app = express();
 app.use(cors());
@@ -32,5 +33,6 @@ app.use("/api/vouchers", voucherRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/promotions", promotionRoutes);
 
 module.exports = app;

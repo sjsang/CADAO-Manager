@@ -15,8 +15,7 @@ const getMenuItems = async ({ type, category, search, sort, available, featured,
 
     let query = `
         SELECT menu_items.*,
-               COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating,
-               COALESCE(menu_rating_stats.rating_count, 0)::int AS rating_count
+               COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating
         FROM menu_items
         JOIN categories ON menu_items.category_id = categories.id
         JOIN menu_types ON categories.menu_type_id = menu_types.id
@@ -159,8 +158,7 @@ const getFeaturedMenuItems = async () => {
             mi.price,
             mi.image_url,
             COALESCE(mi.sold_count, 0)::int AS sold_count,
-            COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating,
-            COALESCE(menu_rating_stats.rating_count, 0)::int AS rating_count
+            COALESCE(menu_rating_stats.avg_rating, 0)::numeric(3,2) AS avg_rating
         FROM menu_items mi
         LEFT JOIN (
             SELECT
