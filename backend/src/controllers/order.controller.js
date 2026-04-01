@@ -435,6 +435,10 @@ const updateOrderStatusByAdmin = async (req, res) => {
         const changedBy = req.user?.id || null;
 
         const result = await orderService.updateOrderStatusByAdmin(orderCode, status, changedBy, note, shipperId || null);
+
+        // Gửi thông báo cho customer (không block response)
+        orderService.notifyCustomerOrderStatus(orderCode, status);
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error updating order status by admin:", error);
@@ -479,6 +483,10 @@ const completeDelivery = async (req, res) => {
         const orderCode = req.params.orderCode;
         const shipperId = req.user.id;
         const result = await orderService.completeDelivery(orderCode, shipperId);
+
+        // Thông báo cho customer khi giao hàng hoàn thành
+        orderService.notifyCustomerOrderStatus(orderCode, 'completed');
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error completing delivery:", error);

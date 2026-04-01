@@ -363,35 +363,35 @@ const AdminOrderDetail = () => {
                     </style>
                 </head>
                 <body>
-                    <div class="head">
+                    <div className="head">
                         <h1>HOA DON DON HANG</h1>
-                        <div class="muted">${escapeHtml(RESTAURANT_INFO.name)} - ${escapeHtml(RESTAURANT_INFO.address)} - ${escapeHtml(RESTAURANT_INFO.phone)}</div>
+                        <div className="muted">${escapeHtml(RESTAURANT_INFO.name)} - ${escapeHtml(RESTAURANT_INFO.address)} - ${escapeHtml(RESTAURANT_INFO.phone)}</div>
                     </div>
 
-                    <div class="grid">
+                    <div className="grid">
                         <div>
-                            <div class="row-label">Ma don</div>
-                            <div class="row-value">${escapeHtml(order.order_code)}</div>
+                            <div className="row-label">Ma don</div>
+                            <div className="row-value">${escapeHtml(order.order_code)}</div>
                         </div>
                         <div>
-                            <div class="row-label">Thoi gian in</div>
-                            <div class="row-value">${escapeHtml(printTime)}</div>
+                            <div className="row-label">Thoi gian in</div>
+                            <div className="row-value">${escapeHtml(printTime)}</div>
                         </div>
                         <div>
-                            <div class="row-label">Nhan vien</div>
-                            <div class="row-value">${escapeHtml(staffName)}</div>
+                            <div className="row-label">Nhan vien</div>
+                            <div className="row-value">${escapeHtml(staffName)}</div>
                         </div>
                         <div>
-                            <div class="row-label">Khach hang</div>
-                            <div class="row-value">${escapeHtml(order.delivery_full_name || "-")}</div>
+                            <div className="row-label">Khach hang</div>
+                            <div className="row-value">${escapeHtml(order.delivery_full_name || "-")}</div>
                         </div>
                         <div>
-                            <div class="row-label">So dien thoai</div>
-                            <div class="row-value">${escapeHtml(order.delivery_phone || "-")}</div>
+                            <div className="row-label">So dien thoai</div>
+                            <div className="row-value">${escapeHtml(order.delivery_phone || "-")}</div>
                         </div>
                         <div>
-                            <div class="row-label">Dia chi giao</div>
-                            <div class="row-value">${escapeHtml(order.delivery_address || "-")}</div>
+                            <div className="row-label">Dia chi giao</div>
+                            <div className="row-value">${escapeHtml(order.delivery_address || "-")}</div>
                         </div>
                     </div>
 
@@ -410,14 +410,14 @@ const AdminOrderDetail = () => {
                         </tbody>
                     </table>
 
-                    <div class="totals">
-                        <div class="line"><span>Tam tinh</span><span>${escapeHtml(formatCurrency(order.subtotal))}</span></div>
-                        <div class="line"><span>Giam gia</span><span>${escapeHtml(formatCurrency(order.discount_amount))}</span></div>
-                        <div class="line"><span>Phi ship</span><span>${escapeHtml(formatCurrency(order.shipping_fee))}</span></div>
-                        <div class="line total"><span>Tong thanh toan</span><span>${escapeHtml(formatCurrency(order.total_amount))}</span></div>
+                    <div className="totals">
+                        <div className="line"><span>Tam tinh</span><span>${escapeHtml(formatCurrency(order.subtotal))}</span></div>
+                        <div className="line"><span>Giam gia</span><span>${escapeHtml(formatCurrency(order.discount_amount))}</span></div>
+                        <div className="line"><span>Phi ship</span><span>${escapeHtml(formatCurrency(order.shipping_fee))}</span></div>
+                        <div className="line total"><span>Tong thanh toan</span><span>${escapeHtml(formatCurrency(order.total_amount))}</span></div>
                     </div>
 
-                    <div class="footer">Cam on quy khach da su dung dich vu.</div>
+                    <div className="footer">Cam on quy khach da su dung dich vu.</div>
                 </body>
             </html>
         `;

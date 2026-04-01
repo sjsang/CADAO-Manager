@@ -6,6 +6,7 @@ import cartApi from "../../api/cartApi";
 import customerApi from "../../api/customerApi";
 import wardApi from "../../api/wardApi";
 import voucherApi from "../../api/voucherApi";
+import promotionApi from "../../api/promotionApi";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { notifyCustomer } from "../../utils/customerNotify";
@@ -28,6 +29,8 @@ const CheckoutPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [transferQrOrder, setTransferQrOrder] = useState(null);
     const isMountedRef = useRef(true);
+    const [promotionMap, setPromotionMap] = useState({});
+    const [promotionDiscount, setPromotionDiscount] = useState(0);
     const [form, setForm] = useState({
         delivery_full_name: "",
         delivery_phone: "",
@@ -83,6 +86,36 @@ const CheckoutPage = () => {
                 setShippingFee(Number(order.shipping_fee || 0));
                 setVoucherCode(order.voucher_code || "");
                 setAppliedVoucher(order.voucher_id ? { id: order.voucher_id, code: order.voucher_code || "" } : null);
+
+                // Lấy khuyến mãi cho các món trong đơn
+                if (order.items && order.items.length > 0) {
+                    const itemIds = order.items.map(item => item.menu_item_id);
+                    try {
+                        const promoRes = await promotionApi.getActiveForItems(itemIds);
+                        const pMap = {};
+                        let totalPromoDiscount = 0;
+                        for (const promo of promoRes.data) {
+                            if (!pMap[promo.menu_item_id] || promo.priority > pMap[promo.menu_item_id].priority) {
+                                pMap[promo.menu_item_id] = promo;
+                            }
+                        }
+                        for (const item of order.items) {
+                            const promo = pMap[item.menu_item_id];
+                            if (promo) {
+                                const itemTotal = Number(item.price) * Number(item.quantity);
+                                if (promo.discount_percent) {
+                                    totalPromoDiscount += Math.round(itemTotal * Number(promo.discount_percent) / 100);
+                                } else if (promo.discount_amount) {
+                                    totalPromoDiscount += Math.min(Number(promo.discount_amount) * Number(item.quantity), itemTotal);
+                                }
+                            }
+                        }
+                        setPromotionMap(pMap);
+                        setPromotionDiscount(totalPromoDiscount);
+                    } catch (e) {
+                        console.error("Failed to fetch promotions:", e);
+                    }
+                }
                 setForm({
                     delivery_full_name: order.delivery_full_name,
                     delivery_phone: order.delivery_phone,
@@ -301,7 +334,7 @@ const CheckoutPage = () => {
     };
 
     const computedTotal = orderDetails
-        ? Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0)
+        ? Math.max(0, Number(orderDetails.subtotal) + shippingFee - promotionDiscount - Number(orderDetails.discount_amount || 0))
         : 0;
 
     if (transferQrOrder) {
@@ -565,9 +598,15 @@ const CheckoutPage = () => {
                                     <span>Phí vận chuyển</span>
                                     <span className="text-[#e4c590]">{shippingFee.toLocaleString('vi-VN')}đ</span>
                                 </div>
+                                {promotionDiscount > 0 && (
+                                    <div className="flex justify-between text-green-400">
+                                        <span>Khuyến mãi</span>
+                                        <span>-{promotionDiscount.toLocaleString('vi-VN')}đ</span>
+                                    </div>
+                                )}
                                 {Number(orderDetails.discount_amount) > 0 && (
                                     <div className="flex justify-between text-green-400">
-                                        <span>Giảm giá</span>
+                                        <span>Voucher</span>
                                         <span>-{Number(orderDetails.discount_amount).toLocaleString('vi-VN')}đ</span>
                                     </div>
                                 )}
@@ -588,14 +627,42 @@ const CheckoutPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {orderDetails.items.map((item, idx) => (
-                                            <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                                <td className="py-3 px-3 text-gray-300">{item.name}</td>
-                                                <td className="py-3 px-3 text-center text-gray-300">{item.quantity}</td>
-                                                <td className="py-3 px-3 text-right text-gray-400 text-sm">{Number(item.price).toLocaleString('vi-VN')}đ</td>
-                                                <td className="py-3 px-3 text-right text-[#e4c590] font-semibold">{Number(item.price * item.quantity).toLocaleString('vi-VN')}đ</td>
-                                            </tr>
-                                        ))}
+                                        {orderDetails.items.map((item, idx) => {
+                                            const promo = promotionMap[item.menu_item_id];
+                                            const itemTotal = Number(item.price) * Number(item.quantity);
+                                            let itemPromoDiscount = 0;
+                                            if (promo) {
+                                                if (promo.discount_percent) {
+                                                    itemPromoDiscount = Math.round(itemTotal * Number(promo.discount_percent) / 100);
+                                                } else if (promo.discount_amount) {
+                                                    itemPromoDiscount = Math.min(Number(promo.discount_amount) * Number(item.quantity), itemTotal);
+                                                }
+                                            }
+                                            return (
+                                                <tr key={idx} className="hover:bg-white/5 transition-colors">
+                                                    <td className="py-3 px-3 text-gray-300">
+                                                        {item.name}
+                                                        {promo && (
+                                                            <span className="ml-2 text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
+                                                                -{promo.discount_percent ? `${promo.discount_percent}%` : `${Number(promo.discount_amount).toLocaleString('vi-VN')}đ`}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-center text-gray-300">{item.quantity}</td>
+                                                    <td className="py-3 px-3 text-right text-gray-400 text-sm">{Number(item.price).toLocaleString('vi-VN')}đ</td>
+                                                    <td className="py-3 px-3 text-right">
+                                                        {itemPromoDiscount > 0 ? (
+                                                            <div>
+                                                                <span className="line-through text-gray-500 text-xs mr-1">{itemTotal.toLocaleString('vi-VN')}đ</span>
+                                                                <span className="text-[#e4c590] font-semibold">{(itemTotal - itemPromoDiscount).toLocaleString('vi-VN')}đ</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[#e4c590] font-semibold">{itemTotal.toLocaleString('vi-VN')}đ</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

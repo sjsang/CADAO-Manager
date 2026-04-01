@@ -7,6 +7,7 @@ import Footer from "../../components/customer/Footer";
 import reviewApi from "../../api/reviewApi";
 import menuApi from "../../api/menuApi";
 import cartApi from "../../api/cartApi";
+import promotionApi from "../../api/promotionApi";
 import AddToCartModal from "../../components/customer/AddToCartModal";
 import { notifyCustomer } from "../../utils/customerNotify";
 
@@ -22,6 +23,7 @@ const HomePage = () => {
     const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
     const [bestSellerItems, setBestSellerItems] = useState([]);
+    const [promotionMap, setPromotionMap] = useState({});
     const [selectedItem, setSelectedItem] = useState(null);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [activeReview, setActiveReview] = useState(0);
@@ -82,6 +84,23 @@ const HomePage = () => {
     }, []);
 
     useEffect(() => {
+        if (bestSellerItems.length === 0) { setPromotionMap({}); return; }
+        const itemIds = bestSellerItems.map(item => item.id);
+        promotionApi.getActiveForItems(itemIds)
+            .then(res => {
+                const map = {};
+                for (const promo of res.data) {
+                    const itemId = promo.menu_item_id;
+                    if (!map[itemId] || promo.priority > map[itemId].priority) {
+                        map[itemId] = promo;
+                    }
+                }
+                setPromotionMap(map);
+            })
+            .catch(() => setPromotionMap({}));
+    }, [bestSellerItems]);
+
+    useEffect(() => {
         const clearSnapTimer = () => {
             if (snapTimerRef.current) {
                 clearTimeout(snapTimerRef.current);
@@ -90,7 +109,7 @@ const HomePage = () => {
         };
 
         const detectActiveSection = () => {
-            const focusLine = window.innerHeight * 0.35;
+            const focusLine = window.innerHeight * 0.32;
             let active = sectionDots[0]?.id || "home-hero";
             let minDistance = Number.POSITIVE_INFINITY;
 
@@ -230,8 +249,8 @@ const HomePage = () => {
                 })}
             </div>
 
-            <section id="home-hero" className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between gap-6">
-                <div data-aos="fade-right" data-aos-duration="900" className="text-white w-1/2 flex-1 flex flex-col gap-6">
+            <section id="home-hero" className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between gap-12">
+                <div data-aos="fade-right" data-aos-duration="900" className="text-white flex-4 flex flex-col gap-6">
                     <h1 className="text-5xl font-bold">Ca Dao Restaurant & Café</h1>
                     <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, Ca Dao tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
                         Mỗi món ăn tại Ca Dao là một “lời kể” về văn hóa, về con người Nam Bộ mộc mạc, chân chất.
@@ -247,13 +266,13 @@ const HomePage = () => {
                         <span className="relative z-10 transition-colors duration-500 text-sm tracking-widest font-bold group-hover:text-black">CHỌN MÓN NGAY</span>
                     </button>
                 </div>
-                <div data-aos="fade-left" data-aos-duration="900" className="flex-1">
+                <div data-aos="fade-left" data-aos-duration="900" className="flex-3">
                     <img src="/spiner.png" alt="spiner" className="animate-[spin_180s_linear_infinite]" />
                 </div>
             </section>
 
             <section id="home-featured" className="w-7xl mx-auto py-20">
-                <div data-aos="fade-up" className="text-center mb-16">
+                <div data-aos="fade-up" className="text-center mb-8">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Khám phá các món ăn được nhiều thực khách yêu thích nhất</p>
                     <h1 className="text-5xl font-bold mb-5 text-white">Món ăn nổi bật</h1>
                     <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
@@ -262,7 +281,12 @@ const HomePage = () => {
                 {bestSellerItems.length > 0 ? (
                     <div className="grid gap-x-6 gap-y-28 md:grid-cols-2 lg:grid-cols-3 text-white">
                         {bestSellerItems.map((item, index) => (
-                            <div key={item.id} data-aos="fade-up" data-aos-delay={index * 120} className="flex flex-col gap-6 p-6 bg-black/50 rounded-2xl border border-white/10">
+                            <div key={item.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100} className="relative flex flex-col gap-6 p-6 bg-black/50 rounded-2xl border border-white/10">
+                                {promotionMap[item.id] && (
+                                    <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                        -{promotionMap[item.id].discount_percent ? `${promotionMap[item.id].discount_percent}%` : `${Number(promotionMap[item.id].discount_amount).toLocaleString('vi-VN')}đ`}
+                                    </span>
+                                )}
                                 <div className="h-50">
                                     {item.image_url ? (
                                         <img
@@ -280,9 +304,26 @@ const HomePage = () => {
                                 <div className="flex flex-1 flex-col">
                                     <div className="text-center mb-3">
                                         <h3 className="text-xl font-semibold">{item.name}</h3>
-                                        <span className="text-[#e4c590] font-bold">
-                                            {Number(item.price || 0).toLocaleString("vi-VN")}đ
-                                        </span>
+                                        {(() => {
+                                            const promo = promotionMap[item.id];
+                                            if (promo) {
+                                                const original = Number(item.price || 0);
+                                                const discounted = promo.discount_percent
+                                                    ? Math.round(original * (1 - promo.discount_percent / 100))
+                                                    : Math.max(0, original - Number(promo.discount_amount));
+                                                return (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <span className="text-gray-500 line-through text-sm">{original.toLocaleString('vi-VN')}đ</span>
+                                                        <span className="text-[#e4c590] font-bold">{discounted.toLocaleString('vi-VN')}đ</span>
+                                                    </span>
+                                                );
+                                            }
+                                            return (
+                                                <span className="text-[#e4c590] font-bold">
+                                                    {Number(item.price || 0).toLocaleString('vi-VN')}đ
+                                                </span>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="flex items-center justify-center gap-3 text-xs mb-3">
@@ -321,7 +362,7 @@ const HomePage = () => {
             </section>
 
             <section id="home-why" className="w-7xl mx-auto py-20">
-                <div data-aos="fade-up" className="text-center mb-16">
+                <div data-aos="fade-up" className="text-center mb-8">
                     <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Chúng tôi luôn đặt chất lượng và trải nghiệm của bạn lên hàng đầu</p>
                     <h1 className="text-5xl font-bold mb-5 text-white">Vì sao nên chọn chúng tôi?</h1>
                     <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
@@ -370,7 +411,7 @@ const HomePage = () => {
 
             {reviews.length > 0 && (
                 <section id="home-reviews" className="w-7xl mx-auto py-20">
-                    <div data-aos="fade-up" className="text-center mb-16">
+                    <div data-aos="fade-up" className="text-center mb-8">
                         <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Những đánh giá nổi bật từ khách hàng đã dùng dịch vụ của Ca Dao</p>
                         <h1 className="text-5xl font-bold mb-5 text-white">Khách hàng nói gì về chúng tôi?</h1>
                         <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
@@ -384,15 +425,15 @@ const HomePage = () => {
                             >
                                 {reviews.map((review) => (
                                     <div key={review.id} className="w-full shrink-0">
-                                        <div className="flex w-5xl mx-auto overflow-hidden bg-black/50 rounded-2xl border border-white/10">
+                                        <div className="flex w-5xl h-100 mx-auto overflow-hidden bg-black/50 rounded-2xl border border-white/10">
                                             <img
                                                 src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${review.customer_avatar}`}
                                                 alt={review.customer_name}
-                                                className="h-80 object-cover"
+                                                className="h-full object-cover"
                                             />
                                             <div className="flex flex-col gap-3 p-6">
                                                 <StarRow rating={Number(review.rating)} />
-                                                <p className="leading-relaxed font-medium text-gray-300 text-lg">{review.content}</p>
+                                                <p className="leading-relaxed font-medium text-gray-300">{review.content}</p>
                                                 <p className="font-bold text-white text-lg">- {review.customer_name}</p>
                                             </div>
                                         </div>

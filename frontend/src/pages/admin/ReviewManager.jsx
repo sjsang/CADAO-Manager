@@ -134,7 +134,7 @@ const ReviewManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Mã đơn</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Khách hàng</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Sao</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Nội dung</th>
+                                        <th className="w-2xl px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Nội dung</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày đánh giá</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide text-slate-500 uppercase">Nổi bật</th>
                                     </tr>

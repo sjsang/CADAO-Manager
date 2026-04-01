@@ -3,6 +3,7 @@ import AOS from "aos"
 import menuApi from "../../api/menuApi"
 import categoryApi from "../../api/categoryApi"
 import menuTypeApi from "../../api/menu_typeApi"
+import promotionApi from "../../api/promotionApi"
 import Header from "../../components/customer/Header";
 import MenuItem from "../../components/customer/MenuItem";
 import CategorySection from "../../components/customer/CategorySection";
@@ -17,6 +18,7 @@ const MenuPage = () => {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOrder, setSortOrder] = useState("name_asc");
+    const [promotionMap, setPromotionMap] = useState({});
     const requestVersionRef = useRef(0);
 
     useEffect(() => {
@@ -56,6 +58,28 @@ const MenuPage = () => {
                 setMenuItems([]);
             });
     }, [selectedType, selectedCategory, searchTerm, sortOrder]);
+
+    // Lấy khuyến mãi đang hoạt động cho các món hiện tại
+    useEffect(() => {
+        if (menuItems.length === 0) {
+            setPromotionMap({});
+            return;
+        }
+        const itemIds = menuItems.map(item => item.id);
+        promotionApi.getActiveForItems(itemIds)
+            .then(res => {
+                const map = {};
+                for (const promo of res.data) {
+                    const itemId = promo.menu_item_id;
+                    // Chỉ lấy khuyến mãi ưu tiên cao nhất cho mỗi món
+                    if (!map[itemId] || promo.priority > map[itemId].priority) {
+                        map[itemId] = promo;
+                    }
+                }
+                setPromotionMap(map);
+            })
+            .catch(() => setPromotionMap({}));
+    }, [menuItems]);
 
     const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -133,7 +157,7 @@ const MenuPage = () => {
                         <div className="grid grid-cols-3 gap-8">
                             {menuItems.map((item, index) => (
                                 <div key={item.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100}>
-                                    <MenuItem item={item} />
+                                    <MenuItem item={item} promotion={promotionMap[item.id]} />
                                 </div>
                             ))}
                         </div>

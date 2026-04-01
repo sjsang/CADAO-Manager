@@ -7,12 +7,14 @@ import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal
 import cartApi from "../../api/cartApi";
 import orderApi from "../../api/orderApi";
 import authApi from "../../api/authApi";
+import promotionApi from "../../api/promotionApi";
 import { notifyCustomer } from "../../utils/customerNotify";
 
 const CartPage = () => {
     const [cartItems, setCartItems] = useState([]);
     const [totalCartPrice, setTotalCartPrice] = useState(0);
     const [totalCartItems, setTotalCartItems] = useState(0);
+    const [promotionMap, setPromotionMap] = useState({});
     const [modalItem, setModalItem] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [customerInfo, setCustomerInfo] = useState(null);
@@ -52,11 +54,37 @@ const CartPage = () => {
     }, []);
 
     useEffect(() => {
-        const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        if (cartItems.length === 0) { setPromotionMap({}); return; }
+        const itemIds = cartItems.map(item => item.menu_item_id);
+        promotionApi.getActiveForItems(itemIds)
+            .then(res => {
+                const map = {};
+                for (const promo of res.data) {
+                    const itemId = promo.menu_item_id;
+                    if (!map[itemId] || promo.priority > map[itemId].priority) {
+                        map[itemId] = promo;
+                    }
+                }
+                setPromotionMap(map);
+            })
+            .catch(() => setPromotionMap({}));
+    }, [cartItems]);
+
+    const getDiscountedPrice = (item) => {
+        const promo = promotionMap[item.menu_item_id];
+        if (!promo) return Number(item.price);
+        const original = Number(item.price);
+        return promo.discount_percent
+            ? Math.round(original * (1 - promo.discount_percent / 100))
+            : Math.max(0, original - Number(promo.discount_amount));
+    };
+
+    useEffect(() => {
+        const totalPrice = cartItems.reduce((sum, item) => sum + getDiscountedPrice(item) * item.quantity, 0);
         const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
         setTotalCartPrice(totalPrice);
         setTotalCartItems(totalItems);
-    }, [cartItems]);
+    }, [cartItems, promotionMap]);
 
     const handleUpdateClick = (item) => {
         setModalItem(item);
@@ -217,7 +245,14 @@ const CartPage = () => {
 
                                     <div className="text-center">
                                         <p className="text-xs text-gray-500 uppercase mb-0.5">Giá</p>
-                                        <p className="text-sm font-semibold text-[#e4c590]">{Number(item.price).toLocaleString('vi-VN')}đ</p>
+                                        {promotionMap[item.menu_item_id] ? (
+                                            <>
+                                                <p className="text-xs text-gray-500 line-through">{Number(item.price).toLocaleString('vi-VN')}đ</p>
+                                                <p className="text-sm font-semibold text-red-400">{getDiscountedPrice(item).toLocaleString('vi-VN')}đ</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-sm font-semibold text-[#e4c590]">{Number(item.price).toLocaleString('vi-VN')}đ</p>
+                                        )}
                                     </div>
 
                                     <div className="text-center">
@@ -227,7 +262,7 @@ const CartPage = () => {
 
                                     <div className="text-right min-w-max">
                                         <p className="text-xs text-gray-500 uppercase mb-0.5">Thành tiền</p>
-                                        <p className="text-sm font-bold text-[#e4c590]">{Number(item.price * item.quantity).toLocaleString('vi-VN')}đ</p>
+                                        <p className="text-sm font-bold text-[#e4c590]">{Number(getDiscountedPrice(item) * item.quantity).toLocaleString('vi-VN')}đ</p>
                                     </div>
 
                                     <div className="flex gap-1.5">

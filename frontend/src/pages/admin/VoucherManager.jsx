@@ -337,7 +337,7 @@ const VoucherManager = () => {
                         ) : null}
                     </section>
 
-                    <section className="grid gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
+                    <section className="space-y-6">
                         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <div className="mb-4">
                                 <p className="text-xs font-semibold tracking-[0.2em] text-blue-500 uppercase">Biểu mẫu</p>
@@ -350,114 +350,118 @@ const VoucherManager = () => {
                             </div>
 
                             <form className="space-y-4" onSubmit={handleSubmit}>
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">Mã voucher</label>
-                                    <input
-                                        type="text"
-                                        name="code"
-                                        value={formData.code}
-                                        onChange={handleChange}
-                                        placeholder="Ví dụ: TET2026"
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 uppercase focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">Loại giảm giá</label>
-                                    <select
-                                        name="discountType"
-                                        value={formData.discountType}
-                                        onChange={handleChange}
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    >
-                                        <option value="percent">Giảm theo phần trăm</option>
-                                        <option value="amount">Giảm số tiền cố định</option>
-                                    </select>
-                                </div>
-
-                                {formData.discountType === "percent" ? (
-                                    <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700">Phần trăm giảm (%)</label>
+                                <div className="flex gap-4">
+                                    <div className="flex-2">
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Mã voucher</label>
                                         <input
-                                            type="number"
-                                            min="1"
-                                            max="100"
-                                            name="discountPercent"
-                                            value={formData.discountPercent}
+                                            type="text"
+                                            name="code"
+                                            value={formData.code}
                                             onChange={handleChange}
-                                            placeholder="Ví dụ: 15"
-                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            placeholder="Ví dụ: TET2026"
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 uppercase focus:outline-none focus:ring-2 focus:ring-blue-300"
                                         />
                                     </div>
-                                ) : (
-                                    <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700">Số tiền giảm</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1000"
-                                            name="discountAmount"
-                                            value={formData.discountAmount}
-                                            onChange={handleChange}
-                                            placeholder="Ví dụ: 30000"
-                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        />
-                                    </div>
-                                )}
 
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">Giá trị đơn tối thiểu</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="1000"
-                                        name="minOrderValue"
-                                        value={formData.minOrderValue}
-                                        onChange={handleChange}
-                                        placeholder="Ví dụ: 100000"
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    />
+                                    <div className="flex-1">
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Loại giảm giá</label>
+                                        <select
+                                            name="discountType"
+                                            value={formData.discountType}
+                                            onChange={handleChange}
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        >
+                                            <option value="percent">Giảm theo phần trăm</option>
+                                            <option value="amount">Giảm số tiền cố định</option>
+                                        </select>
+                                    </div>
                                 </div>
 
-                                {formData.discountType === "percent" ? (
-                                    <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700">Giảm tối đa (không bắt buộc)</label>
+                                <div className="flex gap-4">
+                                    {formData.discountType === "percent" ? (
+                                        <div className="flex-1">
+                                            <label className="mb-2 block text-sm font-medium text-slate-700">Phần trăm giảm (%)</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="100"
+                                                name="discountPercent"
+                                                value={formData.discountPercent}
+                                                onChange={handleChange}
+                                                placeholder="Ví dụ: 15"
+                                                className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1">
+                                            <label className="mb-2 block text-sm font-medium text-slate-700">Số tiền giảm</label>
+                                            <input
+                                                type="number"
+                                                min="1000"
+                                                step="1000"
+                                                name="discountAmount"
+                                                value={formData.discountAmount}
+                                                onChange={handleChange}
+                                                placeholder="Ví dụ: 30000"
+                                                className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex-1">
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Giá trị đơn tối thiểu</label>
                                         <input
                                             type="number"
                                             min="0"
                                             step="1000"
-                                            name="maxDiscount"
-                                            value={formData.maxDiscount}
+                                            name="minOrderValue"
+                                            value={formData.minOrderValue}
                                             onChange={handleChange}
-                                            placeholder="Ví dụ: 50000"
+                                            placeholder="Ví dụ: 100000"
                                             className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
                                         />
                                     </div>
-                                ) : null}
 
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">Ngày hết hạn (không bắt buộc)</label>
-                                    <input
-                                        type="text"
-                                        name="expiryDate"
-                                        value={formData.expiryDate}
-                                        onChange={handleChange}
-                                        placeholder="Ví dụ: 31/12/2026"
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    />
-                                </div>
+                                    {formData.discountType === "percent" ? (
+                                        <div className="flex-1">
+                                            <label className="mb-2 block text-sm font-medium text-slate-700">Giảm tối đa (không bắt buộc)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1000"
+                                                name="maxDiscount"
+                                                value={formData.maxDiscount}
+                                                onChange={handleChange}
+                                                placeholder="Ví dụ: 50000"
+                                                className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                            />
+                                        </div>
+                                    ) : null}
 
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">Giới hạn sử dụng (không bắt buộc)</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        name="usageLimit"
-                                        value={formData.usageLimit}
-                                        onChange={handleChange}
-                                        placeholder="Ví dụ: 200"
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    />
+                                    <div className="flex-1">
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Ngày hết hạn (không bắt buộc)</label>
+                                        <input
+                                            type="text"
+                                            name="expiryDate"
+                                            value={formData.expiryDate}
+                                            onChange={handleChange}
+                                            placeholder="Ví dụ: 31/12/2026"
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        />
+                                    </div>
+
+                                    <div className="flex-1">
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Giới hạn sử dụng (không bắt buộc)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            name="usageLimit"
+                                            value={formData.usageLimit}
+                                            onChange={handleChange}
+                                            placeholder="Ví dụ: 200"
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                        />
+                                    </div>
                                 </div>
 
                                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700">

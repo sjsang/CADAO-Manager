@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import authApi from "../../api/authApi";
 import cartApi from "../../api/cartApi";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Header = ({ activePage }) => {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ const Header = ({ activePage }) => {
     const navItems = [
         { key: "home", label: "Trang chủ", path: "/" },
         { key: "menu", label: "Thực đơn", path: "/menus" },
+        { key: "promotions", label: "Khuyến mãi", path: "/promotions" },
         { key: "about", label: "Về chúng tôi", path: "/about" },
         { key: "contact", label: "Liên hệ", path: "/contact" }
     ];
@@ -168,13 +170,26 @@ const Header = ({ activePage }) => {
 
     return (
         <header
-            className={`w-full text-white sticky top-0 left-0 z-50 transition-colors duration-500 ${isMobileMenuOpen
+            className={`w-full text-white sticky top-0 left-0 z-50 transition-transform duration-500 ${isMobileMenuOpen
                 ? "bg-gray-950 shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
                 : isScrolled
-                    ? "bg-gray-950/80 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                    ? "bg-gray-950/80 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.35)] -translate-y-12"
                     : "bg-transparent"
                 }`}
         >
+            <div className="h-12 py-3 flex items-center justify-between text-sm border-b border-white/20 max-w-7xl mx-auto xl:px-0">
+                <div className="flex gap-12 items-center">
+                    <p><i className="fa-solid fa-location-dot mr-1"></i>02 Phan Văn Trị, Ninh Kiều, Cần Thơ</p>
+                    <div className="w-2 h-2 border border-[#e4c590] rotate-45"></div>
+                    <p><i className="fa-solid fa-clock mr-1"></i>06:00 đến 22:00</p>
+                </div>
+                <div className="flex gap-12 items-center">
+                    <p><i className="fa-solid fa-phone mr-1"></i>090 103 39 99</p>
+                    <div className="w-2 h-2 border border-[#e4c590] rotate-45"></div>
+                    <p><i className="fa-solid fa-envelope mr-1"></i>cadaorestaurant@gmail.com</p>
+                </div>
+            </div>
+
             <div className="max-w-7xl mx-auto flex items-center justify-between p-3 xl:px-0">
 
                 <button
@@ -185,7 +200,7 @@ const Header = ({ activePage }) => {
                 >
                     <img
                         src="/logo.png"
-                        className="w-12 h-12 object-cover drop-shadow-[0_6px_16px_rgba(234,179,8,0.25)]"
+                        className="w-10 h-10 object-cover drop-shadow-[0_6px_16px_rgba(234,179,8,0.25)]"
                         alt="Logo Ca Dao"
                     />
                     <p className="font-bold text-xl tracking-wide">CA DAO</p>
@@ -215,9 +230,10 @@ const Header = ({ activePage }) => {
                 </nav>
 
                 <div className="flex items-center gap-4">
+                    {loggedInUser && <NotificationDropdown />}
                     <button
                         type="button"
-                        className="relative w-12 h-12 text-[#e4c590] border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
+                        className="relative w-10 h-10 text-[#e4c590] border-2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e4c590] hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c590]"
                         onClick={() => handleNavigate("/cart-items")}
                         aria-label="Giỏ hàng"
                     >
@@ -238,7 +254,7 @@ const Header = ({ activePage }) => {
                             <img
                                 src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${loggedInUser?.avatarUrl}`}
                                 alt={loggedInUser?.fullName}
-                                className="w-12 h-12 border-2 border-[#e4c590] rounded-full object-cover cursor-pointer ring-2 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:ring-[#e4c590]"
+                                className="w-10 h-10 border-2 border-[#e4c590] rounded-full object-cover cursor-pointer ring-2 ring-transparent transition-all duration-300 hover:-translate-y-0.5 hover:ring-[#e4c590]"
                             />
                         </button>
                         : <button

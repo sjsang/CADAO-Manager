@@ -413,7 +413,96 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
         const shippingFee = Math.max(0, toSafeNumber(selectedWard.shipping_fee, 0));
         const voucherId = orderData.voucher_id ? Number(orderData.voucher_id) : null;
 
-        let discountAmount = 0;
+        // Lấy danh sách order items để tính khuyến mãi
+        const orderItemsResult = await db.query(
+            `SELECT oi.id AS order_item_id, oi.menu_item_id, oi.quantity, oi.price
+             FROM order_items oi WHERE oi.order_id = $1`,
+            [currentOrder.id]
+        );
+        const orderItems = orderItemsResult.rows;
+
+        // Tính khuyến mãi tự động cho từng item
+        let promotionDiscount = 0;
+        const menuItemIds = orderItems.map(oi => oi.menu_item_id);
+
+        if (menuItemIds.length > 0) {
+            const promoResult = await db.query(`
+                SELECT DISTINCT ON (src.mi_id)
+                    p.id AS promotion_id,
+                    p.name AS promotion_name,
+                    p.discount_percent,
+                    p.discount_amount,
+                    p.priority,
+                    src.mi_id AS menu_item_id
+                FROM promotions p
+                JOIN LATERAL (
+                    SELECT pmi.menu_item_id AS mi_id
+                    FROM promotion_menu_items pmi
+                    WHERE pmi.promotion_id = p.id AND pmi.menu_item_id = ANY($1)
+                    UNION
+                    SELECT mi.id AS mi_id
+                    FROM promotion_categories pc
+                    JOIN menu_items mi ON mi.category_id = pc.category_id
+                    WHERE pc.promotion_id = p.id AND mi.id = ANY($1)
+                    UNION
+                    SELECT mi.id AS mi_id
+                    FROM promotion_menu_types pmt
+                    JOIN categories cat ON cat.menu_type_id = pmt.menu_type_id
+                    JOIN menu_items mi ON mi.category_id = cat.id
+                    WHERE pmt.promotion_id = p.id AND mi.id = ANY($1)
+                ) src ON TRUE
+                WHERE p.is_active = TRUE
+                  AND p.start_time <= NOW()
+                  AND p.end_time >= NOW()
+                ORDER BY src.mi_id, p.priority DESC
+            `, [menuItemIds]);
+
+            const promoMap = {};
+            for (const row of promoResult.rows) {
+                promoMap[row.menu_item_id] = row;
+            }
+
+            // Xóa promotion cũ nếu có
+            const orderItemIdList = orderItems.map(oi => oi.order_item_id);
+            if (orderItemIdList.length > 0) {
+                await db.query(
+                    `DELETE FROM order_item_promotions WHERE order_item_id = ANY($1)`,
+                    [orderItemIdList]
+                );
+            }
+
+            for (const oi of orderItems) {
+                const promo = promoMap[oi.menu_item_id];
+                if (!promo) continue;
+
+                let itemDiscount = 0;
+                const itemTotal = Number(oi.price) * Number(oi.quantity);
+
+                if (promo.discount_percent) {
+                    itemDiscount = Math.round(itemTotal * Number(promo.discount_percent) / 100);
+                } else if (promo.discount_amount) {
+                    itemDiscount = Math.min(Number(promo.discount_amount) * Number(oi.quantity), itemTotal);
+                }
+
+                if (itemDiscount > 0) {
+                    promotionDiscount += itemDiscount;
+
+                    await db.query(`
+                        INSERT INTO order_item_promotions
+                        (order_item_id, promotion_id, promotion_name, discount_percent, discount_amount)
+                        VALUES ($1, $2, $3, $4, $5)
+                    `, [
+                        oi.order_item_id,
+                        promo.promotion_id,
+                        promo.promotion_name,
+                        promo.discount_percent || null,
+                        itemDiscount
+                    ]);
+                }
+            }
+        }
+
+        let voucherDiscount = 0;
         let appliedVoucher = null;
 
         if (voucherId) {
@@ -423,9 +512,10 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                 throw new Error("VOUCHER_NOT_FOUND");
             }
 
-            discountAmount = calculateVoucherDiscount(appliedVoucher, subtotal);
+            voucherDiscount = calculateVoucherDiscount(appliedVoucher, subtotal - promotionDiscount);
         }
 
+        const discountAmount = promotionDiscount + voucherDiscount;
         const totalAmount = Math.max(0, subtotal + shippingFee - discountAmount);
 
         const orderQuery = `UPDATE orders SET status='pending', delivery_full_name=$1, delivery_phone=$2, delivery_address=$3,
@@ -479,6 +569,8 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
             orderId,
             paymentId: paymentResult.id,
             discountAmount,
+            promotionDiscount,
+            voucherDiscount,
             totalAmount,
             voucherCode: appliedVoucher?.code || null
         };

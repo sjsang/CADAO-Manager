@@ -35,8 +35,69 @@ const createPromotion = async (req, res) => {
     }
 };
 
+const updatePromotion = async (req, res) => {
+    const { id } = req.params;
+    const promotionData = req.body;
+    try {
+        const result = await promotionService.updatePromotion(id, promotionData);
+        res.json(result);
+    } catch (error) {
+        if (error.message === 'PROMOTION_NOT_FOUND') {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+        console.error('Error updating promotion:', error);
+        res.status(500).json({ error: 'Failed to update promotion' });
+    }
+};
+
+const deletePromotion = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await promotionService.deletePromotion(id);
+        res.json({ message: 'Promotion deleted successfully' });
+    } catch (error) {
+        if (error.message === 'PROMOTION_NOT_FOUND') {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+        console.error('Error deleting promotion:', error);
+        res.status(500).json({ error: 'Failed to delete promotion' });
+    }
+};
+
+const togglePromotion = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await promotionService.togglePromotion(id);
+        res.json(result);
+    } catch (error) {
+        if (error.message === 'PROMOTION_NOT_FOUND') {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+        console.error('Error toggling promotion:', error);
+        res.status(500).json({ error: 'Failed to toggle promotion' });
+    }
+};
+
+const getActivePromotionsForItems = async (req, res) => {
+    try {
+        const { menu_item_ids } = req.body;
+        if (!Array.isArray(menu_item_ids) || menu_item_ids.length === 0) {
+            return res.json([]);
+        }
+        const promotions = await promotionService.getActivePromotionsForItems(menu_item_ids);
+        res.json(promotions);
+    } catch (error) {
+        console.error('Error fetching active promotions for items:', error);
+        res.status(500).json({ error: 'Failed to fetch active promotions' });
+    }
+};
+
 module.exports = {
     getPromotions,
     getPromotionById,
-    createPromotion
+    createPromotion,
+    updatePromotion,
+    deletePromotion,
+    togglePromotion,
+    getActivePromotionsForItems
 };

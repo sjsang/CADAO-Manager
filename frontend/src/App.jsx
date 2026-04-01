@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import HomePage from './pages/customer/HomePage'
 import MenuPage from './pages/customer/MenuPage'
+import PromotionPage from './pages/customer/PromotionPage'
 import AboutUsPage from './pages/customer/AboutUsPage'
 import ContactUsPage from './pages/customer/ContactUsPage'
 import CartPage from './pages/customer/CartPage'
@@ -121,6 +122,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/menus" element={<MenuPage />} />
+        <Route path="/promotions" element={<PromotionPage />} />
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/contact" element={<ContactUsPage />} />
         <Route path="/cart-items" element={<CartPage />} />

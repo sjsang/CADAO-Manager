@@ -3,9 +3,19 @@ import AddToCartModal from "./AddToCartModal";
 import cartApi from "../../api/cartApi";
 import { notifyCustomer } from "../../utils/customerNotify";
 
-const MenuItem = ({ item }) => {
+const MenuItem = ({ item, promotion }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const originalPrice = Number(item.price);
+    let discountedPrice = null;
+    if (promotion) {
+        if (promotion.discount_percent) {
+            discountedPrice = Math.round(originalPrice * (1 - Number(promotion.discount_percent) / 100));
+        } else if (promotion.discount_amount) {
+            discountedPrice = Math.max(0, originalPrice - Number(promotion.discount_amount));
+        }
+    }
 
     const handleAddToCart = async ({ quantity, note }) => {
         setLoading(true);
@@ -33,8 +43,20 @@ const MenuItem = ({ item }) => {
                     />
                 </div>
                 <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-[#e4c590] border border-[#e4c590]/40">
-                    {Number(item.price).toLocaleString('vi-VN')}đ
+                    {discountedPrice !== null ? (
+                        <span className="flex items-center gap-1.5">
+                            <span className="line-through text-gray-400 text-xs">{originalPrice.toLocaleString('vi-VN')}đ</span>
+                            <span>{discountedPrice.toLocaleString('vi-VN')}đ</span>
+                        </span>
+                    ) : (
+                        <span>{originalPrice.toLocaleString('vi-VN')}đ</span>
+                    )}
                 </div>
+                {promotion && (
+                    <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold text-white">
+                        -{promotion.discount_percent ? `${promotion.discount_percent}%` : `${Number(promotion.discount_amount).toLocaleString('vi-VN')}đ`}
+                    </div>
+                )}
             </div>
             <p className="text-base text-center font-semibold mt-3">{item.name}</p>
             <div className="flex items-center justify-center gap-3 text-xs my-3">

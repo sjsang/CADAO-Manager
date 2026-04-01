@@ -64,8 +64,8 @@ const Footer = () => {
                         <a href={`tel:${RESTAURANT_INFO.phone.replace(/\s+/g, "")}`} className="block text-gray-300 transition-colors hover:text-[#e4c590]">
                             {RESTAURANT_INFO.phone}
                         </a>
-                        <a href="mailto:contact@cadao.vn" className="block text-gray-300 transition-colors hover:text-[#e4c590]">
-                            contact@cadao.vn
+                        <a href="mailto:cadaorestaurant@gmail.com" className="block text-gray-300 transition-colors hover:text-[#e4c590]">
+                            cadaorestaurant@gmail.com
                         </a>
                     </div>
 

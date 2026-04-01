@@ -1,4 +1,5 @@
 const orderRepository = require("../repositories/order.repository");
+const notificationService = require("./notification.service");
 
 const ADMIN_STATUS_TRANSITIONS = {
     pending: ["confirmed", "cancelled"],
@@ -94,6 +95,18 @@ const updateOrderStatusByAdmin = async (orderCode, nextStatus, changedBy, note, 
     return await orderRepository.updateOrderStatus(orderCode, nextStatus, changedBy, resolvedNote, shipperId);
 };
 
+// Gửi thông báo cho customer khi admin thay đổi trạng thái đơn
+const notifyCustomerOrderStatus = async (orderCode, newStatus) => {
+    try {
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (order && order.customer_id) {
+            await notificationService.notifyOrderStatusChange(order.customer_id, orderCode, newStatus);
+        }
+    } catch (err) {
+        console.error("Failed to create order notification:", err.message);
+    }
+};
+
 const getOrdersByShipperId = async (shipperId) => {
     return await orderRepository.getOrdersByShipperId(shipperId);
 };
@@ -118,5 +131,6 @@ module.exports = {
     getShippers,
     getOrdersByShipperId,
     getDeliveryHistoryByShipperId,
-    completeDelivery
+    completeDelivery,
+    notifyCustomerOrderStatus
 };

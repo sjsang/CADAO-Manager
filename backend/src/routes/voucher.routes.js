@@ -5,7 +5,7 @@ const { authenticate, requireRole } = require("../middlewares/auth.middleware");
 const router = express.Router();
 
 router.post("/validate", authenticate, requireRole("customer"), voucherController.validateVoucher);
-router.get("/", authenticate, requireRole("admin"), voucherController.getVouchers);
+router.get("/", authenticate, voucherController.getVouchers);
 router.post("/", authenticate, requireRole("admin"), voucherController.createVoucher);
 router.put("/:id", authenticate, requireRole("admin"), voucherController.updateVoucher);
 router.delete("/:id", authenticate, requireRole("admin"), voucherController.deleteVoucher);

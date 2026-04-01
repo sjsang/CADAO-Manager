@@ -356,9 +356,16 @@ CREATE TABLE order_item_promotions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_order_item_promotions_order_item_id
-    ON order_item_promotions(order_item_id);
-CREATE INDEX idx_order_item_promotions_promotion_id
-    ON order_item_promotions(promotion_id);
-CREATE INDEX idx_order_item_promotions_order_item_promotion
-    ON order_item_promotions(order_item_id, promotion_id);
+-- Thông báo cho khách hàng
+CREATE TABLE customer_notifications (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL DEFAULT 'general',
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(500),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_customer_notifications_customer ON customer_notifications(customer_id, is_read, created_at DESC);
