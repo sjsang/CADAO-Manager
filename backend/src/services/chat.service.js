@@ -1,5 +1,6 @@
 const OpenAI = require("openai");
 const chatRepository = require("../repositories/chat.repository");
+const cartRepository = require("../repositories/cart.repository");
 
 const AI_MODEL = process.env.AI_CHAT_MODEL || "openai/gpt-4o-mini";
 const AI_TIMEOUT_MS = 15_000;
@@ -43,7 +44,14 @@ const callAI = async (payload) => {
     ]);
 };
 
-const SYSTEM_PROMPT = `Bạn là trợ lý AI tư vấn nhà hàng CADAO.
+const SYSTEM_PROMPT = `Bạn là trợ lý AI tư vấn nhà hàng Ca Dao.
+
+THÔNG TIN NHÀ HÀNG:
+- Tên: Nhà hàng Ca Dao
+- Giờ mở cửa: 6:00 - 22:00 hàng ngày
+- Địa chỉ: 02 Phan Văn Trị, Ninh Kiều, Cần Thơ (cạnh công viên Lưu Hữu Phước)
+- Hotline: 090 103 39 99
+- Phí giao hàng: Tùy theo phường (trung bình 15.000 - 30.000 VND)
 
 QUY TẮC GIAO TIẾP:
 - Xưng "mình", gọi khách là "bạn".
@@ -55,6 +63,9 @@ KHI TƯ VẤN:
 - Khách hỏi món rẻ nhất hoặc đắt nhất: dùng tool get_menu_items_by_price.
 - Khách hỏi ưu đãi / mã giảm / voucher: dùng tool get_promotions.
 - Nếu có voucher thì nhắc khách nhập mã ở bước thanh toán.
+- Khách muốn thêm món vào giỏ: dùng tool add_to_cart_item.
+- Khách hỏi đơn hàng / giao đến đâu: dùng tool track_orders.
+- Khách hỏi "trước mình hay gọi gì" / gợi ý: dùng tool get_order_history.
 
 XỬ LÝ TỒN KHO:
 - is_available = false: báo món tạm hết, gợi ý món khác nếu có.
@@ -111,6 +122,56 @@ const tools = [
                 required: []
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_order_history",
+            description: "Lấy lịch sử đơn hàng gần đây của khách hàng để gợi ý món.",
+            parameters: {
+                type: "object",
+                properties: {
+                    limit: {
+                        type: "number",
+                        description: "Số đơn cần lấy (mặc định 5)"
+                    }
+                },
+                required: []
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "track_orders",
+            description: "Xem trạng thái đơn hàng đang xử lý của khách.",
+            parameters: {
+                type: "object",
+                properties: {},
+                required: []
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "add_to_cart_item",
+            description: "Thêm món ăn vào giỏ hàng cho khách.",
+            parameters: {
+                type: "object",
+                properties: {
+                    itemName: {
+                        type: "string",
+                        description: "Tên món ăn cần thêm"
+                    },
+                    quantity: {
+                        type: "number",
+                        description: "Số lượng (mặc định 1)"
+                    }
+                },
+                required: ["itemName"]
+            }
+        }
     }
 ];
 
@@ -121,9 +182,9 @@ const executeSearchMenuItems = async (query) => {
     }
 
     const normalized = removeAccents(keyword);
-    const rows = await chatRepository.searchMenuItems(keyword, 5);
+    const rows = await chatRepository.searchMenuItemsWithImage(keyword, 5);
     const fallbackRows = normalized && normalized !== keyword
-        ? await chatRepository.searchMenuItems(normalized, 5)
+        ? await chatRepository.searchMenuItemsWithImage(normalized, 5)
         : [];
 
     const merged = [...rows];
@@ -145,6 +206,7 @@ const executeSearchMenuItems = async (query) => {
             menuType: item.menu_type_name,
             soldCount: item.sold_count,
             isAvailable: item.is_available,
+            imageUrl: item.image_url || null,
             description: String(item.description || "").slice(0, 150)
         }))
     );
@@ -185,6 +247,72 @@ const executeGetPromotions = async () => {
             remainingUsage: v.usage_limit === null ? null : Number(v.usage_limit) - Number(v.used_count || 0),
             expiryDate: v.expiry_date
         }))
+    });
+};
+
+const executeGetOrderHistory = async (customerId, limit = 5) => {
+    const orders = await chatRepository.getCustomerOrderHistory(customerId, limit);
+    if (orders.length === 0) {
+        return JSON.stringify({ message: "Khách chưa có đơn hàng nào trước đây." });
+    }
+
+    return JSON.stringify({
+        message: `${orders.length} đơn hàng gần nhất`,
+        orders: orders.map((o) => ({
+            orderCode: o.order_code,
+            status: o.status,
+            totalAmount: o.total_amount,
+            date: o.created_at,
+            items: o.items
+        }))
+    });
+};
+
+const executeTrackOrders = async (customerId) => {
+    const orders = await chatRepository.getCustomerActiveOrders(customerId);
+    if (orders.length === 0) {
+        return JSON.stringify({ message: "Hiện không có đơn hàng nào đang xử lý." });
+    }
+
+    const statusMap = {
+        pending: "Chờ xác nhận",
+        confirmed: "Đã xác nhận",
+        preparing: "Đang chuẩn bị",
+        shipping: "Đang giao hàng"
+    };
+
+    return JSON.stringify({
+        message: `${orders.length} đơn hàng đang xử lý`,
+        orders: orders.map((o) => ({
+            orderCode: o.order_code,
+            status: statusMap[o.status] || o.status,
+            totalAmount: o.total_amount,
+            address: o.delivery_address,
+            ward: o.delivery_ward_name,
+            shippingFee: o.shipping_fee,
+            shipperName: o.shipper_name || null,
+            shipperPhone: o.shipper_phone || null,
+            updatedAt: o.updated_at
+        }))
+    });
+};
+
+const executeAddToCart = async (customerId, itemName, quantity = 1) => {
+    const menuItem = await chatRepository.findMenuItemByName(itemName);
+    if (!menuItem) {
+        return JSON.stringify({ success: false, message: `Không tìm thấy món "${itemName}".` });
+    }
+
+    if (!menuItem.is_available) {
+        return JSON.stringify({ success: false, message: `Món "${menuItem.name}" hiện tạm hết.` });
+    }
+
+    const safeQty = Math.max(1, Math.min(Number(quantity) || 1, 20));
+    await cartRepository.addCartItem(customerId, menuItem.id, safeQty, null);
+
+    return JSON.stringify({
+        success: true,
+        message: `Đã thêm ${safeQty}x "${menuItem.name}" (${Number(menuItem.price).toLocaleString("vi-VN")} VND) vào giỏ hàng.`
     });
 };
 
@@ -297,6 +425,18 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
                     dbResult = await executeGetPromotions();
                 }
 
+                if (toolCall.function.name === "get_order_history") {
+                    dbResult = await executeGetOrderHistory(conversation.customer_id, args.limit);
+                }
+
+                if (toolCall.function.name === "track_orders") {
+                    dbResult = await executeTrackOrders(conversation.customer_id);
+                }
+
+                if (toolCall.function.name === "add_to_cart_item") {
+                    dbResult = await executeAddToCart(conversation.customer_id, args.itemName, args.quantity);
+                }
+
                 messages.push({
                     role: "tool",
                     tool_call_id: toolCall.id,
@@ -389,6 +529,71 @@ const getUnreadCount = async (currentUser) => {
     return chatRepository.getUnreadCount({ userId: currentUser.id, role: currentUser.role });
 };
 
+const rateChatbot = async ({ currentUser, conversationId, rating, feedback }) => {
+    if (currentUser.role !== "customer") {
+        throw createHttpError(403, "Chỉ khách hàng mới được đánh giá chatbot.");
+    }
+
+    const conversation = await chatRepository.getConversationById(conversationId);
+    assertConversationAccess(conversation, currentUser);
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        throw createHttpError(400, "Đánh giá phải từ 1 đến 5.");
+    }
+
+    return chatRepository.createChatRating({
+        conversationId,
+        customerId: currentUser.id,
+        rating,
+        feedback
+    });
+};
+
+const getChatRating = async ({ currentUser, conversationId }) => {
+    const conversation = await chatRepository.getConversationById(conversationId);
+    assertConversationAccess(conversation, currentUser);
+
+    return chatRepository.getChatRating(conversationId, currentUser.id);
+};
+
+const getChatDashboardStats = async (filters) => {
+    return chatRepository.getChatDashboardStats(filters);
+};
+
+const getConversationSummary = async ({ conversationId }) => {
+    const messagesData = await chatRepository.getConversationSummaryData(conversationId);
+    if (messagesData.length === 0) {
+        return { summary: "Chưa có tin nhắn trong hội thoại này." };
+    }
+
+    const client = getOpenAIClient();
+    if (!client) {
+        const lastCustomerMsg = messagesData.filter((m) => m.sender_type === "customer").pop();
+        return { summary: lastCustomerMsg ? `Khách hỏi: "${lastCustomerMsg.text}"` : "Không có nội dung từ khách." };
+    }
+
+    const transcript = messagesData.map((m) => {
+        const role = m.sender_type === "customer" ? "Khách" : m.sender_type === "bot" ? "Bot" : "Admin";
+        return `${role}: ${m.text}`;
+    }).join("\n");
+
+    try {
+        const response = await callAI({
+            model: AI_MODEL,
+            messages: [
+                { role: "system", content: "Tóm tắt cuộc hội thoại dưới đây trong 1-2 câu ngắn gọn bằng tiếng Việt. Nêu vấn đề chính khách hàng cần hỗ trợ." },
+                { role: "user", content: transcript }
+            ],
+            temperature: 0.3
+        });
+
+        return { summary: response.choices[0]?.message?.content?.trim() || "Không thể tóm tắt." };
+    } catch {
+        const lastCustomerMsg = messagesData.filter((m) => m.sender_type === "customer").pop();
+        return { summary: lastCustomerMsg ? `Khách hỏi: "${lastCustomerMsg.text}"` : "Không thể tóm tắt." };
+    }
+};
+
 module.exports = {
     startConversation,
     sendMessage,
@@ -396,5 +601,9 @@ module.exports = {
     getConversations,
     toggleBot,
     markMessagesAsRead,
-    getUnreadCount
+    getUnreadCount,
+    rateChatbot,
+    getChatRating,
+    getChatDashboardStats,
+    getConversationSummary
 };

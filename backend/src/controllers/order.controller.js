@@ -1,6 +1,7 @@
 const orderService = require("../services/order.service");
 const orderRepository = require("../repositories/order.repository");
 const paymentRepository = require("../repositories/payment.repository");
+const { emitOrderStatusUpdate, emitNewOrder } = require("../socket/emitters");
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
 
 const getClientIp = (req) => {
@@ -359,6 +360,10 @@ const confirmOrder = async (req, res) => {
         const orderData = req.body;
         const paymentMethod = req.body.paymentMethod;
         const result = await orderService.confirmOrder(orderCode, orderData, paymentMethod);
+
+        // Thông báo admin có đơn hàng mới
+        emitNewOrder({ orderCode, status: 'pending' });
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error confirming order:", error);
@@ -439,6 +444,12 @@ const updateOrderStatusByAdmin = async (req, res) => {
         // Gửi thông báo cho customer (không block response)
         orderService.notifyCustomerOrderStatus(orderCode, status);
 
+        // Real-time qua socket
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (order?.customer_id) {
+            emitOrderStatusUpdate(order.customer_id, { orderCode, status });
+        }
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error("Error updating order status by admin:", error);
@@ -486,6 +497,12 @@ const completeDelivery = async (req, res) => {
 
         // Thông báo cho customer khi giao hàng hoàn thành
         orderService.notifyCustomerOrderStatus(orderCode, 'completed');
+
+        // Real-time qua socket
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (order?.customer_id) {
+            emitOrderStatusUpdate(order.customer_id, { orderCode, status: 'completed' });
+        }
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {

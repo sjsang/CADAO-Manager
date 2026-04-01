@@ -1,17 +1,14 @@
-import SideBarMenu from "../../components/admin/SideBarMenu";
+﻿import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import dashboardApi from "../../api/dashboardApi";
 import { getStatusText } from "../../functions/formatOrderFields";
-import { notifyCustomer } from "../../utils/customerNotify";
+import { useSocket } from "../../contexts/SocketContext";
 import {
     Bar,
     BarChart,
     CartesianGrid,
-    Cell,
-    Pie,
-    PieChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -106,24 +103,39 @@ const ChartTooltip = ({ active, payload, label, formatter, labelFormatter }) => 
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const socket = useSocket();
     const [overview, setOverview] = useState(null);
     const [loading, setLoading] = useState(true);
     const [nowTs, setNowTs] = useState(Date.now());
 
-    useEffect(() => {
-        const fetchDashboard = async () => {
-            try {
-                const response = await dashboardApi.getOverview();
-                setOverview(response.data?.data || null);
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboard();
+    const fetchDashboard = useCallback(async () => {
+        try {
+            const response = await dashboardApi.getOverview();
+            setOverview(response.data?.data || null);
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchDashboard();
+    }, [fetchDashboard]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleRefresh = () => fetchDashboard();
+
+        socket.on("order:new", handleRefresh);
+        socket.on("order:statusUpdated", handleRefresh);
+
+        return () => {
+            socket.off("order:new", handleRefresh);
+            socket.off("order:statusUpdated", handleRefresh);
+        };
+    }, [socket, fetchDashboard]);
 
     useEffect(() => {
         const intervalId = setInterval(() => {

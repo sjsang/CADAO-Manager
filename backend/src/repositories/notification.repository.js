@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { emitNotification, emitNotificationBroadcast } = require('../socket/emitters');
 
 const getNotificationsByCustomerId = async (customerId, { page = 1, limit = 20 } = {}) => {
     const safePage = Math.max(1, Number(page) || 1);
@@ -61,7 +62,9 @@ const createNotification = async ({ customerId, type = 'general', title, message
          RETURNING id, type, title, message, link, is_read, created_at`,
         [customerId, type, title, message, link]
     );
-    return rows[0];
+    const notif = rows[0];
+    emitNotification(customerId, notif);
+    return notif;
 };
 
 const deleteNotification = async (notificationId, customerId) => {
@@ -72,11 +75,22 @@ const deleteNotification = async (notificationId, customerId) => {
     return rowCount > 0;
 };
 
+const createNotificationForAllCustomers = async ({ type = 'general', title, message, link = null }) => {
+    const { rowCount } = await db.query(
+        `INSERT INTO customer_notifications (customer_id, type, title, message, link)
+         SELECT id, $1, $2, $3, $4 FROM customers`,
+        [type, title, message, link]
+    );
+    emitNotificationBroadcast({ type, title, message, link, is_read: false, created_at: new Date().toISOString() });
+    return rowCount;
+};
+
 module.exports = {
     getNotificationsByCustomerId,
     getUnreadCount,
     markAsRead,
     markAllAsRead,
     createNotification,
-    deleteNotification
+    deleteNotification,
+    createNotificationForAllCustomers
 };

@@ -7,9 +7,11 @@ import orderApi from "../../api/orderApi";
 import Header from "../../components/customer/Header";
 import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal";
 import { notifyCustomer } from "../../utils/customerNotify";
+import { useSocket } from "../../contexts/SocketContext";
 
 const OrderDetailPage = () => {
     const { orderCode } = useParams();
+    const socket = useSocket();
     const [order, setOrder] = useState(null);
     const [itemRatings, setItemRatings] = useState({});
     const [reviewContent, setReviewContent] = useState("");
@@ -59,6 +61,23 @@ const OrderDetailPage = () => {
 
         fetchOrderDetail();
     }, [orderCode]);
+
+    // Real-time order status update via socket
+    useEffect(() => {
+        if (!socket || !orderCode) return;
+
+        const handleStatusUpdate = (data) => {
+            if (data.orderCode === orderCode) {
+                // Re-fetch full order detail
+                orderApi.getByOrderCode(orderCode)
+                    .then((res) => setOrder(res.data.data))
+                    .catch(() => { });
+            }
+        };
+
+        socket.on("order:statusUpdated", handleStatusUpdate);
+        return () => socket.off("order:statusUpdated", handleStatusUpdate);
+    }, [socket, orderCode]);
 
     const isRefundInfoRequired =
         (order?.payment?.method === "vnpay" || order?.payment?.method === "transfer") &&

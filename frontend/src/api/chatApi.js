@@ -27,6 +27,22 @@ const chatApi = {
 
     getUnreadCount() {
         return axiosClient.get("/chats/unread-count");
+    },
+
+    rateChatbot(conversationId, { rating, feedback }) {
+        return axiosClient.post(`/chats/conversations/${conversationId}/rate`, { rating, feedback });
+    },
+
+    getChatRating(conversationId) {
+        return axiosClient.get(`/chats/conversations/${conversationId}/rate`);
+    },
+
+    getConversationSummary(conversationId) {
+        return axiosClient.get(`/chats/conversations/${conversationId}/summary`);
+    },
+
+    getDashboardStats(params = {}) {
+        return axiosClient.get("/chats/dashboard-stats", { params });
     }
 };
 

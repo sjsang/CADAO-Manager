@@ -54,6 +54,7 @@ axiosClient.interceptors.response.use(
             const shouldRedirectToAdminLogin = isPortalRole || isAdminPath || isShipperPath || isPortalProfilePath || isAdminRequest;
 
             sessionStorage.removeItem("token");
+            window.dispatchEvent(new Event("authChanged"));
             window.location.href = shouldRedirectToAdminLogin ? "/admin/login" : "/auth/login";
         }
         return Promise.reject(error);

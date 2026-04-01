@@ -3,9 +3,10 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import orderApi from "../../api/orderApi";
 import { getStatusText } from "../../functions/formatOrderFields";
 import TablePagination from "../../components/admin/TablePagination";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDate";
+import { useSocket } from "../../contexts/SocketContext";
 
 const PAGE_SIZE = 10;
 
@@ -31,6 +32,7 @@ const formatDateTime = (value) => {
 
 const OrderManager = () => {
     const navigate = useNavigate();
+    const socket = useSocket();
     const [orders, setOrders] = useState([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -40,30 +42,30 @@ const OrderManager = () => {
     const [nowTs, setNowTs] = useState(Date.now());
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const response = await orderApi.getAllOrders({
-                    search,
-                    status: statusFilter,
-                    sortBy,
-                    sortDir,
-                    page,
-                    limit: PAGE_SIZE
-                });
-                if (response.data.success) {
-                    setOrders(response.data.data);
-                    setPagination(response.data.pagination || { page, limit: PAGE_SIZE, totalItems: response.data.data.length, totalPages: 1 });
-                } else {
-                    console.error("Failed to fetch orders:", response.data.message);
-                }
-            } catch (error) {
-                console.error("Error fetching orders:", error);
+    const fetchOrders = useCallback(async () => {
+        try {
+            const response = await orderApi.getAllOrders({
+                search,
+                status: statusFilter,
+                sortBy,
+                sortDir,
+                page,
+                limit: PAGE_SIZE
+            });
+            if (response.data.success) {
+                setOrders(response.data.data);
+                setPagination(response.data.pagination || { page, limit: PAGE_SIZE, totalItems: response.data.data.length, totalPages: 1 });
+            } else {
+                console.error("Failed to fetch orders:", response.data.message);
             }
-        };
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        }
+    }, [search, statusFilter, sortBy, sortDir, page]);
 
+    useEffect(() => {
         fetchOrders();
-    }, [page, search, statusFilter, sortBy, sortDir]);
+    }, [fetchOrders]);
 
     useEffect(() => {
         setPage(1);
@@ -76,6 +78,21 @@ const OrderManager = () => {
 
         return () => clearInterval(intervalId);
     }, []);
+
+    // Socket: nhận đơn hàng mới + cập nhật trạng thái
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleRefresh = () => fetchOrders();
+
+        socket.on("order:new", handleRefresh);
+        socket.on("order:statusUpdated", handleRefresh);
+
+        return () => {
+            socket.off("order:new", handleRefresh);
+            socket.off("order:statusUpdated", handleRefresh);
+        };
+    }, [socket, fetchOrders]);
 
     const getProcessingDuration = (order) => {
         const isFinished = order.status === "completed" || order.status === "cancelled";

@@ -1,4 +1,5 @@
 const chatService = require("../services/chat.service");
+const { emitChatMessage, emitChatUpdate, emitBotToggle } = require("../socket/emitters");
 
 const parseConversationId = (value) => {
     const id = Number(value);
@@ -45,6 +46,16 @@ const sendMessage = async (req, res) => {
             text
         });
 
+        // Emit real-time events
+        const parsedConvId = parseConversationId(conversationId);
+        if (result.userMessage) {
+            emitChatMessage(parsedConvId, result.userMessage);
+        }
+        if (result.aiMessage) {
+            emitChatMessage(parsedConvId, result.aiMessage);
+        }
+        emitChatUpdate(parsedConvId, { conversationId: parsedConvId });
+
         return res.status(201).json({ success: true, data: result });
     } catch (error) {
         return sendError(res, error, "Không thể gửi tin nhắn chat.");
@@ -84,6 +95,8 @@ const toggleBot = async (req, res) => {
             isBotActive
         });
 
+        emitBotToggle(conversationId, conversation.is_bot_active);
+
         return res.status(200).json({ success: true, data: conversation });
     } catch (error) {
         return sendError(res, error, "Không thể cập nhật trạng thái bot.");
@@ -113,6 +126,57 @@ const getUnreadCount = async (req, res) => {
     }
 };
 
+const rateChatbot = async (req, res) => {
+    try {
+        const conversationId = parseConversationId(req.params.conversationId);
+        const { rating, feedback } = req.body || {};
+        const result = await chatService.rateChatbot({
+            currentUser: req.user,
+            conversationId,
+            rating: Number(rating),
+            feedback: String(feedback || "").trim() || null
+        });
+
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        return sendError(res, error, "Không thể gửi đánh giá chatbot.");
+    }
+};
+
+const getChatRating = async (req, res) => {
+    try {
+        const conversationId = parseConversationId(req.params.conversationId);
+        const result = await chatService.getChatRating({
+            currentUser: req.user,
+            conversationId
+        });
+
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        return sendError(res, error, "Không thể lấy đánh giá chatbot.");
+    }
+};
+
+const getChatDashboardStats = async (req, res) => {
+    try {
+        const { fromDate, toDate } = req.query || {};
+        const result = await chatService.getChatDashboardStats({ fromDate, toDate });
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        return sendError(res, error, "Không thể lấy thống kê chatbot.");
+    }
+};
+
+const getConversationSummary = async (req, res) => {
+    try {
+        const conversationId = parseConversationId(req.params.conversationId);
+        const result = await chatService.getConversationSummary({ conversationId });
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        return sendError(res, error, "Không thể tóm tắt hội thoại.");
+    }
+};
+
 module.exports = {
     startConversation,
     sendMessage,
@@ -120,5 +184,9 @@ module.exports = {
     getConversations,
     toggleBot,
     markMessagesAsRead,
-    getUnreadCount
+    getUnreadCount,
+    rateChatbot,
+    getChatRating,
+    getChatDashboardStats,
+    getConversationSummary
 };

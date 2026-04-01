@@ -195,7 +195,7 @@ const CheckoutPage = () => {
         try {
             const response = await voucherApi.validateForOrder({
                 code: voucherCode,
-                orderValue: Number(orderDetails.subtotal || 0)
+                orderValue: Math.max(0, Number(orderDetails.subtotal || 0) - promotionDiscount)
             });
 
             if (!isMountedRef.current) return;
@@ -284,7 +284,7 @@ const CheckoutPage = () => {
     const handleConfirmSubmit = async () => {
         setIsSubmitting(true);
         try {
-            const computedTotal = Number(orderDetails.subtotal) + shippingFee - Number(orderDetails.discount_amount || 0);
+            const computedTotal = Math.max(0, Number(orderDetails.subtotal) + shippingFee - promotionDiscount - Number(orderDetails.discount_amount || 0));
             const payload = {
                 ...form,
                 subtotal: orderDetails.subtotal,

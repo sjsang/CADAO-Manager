@@ -1,4 +1,5 @@
 const promotionService = require('../services/promotion.service');
+const notificationService = require('../services/notification.service');
 
 const getPromotions = async (req, res) => {
     try {
@@ -28,6 +29,12 @@ const createPromotion = async (req, res) => {
     const promotionData = req.body;
     try {
         const newPromotion = await promotionService.createPromotion(promotionData);
+
+        // Gửi thông báo cho tất cả khách hàng
+        notificationService.notifyAllNewPromotion(promotionData.name).catch(err =>
+            console.error('Failed to notify customers about new promotion:', err)
+        );
+
         res.status(201).json(newPromotion);
     } catch (error) {
         console.error('Error creating promotion:', error);

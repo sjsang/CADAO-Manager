@@ -1,4 +1,5 @@
 const voucherService = require("../services/voucher.service");
+const notificationService = require("../services/notification.service");
 
 const sendError = (res, error, fallbackMessage) => {
     if (error.status) {
@@ -35,6 +36,12 @@ const getVouchers = async (req, res) => {
 const createVoucher = async (req, res) => {
     try {
         const voucher = await voucherService.createVoucher(req.body || {});
+
+        // Gửi thông báo cho tất cả khách hàng
+        notificationService.notifyAllNewVoucher(voucher.code).catch(err =>
+            console.error('Failed to notify customers about new voucher:', err)
+        );
+
         res.status(201).json({ success: true, data: voucher });
     } catch (error) {
         sendError(res, error, "Không thể tạo voucher.");

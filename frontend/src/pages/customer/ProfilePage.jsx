@@ -110,10 +110,12 @@ const ProfilePage = () => {
         try {
             await authApi.logout();
             sessionStorage.removeItem("token");
+            window.dispatchEvent(new Event("authChanged"));
             navigate("/auth/login");
         } catch (error) {
             if (error.response?.status === 401 || error.response?.status === 403) {
                 sessionStorage.removeItem("token");
+                window.dispatchEvent(new Event("authChanged"));
                 navigate("/auth/login");
                 return;
             }

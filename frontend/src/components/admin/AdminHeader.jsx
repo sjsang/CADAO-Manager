@@ -36,10 +36,12 @@ const AdminHeader = ({ title, subtitle }) => {
         try {
             await authApi.logout();
             sessionStorage.removeItem("token");
+            window.dispatchEvent(new Event("authChanged"));
             navigate("/admin/login", { replace: true });
         } catch (error) {
             if (error.response?.status === 401 || error.response?.status === 403) {
                 sessionStorage.removeItem("token");
+                window.dispatchEvent(new Event("authChanged"));
                 navigate("/admin/login", { replace: true });
                 return;
             }

@@ -34,6 +34,7 @@ const SideBarMenu = ({ activePage }) => {
         { key: "dashboard", label: "Tổng quan", path: "/admin/dashboard", icon: "fa-solid fa-chart-pie text-sky-500" },
         { key: "orders", label: "Đơn hàng", path: "/admin/orders", icon: "fa-solid fa-receipt text-emerald-500" },
         { key: "chat", label: "Hội thoại", path: "/admin/chats", icon: "fa-solid fa-comments text-indigo-500" },
+        { key: "chat-stats", label: "TK Chatbot", path: "/admin/chat-stats", icon: "fa-solid fa-robot text-violet-500" },
         { key: "reviews", label: "Đánh giá", path: "/admin/reviews", icon: "fa-solid fa-star text-amber-500" },
 
         { key: "menu", label: "Thực đơn", path: "/admin/menus", icon: "fa-solid fa-utensils text-orange-500" },
@@ -66,10 +67,10 @@ const SideBarMenu = ({ activePage }) => {
                 <button
                     type="button"
                     onClick={toggleSidebar}
-                    className="inline-flex h-10 w-full items-center justify-center text-xl rounded-lg border border-slate-800 text-slate-300 transition hover:bg-slate-900 hover:text-white"
+                    className="p-2 rounded-md text-slate-300 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2 focus:ring-offset-slate-950 transition"
                     title={isCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
                 >
-                    {isCollapsed ? "»" : "«"}
+                    <i className="fa-solid fa-bars"></i>
                 </button>
             </div>
 
@@ -89,12 +90,6 @@ const SideBarMenu = ({ activePage }) => {
                         </li>
                     ))}
                 </ul>
-            </div>
-
-            <div className="absolute bottom-4 left-3 right-3">
-                <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-400">
-                    {!isCollapsed ? "Chế độ quản trị" : "Admin"}
-                </div>
             </div>
         </aside>
     )

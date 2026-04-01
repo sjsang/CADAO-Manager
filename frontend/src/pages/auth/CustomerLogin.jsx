@@ -53,6 +53,7 @@ const CustomerLogin = () => {
             });
 
             sessionStorage.setItem("token", response.data.token);
+            window.dispatchEvent(new Event("authChanged"));
             notifyCustomer({ message: "Đăng nhập thành công.", type: "success" });
             navigate('/');
         } catch (error) {

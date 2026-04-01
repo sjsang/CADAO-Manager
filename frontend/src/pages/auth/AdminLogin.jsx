@@ -49,6 +49,7 @@ const AdminLogin = () => {
                 password: form.password
             });
             sessionStorage.setItem("token", response.data.token);
+            window.dispatchEvent(new Event("authChanged"));
 
             const payload = JSON.parse(atob(response.data.token.split('.')[1] || ""));
             if (payload?.role === "shipper") {

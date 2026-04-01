@@ -369,3 +369,14 @@ CREATE TABLE customer_notifications (
 );
 
 CREATE INDEX idx_customer_notifications_customer ON customer_notifications(customer_id, is_read, created_at DESC);
+
+-- 21. Đánh giá chatbot
+CREATE TABLE chat_ratings (
+    id SERIAL PRIMARY KEY,
+    conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    feedback TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(conversation_id, customer_id)
+);

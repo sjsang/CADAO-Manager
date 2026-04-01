@@ -55,6 +55,24 @@ const notifyNewPromotion = async (customerId, promotionName) => {
     });
 };
 
+const notifyAllNewPromotion = async (promotionName) => {
+    return await notificationRepository.createNotificationForAllCustomers({
+        type: 'promotion',
+        title: `Khuyến mãi mới: ${promotionName}`,
+        message: `Chương trình khuyến mãi "${promotionName}" đang diễn ra. Xem ngay!`,
+        link: '/promotions'
+    });
+};
+
+const notifyAllNewVoucher = async (voucherCode) => {
+    return await notificationRepository.createNotificationForAllCustomers({
+        type: 'voucher',
+        title: `Voucher mới: ${voucherCode}`,
+        message: `Mã giảm giá "${voucherCode}" vừa được phát hành. Áp dụng ngay khi thanh toán!`,
+        link: '/menus'
+    });
+};
+
 module.exports = {
     getNotifications,
     getUnreadCount,
@@ -63,5 +81,7 @@ module.exports = {
     createNotification,
     deleteNotification,
     notifyOrderStatusChange,
-    notifyNewPromotion
+    notifyNewPromotion,
+    notifyAllNewPromotion,
+    notifyAllNewVoucher
 };

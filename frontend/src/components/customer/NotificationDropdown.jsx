@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import notificationApi from "../../api/notificationApi";
+import { useSocket } from "../../contexts/SocketContext";
 
 const typeIcons = {
     order: "fa-solid fa-box",
@@ -16,6 +17,7 @@ const typeColors = {
 
 const NotificationDropdown = () => {
     const navigate = useNavigate();
+    const socket = useSocket();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -53,10 +55,12 @@ const NotificationDropdown = () => {
         }
     };
 
-    // Poll unread count
+    // Real-time qua socket + fallback polling
     useEffect(() => {
         fetchUnreadCount();
-        pollRef.current = setInterval(fetchUnreadCount, 15000);
+
+        // Fallback polling (giảm tần suất vì đã có socket)
+        pollRef.current = setInterval(fetchUnreadCount, 60000);
 
         const handleNotificationUpdate = () => fetchUnreadCount();
         window.addEventListener("notificationUpdated", handleNotificationUpdate);
@@ -66,6 +70,19 @@ const NotificationDropdown = () => {
             window.removeEventListener("notificationUpdated", handleNotificationUpdate);
         };
     }, []);
+
+    // Socket listener cho thông báo mới
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNew = (notif) => {
+            setUnreadCount((prev) => prev + 1);
+            setNotifications((prev) => [notif, ...prev]);
+        };
+
+        socket.on("notification:new", handleNew);
+        return () => socket.off("notification:new", handleNew);
+    }, [socket]);
 
     // Load notifications when dropdown opens
     useEffect(() => {

@@ -8,6 +8,7 @@ import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDat
 import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 import NoticeModal from "../../components/admin/modals/NoticeModal";
 import { RESTAURANT_INFO } from "../../constants/restaurantInfo";
+import { useSocket } from "../../contexts/SocketContext";
 
 const CANCEL_REASONS = [
     "Khách hàng yêu cầu hủy đơn",
@@ -143,6 +144,7 @@ const buildTimelineItem = (history) => {
 const AdminOrderDetail = () => {
     const { orderCode } = useParams();
     const navigate = useNavigate();
+    const socket = useSocket();
 
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -189,6 +191,20 @@ const AdminOrderDetail = () => {
 
         return () => clearInterval(intervalId);
     }, []);
+
+    // Socket: cập nhật đơn hàng real-time
+    useEffect(() => {
+        if (!socket || !orderCode) return;
+
+        const handleStatusUpdate = (data) => {
+            if (data.orderCode === orderCode) {
+                loadOrder().catch(() => { });
+            }
+        };
+
+        socket.on("order:statusUpdated", handleStatusUpdate);
+        return () => socket.off("order:statusUpdated", handleStatusUpdate);
+    }, [socket, orderCode, loadOrder]);
 
     const processingDuration = order
         ? formatElapsedTime(
