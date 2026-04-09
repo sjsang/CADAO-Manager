@@ -1,12 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import AOS from "aos";
 import Header from "../../components/customer/Header";
 import Footer from "../../components/customer/Footer";
+import feedbackApi from "../../api/feedbackApi";
+import { notifyCustomer } from "../../utils/customerNotify";
 
 const ContactUsPage = () => {
+    const [form, setForm] = useState({ full_name: '', email: '', content: '' });
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         AOS.init({ duration: 800, easing: "ease-out-cubic", once: false, offset: 80 });
     }, []);
+
+    const handleChange = (e) => {
+        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.full_name.trim()) return notifyCustomer({ message: 'Vui lòng nhập họ và tên.', type: 'warning' });
+        if (!form.email.trim()) return notifyCustomer({ message: 'Vui lòng nhập email.', type: 'warning' });
+        if (!form.content.trim()) return notifyCustomer({ message: 'Vui lòng nhập nội dung góp ý.', type: 'warning' });
+
+        setLoading(true);
+        try {
+            const res = await feedbackApi.create(form);
+            notifyCustomer({ message: res.data.message || 'Gửi góp ý thành công!', type: 'success' });
+            setForm({ full_name: '', email: '', content: '' });
+        } catch (err) {
+            notifyCustomer({ message: err.response?.data?.message || 'Không thể gửi góp ý. Vui lòng thử lại.', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -25,7 +52,7 @@ const ContactUsPage = () => {
                     <div data-aos="fade-right" className="lg:col-span-3 flex flex-col gap-5">
                         <h2 className="text-xl font-semibold">Đóng góp ý kiến</h2>
                         <p className="text-gray-400 text-sm">Quý khách sẽ nhận được phản hồi trong vòng 24 giờ!</p>
-                        <form className="flex flex-col gap-5">
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-xs tracking-widest text-gray-400 uppercase">Họ và tên</span>
                                 <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
@@ -34,6 +61,9 @@ const ContactUsPage = () => {
                                     </svg>
                                     <input
                                         type="text"
+                                        name="full_name"
+                                        value={form.full_name}
+                                        onChange={handleChange}
                                         placeholder="Nguyễn Văn A"
                                         className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
                                     />
@@ -48,6 +78,9 @@ const ContactUsPage = () => {
                                     </svg>
                                     <input
                                         type="email"
+                                        name="email"
+                                        value={form.email}
+                                        onChange={handleChange}
                                         placeholder="example@email.com"
                                         className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
                                     />
@@ -61,6 +94,9 @@ const ContactUsPage = () => {
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                                     </svg>
                                     <textarea
+                                        name="content"
+                                        value={form.content}
+                                        onChange={handleChange}
                                         placeholder="Chia sẻ trải nghiệm của bạn..."
                                         rows={5}
                                         className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none resize-none text-sm"
@@ -69,10 +105,13 @@ const ContactUsPage = () => {
                             </label>
                             <button
                                 type="submit"
-                                className="group relative overflow-hidden w-fit px-8 py-3 border border-[#e4c590] text-[#e4c590] cursor-pointer"
+                                disabled={loading}
+                                className="group relative overflow-hidden w-fit px-8 py-3 border border-[#e4c590] text-[#e4c590] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100" />
-                                <span className="relative z-10 text-sm font-bold tracking-widest transition-colors duration-500 group-hover:text-black">GỬI GÓP Ý</span>
+                                <span className="relative z-10 text-sm font-bold tracking-widest transition-colors duration-500 group-hover:text-black">
+                                    {loading ? 'ĐANG GỬI...' : 'GỬI GÓP Ý'}
+                                </span>
                             </button>
                         </form>
                     </div>

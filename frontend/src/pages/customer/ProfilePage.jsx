@@ -41,6 +41,7 @@ const ProfilePage = () => {
         totalPages: 1
     });
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [rankInfo, setRankInfo] = useState(null);
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -67,6 +68,19 @@ const ProfilePage = () => {
         };
 
         fetchProfile();
+    }, []);
+
+    useEffect(() => {
+        const fetchRank = async () => {
+            try {
+                const response = await customerApi.getMyRank();
+                setRankInfo(response.data?.data || null);
+            } catch (error) {
+                console.error("Failed to fetch rank:", error);
+            }
+        };
+
+        fetchRank();
     }, []);
 
 
@@ -375,6 +389,58 @@ const ProfilePage = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {rankInfo && (
+                                <div className="mt-6 border-t border-white/10 pt-6">
+                                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                                        <div className="flex items-center gap-3">
+                                            {rankInfo.rank === 'loyal' ? (
+                                                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#e4c590]/20 to-yellow-500/20 border border-[#e4c590]/40 rounded-full">
+                                                    <svg className="w-5 h-5 text-[#e4c590]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                                    </svg>
+                                                    <span className="text-sm font-bold text-[#e4c590]">{rankInfo.rank_name}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+                                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                                    </svg>
+                                                    <span className="text-sm font-semibold text-gray-400">{rankInfo.rank_name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 w-full sm:w-auto">
+                                            {rankInfo.rank === 'loyal' ? (
+                                                <p className="text-xs text-[#e4c590]/80 text-center sm:text-left">
+                                                    Tổng chi tiêu: <span className="font-semibold text-[#e4c590]">{Number(rankInfo.total_spent).toLocaleString('vi-VN')}đ</span>
+                                                </p>
+                                            ) : (
+                                                <div>
+                                                    <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                                                        <span>
+                                                            Đã chi: <span className="text-white font-semibold">{Number(rankInfo.total_spent).toLocaleString('vi-VN')}đ</span>
+                                                        </span>
+                                                        <span>
+                                                            Còn thiếu: <span className="text-[#e4c590] font-semibold">{Number(rankInfo.remaining).toLocaleString('vi-VN')}đ</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-[#e4c590] to-yellow-500 rounded-full transition-all duration-700"
+                                                            style={{ width: `${Math.min(100, (rankInfo.total_spent / rankInfo.threshold) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1 text-center sm:text-left">
+                                                        Chi tiêu đủ {Number(rankInfo.threshold).toLocaleString('vi-VN')}đ để lên hạng <span className="text-[#e4c590]">Khách hàng thân quen</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

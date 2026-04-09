@@ -83,6 +83,7 @@ const validateVoucherPayload = (payload) => {
     const usageLimit = parseNullableInteger(payload.usageLimit, "Giới hạn sử dụng", { allowZero: false });
     const expiryDate = parseExpiryDate(payload.expiryDate);
     const isActive = Boolean(payload.isActive);
+    const applicableRank = ['all', 'normal', 'loyal'].includes(payload.applicableRank) ? payload.applicableRank : 'all';
 
     if (!code) {
         throw createHttpError(400, "Mã voucher không được để trống.");
@@ -112,6 +113,7 @@ const validateVoucherPayload = (payload) => {
         maxDiscount,
         expiryDate,
         usageLimit,
+        applicableRank,
         isActive
     };
 };
@@ -179,7 +181,7 @@ const deleteVoucher = async (id) => {
     }
 };
 
-const validateVoucherForOrder = async (code, orderValue) => {
+const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal') => {
     const normalizedCode = String(code || "").trim().toUpperCase();
     const parsedOrderValue = Number(orderValue);
 
@@ -199,6 +201,11 @@ const validateVoucherForOrder = async (code, orderValue) => {
 
     if (!voucher.is_active) {
         throw createHttpError(400, "Voucher hiện không hoạt động.");
+    }
+
+    if (voucher.applicable_rank && voucher.applicable_rank !== 'all' && voucher.applicable_rank !== customerRank) {
+        const rankLabel = voucher.applicable_rank === 'loyal' ? 'Khách hàng thân quen' : 'Khách hàng mới';
+        throw createHttpError(400, `Voucher này chỉ áp dụng cho hạng "${rankLabel}".`);
     }
 
     if (voucher.expiry_date && new Date(voucher.expiry_date).getTime() < Date.now()) {

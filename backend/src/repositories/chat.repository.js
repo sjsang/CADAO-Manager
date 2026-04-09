@@ -468,6 +468,10 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
         `SELECT COUNT(*)::int AS total FROM chat_conversations WHERE is_bot_active = TRUE`
     );
 
+    const conversationsThisWeek = await db.query(
+        `SELECT COUNT(*)::int AS total FROM chat_conversations WHERE created_at >= NOW() - INTERVAL '7 days'`
+    );
+
     const messageStats = await db.query(
         `
             SELECT
@@ -490,17 +494,6 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
               ${dateFilter}
         `,
         params
-    );
-
-    const ratingStats = await db.query(
-        `
-            SELECT
-                COUNT(*)::int AS total_ratings,
-                ROUND(AVG(rating), 2) AS avg_rating,
-                COUNT(*) FILTER (WHERE rating >= 4)::int AS positive_ratings,
-                COUNT(*) FILTER (WHERE rating <= 2)::int AS negative_ratings
-            FROM chat_ratings
-        `
     );
 
     const dailyMessages = await db.query(
@@ -552,22 +545,18 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
         `
     );
 
-    const ratingDistribution = await db.query(
-        `
-            SELECT rating, COUNT(*)::int AS count
-            FROM chat_ratings
-            GROUP BY rating
-            ORDER BY rating ASC
-        `
-    );
+    const ms = messageStats.rows[0];
+    const totalMsg = Number(ms?.total_messages || 0);
+    const botMsg = Number(ms?.bot_messages || 0);
+    const botAutomationRate = totalMsg > 0 ? Math.round((botMsg / totalMsg) * 100) : 0;
 
     return {
         totalConversations: totalConversations.rows[0]?.total || 0,
         activeConversations: activeConversations.rows[0]?.total || 0,
-        ...messageStats.rows[0],
+        conversationsThisWeek: conversationsThisWeek.rows[0]?.total || 0,
+        ...ms,
+        botAutomationRate,
         handoffCount: handoffCount.rows[0]?.total || 0,
-        ...ratingStats.rows[0],
-        ratingDistribution: ratingDistribution.rows,
         dailyMessages: dailyMessages.rows,
         topQuestions: topQuestions.rows,
         avgResponseTimeSeconds: avgResponseTime.rows[0]?.avg_seconds || null
@@ -588,6 +577,41 @@ const getConversationSummaryData = async (conversationId) => {
     );
 
     return result.rows.reverse();
+};
+
+// #11 - Thông tin khách hàng để đặt hàng
+const getCustomerInfo = async (customerId) => {
+    const result = await db.query(
+        `SELECT id, full_name, phone_number FROM customers WHERE id = $1 LIMIT 1`,
+        [customerId]
+    );
+    return result.rows[0] || null;
+};
+
+// #12 - Địa chỉ mặc định của khách hàng
+const getCustomerDefaultAddress = async (customerId) => {
+    const result = await db.query(
+        `SELECT ca.address_line, w.id AS ward_id, w.name AS ward_name, w.shipping_fee
+         FROM customer_addresses ca
+         JOIN wards w ON w.id = ca.ward_id
+         WHERE ca.customer_id = $1 AND ca.is_default = TRUE
+         LIMIT 1`,
+        [customerId]
+    );
+    return result.rows[0] || null;
+};
+
+// #13 - Tìm voucher theo mã
+const getVoucherByCode = async (code) => {
+    const result = await db.query(
+        `SELECT id, code, discount_percent, discount_amount, min_order_value, max_discount,
+                expiry_date, usage_limit, used_count, is_active
+         FROM vouchers
+         WHERE UPPER(code) = UPPER($1)
+         LIMIT 1`,
+        [code]
+    );
+    return result.rows[0] || null;
 };
 
 module.exports = {
@@ -613,5 +637,8 @@ module.exports = {
     createChatRating,
     getChatRating,
     getChatDashboardStats,
-    getConversationSummaryData
+    getConversationSummaryData,
+    getCustomerInfo,
+    getCustomerDefaultAddress,
+    getVoucherByCode
 };

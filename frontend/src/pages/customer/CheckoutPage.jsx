@@ -7,6 +7,7 @@ import customerApi from "../../api/customerApi";
 import wardApi from "../../api/wardApi";
 import voucherApi from "../../api/voucherApi";
 import promotionApi from "../../api/promotionApi";
+import { buildPromotionMap } from "../../utils/promotionUtils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { notifyCustomer } from "../../utils/customerNotify";
@@ -92,13 +93,9 @@ const CheckoutPage = () => {
                     const itemIds = order.items.map(item => item.menu_item_id);
                     try {
                         const promoRes = await promotionApi.getActiveForItems(itemIds);
-                        const pMap = {};
+                        const priceMap = Object.fromEntries(order.items.map(i => [i.menu_item_id, Number(i.price)]));
+                        const pMap = buildPromotionMap(promoRes.data, priceMap);
                         let totalPromoDiscount = 0;
-                        for (const promo of promoRes.data) {
-                            if (!pMap[promo.menu_item_id] || promo.priority > pMap[promo.menu_item_id].priority) {
-                                pMap[promo.menu_item_id] = promo;
-                            }
-                        }
                         for (const item of order.items) {
                             const promo = pMap[item.menu_item_id];
                             if (promo) {

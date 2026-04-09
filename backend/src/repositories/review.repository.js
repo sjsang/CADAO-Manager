@@ -1,6 +1,15 @@
 const db = require('../config/db');
 
-const getFeaturedReviews = async () => {
+const getFeaturedReviews = async ({ page = 1, limit = 3 } = {}) => {
+    const safePage = Number.isInteger(Number(page)) && Number(page) > 0 ? Number(page) : 1;
+    const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 20) : 3;
+    const offset = (safePage - 1) * safeLimit;
+
+    const countResult = await db.query(
+        `SELECT COUNT(*)::int AS total FROM order_reviews WHERE is_featured = TRUE`
+    );
+    const totalItems = countResult.rows[0]?.total || 0;
+
     const query = `
         SELECT
             r.id,
@@ -15,10 +24,19 @@ const getFeaturedReviews = async () => {
         JOIN orders o ON o.id = r.order_id
         WHERE r.is_featured = TRUE
         ORDER BY r.created_at DESC
+        LIMIT $1 OFFSET $2
     `;
 
-    const result = await db.query(query);
-    return result.rows;
+    const result = await db.query(query, [safeLimit, offset]);
+    return {
+        data: result.rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const getRecentReviews = async (limit = 6) => {

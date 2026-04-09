@@ -8,6 +8,7 @@ import cartApi from "../../api/cartApi";
 import orderApi from "../../api/orderApi";
 import authApi from "../../api/authApi";
 import promotionApi from "../../api/promotionApi";
+import { buildPromotionMap } from "../../utils/promotionUtils";
 import { notifyCustomer } from "../../utils/customerNotify";
 
 const CartPage = () => {
@@ -58,14 +59,8 @@ const CartPage = () => {
         const itemIds = cartItems.map(item => item.menu_item_id);
         promotionApi.getActiveForItems(itemIds)
             .then(res => {
-                const map = {};
-                for (const promo of res.data) {
-                    const itemId = promo.menu_item_id;
-                    if (!map[itemId] || promo.priority > map[itemId].priority) {
-                        map[itemId] = promo;
-                    }
-                }
-                setPromotionMap(map);
+                const priceMap = Object.fromEntries(cartItems.map(i => [i.menu_item_id, Number(i.price)]));
+                setPromotionMap(buildPromotionMap(res.data, priceMap));
             })
             .catch(() => setPromotionMap({}));
     }, [cartItems]);

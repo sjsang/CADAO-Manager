@@ -47,6 +47,8 @@ CREATE TABLE customers (
     email VARCHAR(150) UNIQUE,
     avatar_url TEXT,
     password_hash TEXT,
+    rank VARCHAR(20) DEFAULT 'normal' CHECK (rank IN ('normal', 'loyal')),
+    total_spent NUMERIC(15,2) DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -186,6 +188,7 @@ CREATE TABLE vouchers (
     usage_limit INT,
     used_count INT DEFAULT 0,
 
+    applicable_rank VARCHAR(20) DEFAULT 'all' CHECK (applicable_rank IN ('all', 'normal', 'loyal')),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -297,7 +300,8 @@ CREATE TABLE promotions (
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
 
-    priority INT DEFAULT 0, -- xử lý khi trùng nhiều promotion
+    applicable_rank VARCHAR(20) DEFAULT 'all' CHECK (applicable_rank IN ('all', 'normal', 'loyal')),
+    image_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -379,4 +383,14 @@ CREATE TABLE chat_ratings (
     feedback TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(conversation_id, customer_id)
+);
+
+-- 22. Góp ý từ khách hàng (trang Liên hệ)
+CREATE TABLE feedbacks (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -69,7 +69,8 @@ const deleteVoucher = async (req, res) => {
 const validateVoucher = async (req, res) => {
     try {
         const { code, orderValue } = req.body || {};
-        const result = await voucherService.validateVoucherForOrder(code, orderValue);
+        const customerRank = req.user?.rank || 'normal';
+        const result = await voucherService.validateVoucherForOrder(code, orderValue, customerRank);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         sendError(res, error, "Không thể áp dụng voucher.");

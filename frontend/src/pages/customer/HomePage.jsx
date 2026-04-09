@@ -8,13 +8,15 @@ import reviewApi from "../../api/reviewApi";
 import menuApi from "../../api/menuApi";
 import cartApi from "../../api/cartApi";
 import promotionApi from "../../api/promotionApi";
+import { buildPromotionMap } from "../../utils/promotionUtils";
 import AddToCartModal from "../../components/customer/AddToCartModal";
 import { notifyCustomer } from "../../utils/customerNotify";
+import { formatDateDDMMYYYY } from "../../functions/formatDate";
 
 const StarRow = ({ rating }) => (
     <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((s) => (
-            <span key={s} className={`text-3xl ${s <= rating ? "text-yellow-500" : "text-gray-600"}`}>★</span>
+            <span key={s} className={`text-lg ${s <= rating ? "text-yellow-500" : "text-gray-600"}`}>★</span>
         ))}
     </div>
 );
@@ -22,11 +24,13 @@ const StarRow = ({ rating }) => (
 const HomePage = () => {
     const navigate = useNavigate();
     const [reviews, setReviews] = useState([]);
+    const [reviewPage, setReviewPage] = useState(1);
+    const [reviewTotalPages, setReviewTotalPages] = useState(1);
     const [bestSellerItems, setBestSellerItems] = useState([]);
     const [promotionMap, setPromotionMap] = useState({});
+    const [featuredPromotions, setFeaturedPromotions] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
-    const [activeReview, setActiveReview] = useState(0);
     const [activeSection, setActiveSection] = useState("home-hero");
     const isAutoSnappingRef = useRef(false);
     const snapTimerRef = useRef(null);
@@ -44,25 +48,16 @@ const HomePage = () => {
         { id: "home-hero", label: "Mở đầu" },
         { id: "home-featured", label: "Món nổi bật" },
         { id: "home-why", label: "Vì sao chọn Ca Dao" },
-        ...(reviews.length > 0 ? [{ id: "home-reviews", label: "Đánh giá" }] : [])
-    ], [reviews.length]);
-
-    useEffect(() => {
-        if (reviews.length <= 1) return;
-
-        const timer = setTimeout(() => {
-            setActiveReview((prev) => (prev + 1) % reviews.length);
-        }, 5000);
-
-        return () => clearTimeout(timer);
-    }, [reviews.length, activeReview]);
+        ...(featuredPromotions.length > 0 ? [{ id: "home-promos", label: "Khuyến mãi" }] : []),
+        ...(reviews.length > 0 || reviewPage > 1 ? [{ id: "home-reviews", label: "Đánh giá" }] : [])
+    ], [reviews.length, reviewPage, featuredPromotions.length]);
 
     useEffect(() => {
         const fetchReviews = async () => {
             try {
-                const featured = await reviewApi.getFeaturedReviews();
-                const featuredData = featured.data?.data || [];
-                setReviews(featuredData);
+                const res = await reviewApi.getFeaturedReviews({ page: reviewPage, limit: 3 });
+                setReviews(res.data?.data || []);
+                setReviewTotalPages(res.data?.pagination?.totalPages || 1);
             } catch {
                 setReviews([]);
             } finally {
@@ -71,16 +66,18 @@ const HomePage = () => {
         };
 
         fetchReviews();
-    }, []);
-
-    useEffect(() => {
-        if (activeReview >= reviews.length) setActiveReview(0);
-    }, [reviews.length]);
+    }, [reviewPage]);
 
     useEffect(() => {
         menuApi.getFeatured()
             .then((res) => { setBestSellerItems(res.data || []); AOS.refresh(); })
             .catch(() => setBestSellerItems([]));
+
+        promotionApi.getAll({ status: 'active', limit: 3 })
+            .then((res) => {
+                setFeaturedPromotions(res.data.data || []);
+            })
+            .catch(() => setFeaturedPromotions([]));
     }, []);
 
     useEffect(() => {
@@ -88,14 +85,8 @@ const HomePage = () => {
         const itemIds = bestSellerItems.map(item => item.id);
         promotionApi.getActiveForItems(itemIds)
             .then(res => {
-                const map = {};
-                for (const promo of res.data) {
-                    const itemId = promo.menu_item_id;
-                    if (!map[itemId] || promo.priority > map[itemId].priority) {
-                        map[itemId] = promo;
-                    }
-                }
-                setPromotionMap(map);
+                const priceMap = Object.fromEntries(bestSellerItems.map(i => [i.id, Number(i.price)]));
+                setPromotionMap(buildPromotionMap(res.data, priceMap));
             })
             .catch(() => setPromotionMap({}));
     }, [bestSellerItems]);
@@ -279,9 +270,9 @@ const HomePage = () => {
                 </div>
 
                 {bestSellerItems.length > 0 ? (
-                    <div className="grid gap-x-6 gap-y-28 md:grid-cols-2 lg:grid-cols-3 text-white">
+                    <div className="flex flex-wrap justify-center gap-6 text-white">
                         {bestSellerItems.map((item, index) => (
-                            <div key={item.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100} className="relative flex flex-col gap-6 p-6 bg-black/50 rounded-2xl border border-white/10">
+                            <div key={item.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100} className="relative flex flex-col gap-6 p-6 bg-black/50 rounded-2xl border border-white/10 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
                                 {promotionMap[item.id] && (
                                     <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
                                         -{promotionMap[item.id].discount_percent ? `${promotionMap[item.id].discount_percent}%` : `${Number(promotionMap[item.id].discount_amount).toLocaleString('vi-VN')}đ`}
@@ -409,7 +400,67 @@ const HomePage = () => {
                 </div>
             </section>
 
-            {reviews.length > 0 && (
+            {featuredPromotions.length > 0 && (
+                <section id="home-promos" className="w-7xl mx-auto py-20">
+                    <div data-aos="fade-up" className="text-center mb-8">
+                        <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Đừng bỏ lỡ những ưu đãi hấp dẫn đang chờ bạn</p>
+                        <h1 className="text-5xl font-bold mb-5 text-white">Khuyến mãi nổi bật</h1>
+                        <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
+                    </div>
+
+                    <div className="flex flex-wrap justify-center gap-6 text-white">
+                        {featuredPromotions.map((promo, index) => (
+                            <div
+                                key={promo.id}
+                                data-aos="fade-up"
+                                data-aos-delay={index * 100}
+                                className="group rounded-2xl border border-white/10 bg-black/50 overflow-hidden hover:border-[#e4c590]/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(228,197,144,0.08)] w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                            >
+                                {promo.image_url ? (
+                                    <div className="h-44 overflow-hidden">
+                                        <img
+                                            src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${promo.image_url}`}
+                                            alt={promo.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="h-44 bg-gradient-to-br from-[#e4c590]/20 to-transparent flex items-center justify-center">
+                                        <span className="text-4xl font-black text-[#e4c590]">
+                                            -{promo.discount_percent ? `${promo.discount_percent}%` : `${Number(promo.discount_amount).toLocaleString('vi-VN')}đ`}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="p-5">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h3 className="text-lg font-bold text-[#e4c590] line-clamp-1">{promo.name}</h3>
+                                        <span className="shrink-0 ml-2 bg-red-500/20 text-red-400 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                                            -{promo.discount_percent ? `${promo.discount_percent}%` : `${Number(promo.discount_amount).toLocaleString('vi-VN')}đ`}
+                                        </span>
+                                    </div>
+                                    <p className="text-gray-400 text-sm line-clamp-2 mb-3">{promo.description}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(promo.start_time).toLocaleDateString('vi-VN')} — {new Date(promo.end_time).toLocaleDateString('vi-VN')}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="text-center">
+                        <button
+                            onClick={() => navigate("/promotions")}
+                            data-aos="fade-up"
+                            className="group relative overflow-hidden w-fit px-6 py-3 mt-16 text-[#e4c590] border cursor-pointer"
+                        >
+                            <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></span>
+                            <span className="relative z-10 transition-colors duration-500 text-sm tracking-widest font-bold group-hover:text-black">XEM TẤT CẢ KHUYẾN MÃI</span>
+                        </button>
+                    </div>
+                </section>
+            )}
+
+            {(reviews.length > 0 || reviewPage > 1) && (
                 <section id="home-reviews" className="w-7xl mx-auto py-20">
                     <div data-aos="fade-up" className="text-center mb-8">
                         <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Những đánh giá nổi bật từ khách hàng đã dùng dịch vụ của Ca Dao</p>
@@ -417,61 +468,55 @@ const HomePage = () => {
                         <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
                     </div>
 
-                    <div data-aos="fade-up" data-aos-delay="100" className="relative">
-                        <div className="overflow-hidden">
-                            <div
-                                className="flex transition-transform duration-1300 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                                style={{ transform: `translateX(-${activeReview * 100}%)` }}
-                            >
-                                {reviews.map((review) => (
-                                    <div key={review.id} className="w-full shrink-0">
-                                        <div className="flex w-5xl h-100 mx-auto overflow-hidden bg-black/50 rounded-2xl border border-white/10">
-                                            <img
-                                                src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${review.customer_avatar}`}
-                                                alt={review.customer_name}
-                                                className="h-full object-cover"
-                                            />
-                                            <div className="flex flex-col gap-3 p-6">
-                                                <StarRow rating={Number(review.rating)} />
-                                                <p className="leading-relaxed font-medium text-gray-300">{review.content}</p>
-                                                <p className="font-bold text-white text-lg">- {review.customer_name}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {reviews.length > 1 && (
-                            <>
-                                <button
-                                    onClick={() => setActiveReview((prev) => (prev - 1 + reviews.length) % reviews.length)}
-                                    className="absolute top-1/2 left-0 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full border-2 border-white/20 bg-black/40 text-white hover:border-[#e4c590] hover:text-[#e4c590] transition-colors cursor-pointer"
-                                >
-                                    ‹
-                                </button>
-                                <button
-                                    onClick={() => setActiveReview((prev) => (prev + 1) % reviews.length)}
-                                    className="absolute top-1/2 right-0 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full border-2 border-white/20 bg-black/40 text-white hover:border-[#e4c590] hover:text-[#e4c590] transition-colors cursor-pointer"
-                                >
-                                    ›
-                                </button>
-                            </>
-                        )}
-
-                        {reviews.length > 1 && (
-                            <div className="flex justify-center gap-2 mt-6">
-                                {reviews.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setActiveReview(i)}
-                                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeReview ? "w-6 bg-[#e4c590]" : "w-2 bg-white/30 hover:bg-white/50"
-                                            }`}
+                    <div className="flex flex-wrap justify-center gap-6 text-white">
+                        {reviews.map((review, index) => (
+                            <div key={review.id} data-aos="fade-up" data-aos-delay={(index % 3) * 100} className="p-6 bg-black/50 rounded-2xl border border-white/10 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <img
+                                        src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${review.customer_avatar}`}
+                                        alt={review.customer_name}
+                                        className="h-15 w-15 object-cover rounded-full"
                                     />
-                                ))}
+                                    <div>
+                                        <p className="text-lg">{review.customer_name}</p>
+                                        <p className="text-sm text-slate-400">{formatDateDDMMYYYY(review.created_at)}</p>
+                                    </div>
+                                </div>
+                                <StarRow rating={Number(review.rating)} />
+                                <p className="mt-2 text-gray-400 text-sm leading-relaxed">{review.content}</p>
                             </div>
-                        )}
+                        ))}
                     </div>
+
+                    {reviewTotalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 mt-8">
+                            <button
+                                onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
+                                disabled={reviewPage <= 1}
+                                className="w-10 h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:border-[#e4c590] hover:text-[#e4c590] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                ‹
+                            </button>
+
+                            {Array.from({ length: reviewTotalPages }, (_, i) => i + 1).map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setReviewPage(p)}
+                                    className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-semibold transition-colors cursor-pointer ${p === reviewPage ? "bg-[#e4c590] text-black" : "border border-white/20 text-white hover:border-[#e4c590] hover:text-[#e4c590]"}`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+
+                            <button
+                                onClick={() => setReviewPage((p) => Math.min(reviewTotalPages, p + 1))}
+                                disabled={reviewPage >= reviewTotalPages}
+                                className="w-10 h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:border-[#e4c590] hover:text-[#e4c590] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                ›
+                            </button>
+                        </div>
+                    )}
 
                     <div className="text-center">
                         <button

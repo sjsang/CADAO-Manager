@@ -1,7 +1,46 @@
 const db = require('../config/db');
 
-// lấy tất cả khuyến mãi kèm phạm vi áp dụng
-const getPromotions = async () => {
+// lấy tất cả khuyến mãi kèm phạm vi áp dụng (có lọc, sắp xếp, phân trang)
+const getPromotions = async ({ search = '', status = 'all', sortBy = 'start_time', sortDir = 'desc', page = 1, limit = 10 } = {}) => {
+    const safePage = Math.max(1, parseInt(page) || 1);
+    const safeLimit = Math.min(100, Math.max(1, parseInt(limit) || 10));
+    const offset = (safePage - 1) * safeLimit;
+
+    const params = [];
+    const conditions = [];
+
+    if (search) {
+        params.push(`%${search}%`);
+        conditions.push(`p.name ILIKE $${params.length}`);
+    }
+
+    if (status === 'active') {
+        conditions.push(`p.is_active = TRUE AND p.start_time <= NOW() AND p.end_time >= NOW()`);
+    } else if (status === 'upcoming') {
+        conditions.push(`p.is_active = TRUE AND p.start_time > NOW()`);
+    } else if (status === 'expired') {
+        conditions.push(`p.end_time < NOW()`);
+    } else if (status === 'inactive') {
+        conditions.push(`p.is_active = FALSE`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sortMap = { name: 'p.name', start_time: 'p.start_time', end_time: 'p.end_time', created_at: 'p.created_at' };
+    const safeSortBy = sortMap[sortBy] || 'p.start_time';
+    const safeSortDir = String(sortDir).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    const countResult = await db.query(
+        `SELECT COUNT(*)::int AS total FROM promotions p ${whereClause}`,
+        params
+    );
+    const totalItems = countResult.rows[0]?.total || 0;
+
+    params.push(safeLimit);
+    const limitParam = params.length;
+    params.push(offset);
+    const offsetParam = params.length;
+
     const query = `
         SELECT p.*,
             COALESCE(
@@ -23,11 +62,22 @@ const getPromotions = async () => {
         LEFT JOIN categories c ON pc.category_id = c.id
         LEFT JOIN promotion_menu_items pmi ON p.id = pmi.promotion_id
         LEFT JOIN menu_items mi ON pmi.menu_item_id = mi.id
+        ${whereClause}
         GROUP BY p.id
-        ORDER BY p.priority DESC, p.start_time DESC
+        ORDER BY ${safeSortBy} ${safeSortDir}
+        LIMIT $${limitParam} OFFSET $${offsetParam}
     `;
-    const { rows } = await db.query(query);
-    return rows;
+
+    const { rows } = await db.query(query, params);
+    return {
+        data: rows,
+        pagination: {
+            page: safePage,
+            limit: safeLimit,
+            totalItems,
+            totalPages: Math.max(1, Math.ceil(totalItems / safeLimit))
+        }
+    };
 };
 
 const getPromotionById = async (id) => {
@@ -51,7 +101,7 @@ const createPromotion = async (promotionData) => {
             discount_amount,
             start_time,
             end_time,
-            priority,
+            applicable_rank,
             menu_type_ids = [],
             category_ids = [],
             menu_item_ids = []
@@ -59,8 +109,8 @@ const createPromotion = async (promotionData) => {
 
         const promotionQuery = `
             INSERT INTO promotions
-            (name, description, discount_percent, discount_amount, start_time, end_time, priority)
-            VALUES ($1,$2,$3,$4,$5,$6,$7)
+            (name, description, discount_percent, discount_amount, start_time, end_time, applicable_rank, image_url)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
             RETURNING id
         `;
 
@@ -71,7 +121,8 @@ const createPromotion = async (promotionData) => {
             discount_amount,
             start_time,
             end_time,
-            priority
+            applicable_rank || 'all',
+            promotionData.image_url || null
         ]);
 
         const promotionId = rows[0].id;
@@ -150,8 +201,8 @@ const updatePromotion = async (id, promotionData) => {
             discount_amount,
             start_time,
             end_time,
-            priority,
             is_active,
+            applicable_rank,
             menu_type_ids = [],
             category_ids = [],
             menu_item_ids = []
@@ -160,17 +211,24 @@ const updatePromotion = async (id, promotionData) => {
         const updateQuery = `
             UPDATE promotions
             SET name = $1, description = $2, discount_percent = $3, discount_amount = $4,
-                start_time = $5, end_time = $6, priority = $7, is_active = $8
+                start_time = $5, end_time = $6, is_active = $7, applicable_rank = $8
+                ${promotionData.image_url !== undefined ? ', image_url = $10' : ''}
             WHERE id = $9
             RETURNING id
         `;
 
-        const { rows } = await db.query(updateQuery, [
+        const params = [
             name, description, discount_percent, discount_amount,
-            start_time, end_time, priority,
+            start_time, end_time,
             is_active !== undefined ? is_active : true,
+            applicable_rank || 'all',
             id
-        ]);
+        ];
+        if (promotionData.image_url !== undefined) {
+            params.push(promotionData.image_url);
+        }
+
+        const { rows } = await db.query(updateQuery, params);
 
         if (rows.length === 0) {
             throw new Error("PROMOTION_NOT_FOUND");
@@ -231,7 +289,7 @@ const togglePromotion = async (id) => {
 };
 
 // Lấy khuyến mãi đang hoạt động áp dụng cho danh sách menu_item_ids
-const getActivePromotionsForItems = async (menuItemIds) => {
+const getActivePromotionsForItems = async (menuItemIds, customerRank = 'normal') => {
     if (!menuItemIds || menuItemIds.length === 0) return [];
 
     const query = `
@@ -240,7 +298,7 @@ const getActivePromotionsForItems = async (menuItemIds) => {
             p.name AS promotion_name,
             p.discount_percent,
             p.discount_amount,
-            p.priority,
+            p.applicable_rank,
             src.mi_id AS menu_item_id
         FROM promotions p
         JOIN LATERAL (
@@ -265,10 +323,11 @@ const getActivePromotionsForItems = async (menuItemIds) => {
         WHERE p.is_active = TRUE
           AND p.start_time <= NOW()
           AND p.end_time >= NOW()
-        ORDER BY src.mi_id, p.id, p.priority DESC
+          AND (p.applicable_rank = 'all' OR p.applicable_rank = $2)
+        ORDER BY src.mi_id, p.id
     `;
 
-    const { rows } = await db.query(query, [menuItemIds]);
+    const { rows } = await db.query(query, [menuItemIds, customerRank]);
     return rows;
 };
 

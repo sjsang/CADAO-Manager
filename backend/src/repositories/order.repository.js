@@ -432,7 +432,6 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                     p.name AS promotion_name,
                     p.discount_percent,
                     p.discount_amount,
-                    p.priority,
                     src.mi_id AS menu_item_id
                 FROM promotions p
                 JOIN LATERAL (
@@ -454,12 +453,29 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                 WHERE p.is_active = TRUE
                   AND p.start_time <= NOW()
                   AND p.end_time >= NOW()
-                ORDER BY src.mi_id, p.priority DESC
+                ORDER BY src.mi_id, p.id
             `, [menuItemIds]);
 
-            const promoMap = {};
+            // Gom tất cả promotion theo từng item
+            const promoGroups = {};
             for (const row of promoResult.rows) {
-                promoMap[row.menu_item_id] = row;
+                const id = row.menu_item_id;
+                if (!promoGroups[id]) promoGroups[id] = [];
+                promoGroups[id].push(row);
+            }
+
+            // Chọn promotion có lợi nhất (giảm nhiều nhất) cho mỗi item
+            const promoMap = {};
+            for (const oi of orderItems) {
+                const candidates = promoGroups[oi.menu_item_id];
+                if (!candidates || candidates.length === 0) continue;
+                const unitPrice = Number(oi.price);
+                promoMap[oi.menu_item_id] = candidates.reduce((best, promo) => {
+                    const discountOf = (p) => p.discount_percent
+                        ? unitPrice * Number(p.discount_percent) / 100
+                        : Math.min(Number(p.discount_amount ?? 0), unitPrice);
+                    return discountOf(promo) > discountOf(best) ? promo : best;
+                });
             }
 
             // Xóa promotion cũ nếu có

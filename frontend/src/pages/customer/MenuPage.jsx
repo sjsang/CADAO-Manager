@@ -4,6 +4,7 @@ import menuApi from "../../api/menuApi"
 import categoryApi from "../../api/categoryApi"
 import menuTypeApi from "../../api/menu_typeApi"
 import promotionApi from "../../api/promotionApi"
+import { buildPromotionMap } from "../../utils/promotionUtils"
 import Header from "../../components/customer/Header";
 import MenuItem from "../../components/customer/MenuItem";
 import CategorySection from "../../components/customer/CategorySection";
@@ -68,15 +69,8 @@ const MenuPage = () => {
         const itemIds = menuItems.map(item => item.id);
         promotionApi.getActiveForItems(itemIds)
             .then(res => {
-                const map = {};
-                for (const promo of res.data) {
-                    const itemId = promo.menu_item_id;
-                    // Chỉ lấy khuyến mãi ưu tiên cao nhất cho mỗi món
-                    if (!map[itemId] || promo.priority > map[itemId].priority) {
-                        map[itemId] = promo;
-                    }
-                }
-                setPromotionMap(map);
+                const priceMap = Object.fromEntries(menuItems.map(i => [i.id, Number(i.price)]));
+                setPromotionMap(buildPromotionMap(res.data, priceMap));
             })
             .catch(() => setPromotionMap({}));
     }, [menuItems]);
@@ -95,6 +89,7 @@ const MenuPage = () => {
         window.addEventListener("scroll", onScroll, { passive: true });
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
+
 
     return (
         <>

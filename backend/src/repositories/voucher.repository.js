@@ -51,6 +51,7 @@ const getVouchers = async ({ search = "", sortBy = "created_at", sortDir = "desc
             expiry_date,
             usage_limit,
             used_count,
+            applicable_rank,
             is_active,
             created_at
         ${fromWhere}
@@ -78,6 +79,7 @@ const createVoucher = async ({
     maxDiscount,
     expiryDate,
     usageLimit,
+    applicableRank,
     isActive
 }) => {
     const result = await db.query(
@@ -90,9 +92,10 @@ const createVoucher = async ({
                 max_discount,
                 expiry_date,
                 usage_limit,
+                applicable_rank,
                 is_active
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING
                 id,
                 code,
@@ -103,10 +106,11 @@ const createVoucher = async ({
                 expiry_date,
                 usage_limit,
                 used_count,
+                applicable_rank,
                 is_active,
                 created_at
         `,
-        [code, discountPercent, discountAmount, minOrderValue, maxDiscount, expiryDate, usageLimit, isActive]
+        [code, discountPercent, discountAmount, minOrderValue, maxDiscount, expiryDate, usageLimit, applicableRank, isActive]
     );
 
     return result.rows[0];
@@ -125,6 +129,7 @@ const getVoucherByCode = async (code) => {
                 expiry_date,
                 usage_limit,
                 used_count,
+                applicable_rank,
                 is_active,
                 created_at
             FROM vouchers
@@ -150,6 +155,7 @@ const getVoucherById = async (id) => {
                 expiry_date,
                 usage_limit,
                 used_count,
+                applicable_rank,
                 is_active,
                 created_at
             FROM vouchers
@@ -172,6 +178,7 @@ const updateVoucher = async (
         maxDiscount,
         expiryDate,
         usageLimit,
+        applicableRank,
         isActive
     }
 ) => {
@@ -186,8 +193,9 @@ const updateVoucher = async (
                 max_discount = $5,
                 expiry_date = $6,
                 usage_limit = $7,
-                is_active = $8
-            WHERE id = $9
+                applicable_rank = $8,
+                is_active = $9
+            WHERE id = $10
             RETURNING
                 id,
                 code,
@@ -198,10 +206,11 @@ const updateVoucher = async (
                 expiry_date,
                 usage_limit,
                 used_count,
+                applicable_rank,
                 is_active,
                 created_at
         `,
-        [code, discountPercent, discountAmount, minOrderValue, maxDiscount, expiryDate, usageLimit, isActive, id]
+        [code, discountPercent, discountAmount, minOrderValue, maxDiscount, expiryDate, usageLimit, applicableRank, isActive, id]
     );
 
     return result.rows[0] || null;
@@ -222,6 +231,7 @@ const deleteVoucher = async (id) => {
                 expiry_date,
                 usage_limit,
                 used_count,
+                applicable_rank,
                 is_active,
                 created_at
         `,

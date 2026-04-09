@@ -227,6 +227,17 @@ const updateCustomerAvatar = async (req, res) => {
     }
 };
 
+const getMyRank = async (req, res) => {
+    try {
+        const customerId = req.user.id;
+        const rankInfo = await customerService.getCustomerRank(customerId);
+        res.status(200).json({ success: true, data: rankInfo });
+    } catch (error) {
+        console.error('Error fetching customer rank:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch rank info' });
+    }
+};
+
 module.exports = {
     getCustomers,
     createCustomerByAdmin,
@@ -239,5 +250,6 @@ module.exports = {
     deleteAddress,
     setDefaultAddress,
     getCustomerById,
-    toggleCustomerStatus
+    toggleCustomerStatus,
+    getMyRank
 };

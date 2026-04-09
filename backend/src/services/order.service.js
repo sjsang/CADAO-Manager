@@ -101,9 +101,35 @@ const notifyCustomerOrderStatus = async (orderCode, newStatus) => {
         const order = await orderRepository.getOrderByOrderCode(orderCode);
         if (order && order.customer_id) {
             await notificationService.notifyOrderStatusChange(order.customer_id, orderCode, newStatus);
+
+            // Kiểm tra thăng hạng khi đơn hoàn thành
+            if (newStatus === 'completed') {
+                checkAndNotifyRankUp(order.customer_id);
+            }
         }
     } catch (err) {
         console.error("Failed to create order notification:", err.message);
+    }
+};
+
+// Kiểm tra, cập nhật DB và gửi thông báo thăng hạng
+const checkAndNotifyRankUp = async (customerId) => {
+    try {
+        const customerRepository = require("../repositories/customer.repository");
+        const customerService = require("./customer.service");
+
+        const oldCustomer = await customerRepository.getCustomerById(customerId);
+        const oldRank = oldCustomer?.rank || 'normal';
+
+        // Tính lại tổng chi tiêu và cập nhật rank + total_spent vào DB
+        const { rank: newRank } = await customerService.recalcAndUpdateRank(customerId);
+
+        // Chỉ thông báo khi vừa thăng hạng (trước đó normal, giờ loyal)
+        if (oldRank === 'normal' && newRank === 'loyal') {
+            await notificationService.notifyRankUp(customerId);
+        }
+    } catch (err) {
+        console.error("Failed to check rank up:", err.message);
     }
 };
 

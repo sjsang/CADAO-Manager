@@ -127,6 +127,13 @@ const MenuCreate = () => {
                 />
 
                 <div className="p-6">
+                    <button
+                        onClick={() => navigate("/admin/menus")}
+                        className="mb-4 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                    >
+                        ← Quay lại danh sách
+                    </button>
+
                     <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-3">
                         <section className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-800">Thông tin món ăn</h2>

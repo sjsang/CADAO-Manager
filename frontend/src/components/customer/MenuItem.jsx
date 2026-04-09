@@ -3,9 +3,16 @@ import AddToCartModal from "./AddToCartModal";
 import cartApi from "../../api/cartApi";
 import { notifyCustomer } from "../../utils/customerNotify";
 
-const MenuItem = ({ item }) => {
+const MenuItem = ({ item, promotion }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const originalPrice = Number(item.price || 0);
+    const discountedPrice = promotion
+        ? promotion.discount_percent
+            ? Math.round(originalPrice * (1 - promotion.discount_percent / 100))
+            : Math.max(0, originalPrice - Number(promotion.discount_amount))
+        : null;
 
     const handleAddToCart = async ({ quantity, note }) => {
         setLoading(true);
@@ -25,6 +32,11 @@ const MenuItem = ({ item }) => {
     return (
         <div>
             <div className="relative">
+                {promotion && (
+                    <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                        -{promotion.discount_percent ? `${promotion.discount_percent}%` : `${Number(promotion.discount_amount).toLocaleString('vi-VN')}đ`}
+                    </span>
+                )}
                 <div className="w-full h-60">
                     <img
                         src={`https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${item.image_url}`}
@@ -33,10 +45,25 @@ const MenuItem = ({ item }) => {
                     />
                 </div>
                 <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold text-[#e4c590] border border-[#e4c590]/40">
-                    {Number(item.price).toLocaleString('vi-VN')}đ
+                    {discountedPrice !== null ? (
+                        <span className="flex items-center gap-1.5">
+                            <span className="text-gray-500 line-through text-xs">{originalPrice.toLocaleString('vi-VN')}đ</span>
+                            <span>{discountedPrice.toLocaleString('vi-VN')}đ</span>
+                        </span>
+                    ) : (
+                        <>{originalPrice.toLocaleString('vi-VN')}đ</>
+                    )}
                 </div>
             </div>
             <p className="text-base text-center font-semibold mt-3 mb-1">{item.name}</p>
+
+            <div className="flex items-center justify-center gap-3 text-xs mb-1">
+                <span className="text-gray-500">Đã bán: {Number(item.sold_count || 0)}</span>
+                {Number(item.avg_rating || 0) > 0 && (
+                    <span className="text-amber-300 font-semibold">★ {Number(item.avg_rating).toFixed(1)}/5</span>
+                )}
+            </div>
+
             <p className="text-gray-400 text-sm text-center leading-relaxed">{item.description}</p>
             <button
                 className="group relative overflow-hidden w-full mt-3 py-2.5 border border-[#e4c590] text-[#e4c590] cursor-pointer"

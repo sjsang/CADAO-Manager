@@ -68,8 +68,18 @@ const notifyAllNewVoucher = async (voucherCode) => {
     return await notificationRepository.createNotificationForAllCustomers({
         type: 'voucher',
         title: `Voucher mới: ${voucherCode}`,
-        message: `Mã giảm giá "${voucherCode}" vừa được phát hành. Áp dụng ngay khi thanh toán!`,
-        link: '/menus'
+        message: `Mã giảm giá "${voucherCode}" vừa được phát hành. Xem ngay!`,
+        link: '/promotions'
+    });
+};
+
+const notifyRankUp = async (customerId) => {
+    return await notificationRepository.createNotification({
+        customerId,
+        type: 'rank',
+        title: 'Chúc mừng! Bạn đã được thăng hạng',
+        message: 'Bạn đã được nâng cấp lên hạng "Khách hàng thân quen". Cảm ơn bạn đã đồng hành cùng chúng tôi!',
+        link: '/profile'
     });
 };
 
@@ -83,5 +93,6 @@ module.exports = {
     notifyOrderStatusChange,
     notifyNewPromotion,
     notifyAllNewPromotion,
-    notifyAllNewVoucher
+    notifyAllNewVoucher,
+    notifyRankUp
 };

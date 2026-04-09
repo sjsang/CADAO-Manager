@@ -34,8 +34,8 @@ const SideBarMenu = ({ activePage }) => {
         { key: "dashboard", label: "Tổng quan", path: "/admin/dashboard", icon: "fa-solid fa-chart-pie text-sky-500" },
         { key: "orders", label: "Đơn hàng", path: "/admin/orders", icon: "fa-solid fa-receipt text-emerald-500" },
         { key: "chat", label: "Hội thoại", path: "/admin/chats", icon: "fa-solid fa-comments text-indigo-500" },
-        { key: "chat-stats", label: "TK Chatbot", path: "/admin/chat-stats", icon: "fa-solid fa-robot text-violet-500" },
         { key: "reviews", label: "Đánh giá", path: "/admin/reviews", icon: "fa-solid fa-star text-amber-500" },
+        { key: "feedbacks", label: "Góp ý", path: "/admin/feedbacks", icon: "fa-solid fa-envelope text-lime-500" },
 
         { key: "menu", label: "Thực đơn", path: "/admin/menus", icon: "fa-solid fa-utensils text-orange-500" },
         { key: "promotions", label: "Khuyến mãi", path: "/admin/promotions", icon: "fa-solid fa-gift text-pink-500" },

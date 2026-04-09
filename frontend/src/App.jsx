@@ -30,11 +30,21 @@ import WardManager from './pages/admin/WardManager'
 import VoucherManager from './pages/admin/VoucherManager'
 import ReviewManager from './pages/admin/ReviewManager'
 import ChatManager from './pages/admin/ChatManager'
-import ChatDashboard from './pages/admin/ChatDashboard'
 import ShipperDeliveries from './pages/shipper/ShipperDeliveries'
 import CustomerToast from './components/customer/CustomerToast'
 import CustomerChatWidget from './components/customer/CustomerChatWidget'
 import PromotionManager from './pages/admin/PromotionManager'
+import PromotionCreate from './pages/admin/PromotionCreate'
+import PromotionDetail from './pages/admin/PromotionDetail'
+import CategoryCreate from './pages/admin/CategoryCreate'
+import CategoryDetail from './pages/admin/CategoryDetail'
+import WardCreate from './pages/admin/WardCreate'
+import WardDetail from './pages/admin/WardDetail'
+import VoucherCreate from './pages/admin/VoucherCreate'
+import VoucherDetail from './pages/admin/VoucherDetail'
+import CustomerCreate from './pages/admin/CustomerCreate'
+import UserCreate from './pages/admin/UserCreate'
+import FeedbackManager from './pages/admin/FeedbackManager'
 
 const getTokenPayload = () => {
   const token = sessionStorage.getItem('token');
@@ -142,20 +152,30 @@ const App = () => {
         <Route path="/admin/orders/:orderCode" element={<OrderManagerRoute><AdminOrderDetail /></OrderManagerRoute>} />
         <Route path="/admin/menus" element={<AdminRoute><MenuManager /></AdminRoute>} />
         <Route path="/admin/menu-categories" element={<AdminRoute><MenuCategoryManager /></AdminRoute>} />
+        <Route path="/admin/menu-categories/add" element={<AdminRoute><CategoryCreate /></AdminRoute>} />
+        <Route path="/admin/menu-categories/:id" element={<AdminRoute><CategoryDetail /></AdminRoute>} />
         <Route path="/admin/menus/add" element={<AdminRoute><MenuCreate /></AdminRoute>} />
         <Route path="/admin/menus/:id" element={<AdminRoute><MenuDetail /></AdminRoute>} />
         <Route path="/admin/customers" element={<AdminRoute><CustomerManager /></AdminRoute>} />
+        <Route path="/admin/customers/add" element={<AdminRoute><CustomerCreate /></AdminRoute>} />
         <Route path="/admin/customers/:id" element={<AdminRoute><CustomerDetail /></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><UserManagerPage /></AdminRoute>} />
+        <Route path="/admin/users/add" element={<AdminRoute><UserCreate /></AdminRoute>} />
         <Route path="/admin/users/:id" element={<AdminRoute><UserDetailPage /></AdminRoute>} />
         <Route path="/admin/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
         <Route path="/profile" element={<PortalRoute><UserProfilePage /></PortalRoute>} />
         <Route path="/admin/wards" element={<AdminRoute><WardManager /></AdminRoute>} />
+        <Route path="/admin/wards/add" element={<AdminRoute><WardCreate /></AdminRoute>} />
+        <Route path="/admin/wards/:id" element={<AdminRoute><WardDetail /></AdminRoute>} />
         <Route path="/admin/vouchers" element={<AdminRoute><VoucherManager /></AdminRoute>} />
+        <Route path="/admin/vouchers/add" element={<AdminRoute><VoucherCreate /></AdminRoute>} />
+        <Route path="/admin/vouchers/:id" element={<AdminRoute><VoucherDetail /></AdminRoute>} />
         <Route path="/admin/reviews" element={<AdminRoute><ReviewManager /></AdminRoute>} />
         <Route path="/admin/chats" element={<AdminRoute><ChatManager /></AdminRoute>} />
-        <Route path="/admin/chat-stats" element={<AdminRoute><ChatDashboard /></AdminRoute>} />
         <Route path="/admin/promotions" element={<AdminRoute><PromotionManager /></AdminRoute>} />
+        <Route path="/admin/promotions/add" element={<AdminRoute><PromotionCreate /></AdminRoute>} />
+        <Route path="/admin/promotions/:id" element={<AdminRoute><PromotionDetail /></AdminRoute>} />
+        <Route path="/admin/feedbacks" element={<AdminRoute><FeedbackManager /></AdminRoute>} />
         <Route path="/shipper/deliveries" element={<ShipperRoute><ShipperDeliveries /></ShipperRoute>} />
       </Routes>
       <CustomerToast />

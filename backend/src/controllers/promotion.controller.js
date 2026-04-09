@@ -3,8 +3,9 @@ const notificationService = require('../services/notification.service');
 
 const getPromotions = async (req, res) => {
     try {
-        const promotions = await promotionService.getPromotions();
-        res.json(promotions);
+        const { search, status, sortBy, sortDir, page, limit } = req.query;
+        const result = await promotionService.getPromotions({ search, status, sortBy, sortDir, page, limit });
+        res.json(result);
     } catch (error) {
         console.error('Error fetching promotions:', error);
         res.status(500).json({ error: 'Failed to fetch promotions' });
@@ -26,9 +27,18 @@ const getPromotionById = async (req, res) => {
 };
 
 const createPromotion = async (req, res) => {
-    const promotionData = req.body;
     try {
-        const newPromotion = await promotionService.createPromotion(promotionData);
+        const promotionData = { ...req.body };
+        if (promotionData.menu_type_ids && typeof promotionData.menu_type_ids === 'string') {
+            promotionData.menu_type_ids = JSON.parse(promotionData.menu_type_ids);
+        }
+        if (promotionData.category_ids && typeof promotionData.category_ids === 'string') {
+            promotionData.category_ids = JSON.parse(promotionData.category_ids);
+        }
+        if (promotionData.menu_item_ids && typeof promotionData.menu_item_ids === 'string') {
+            promotionData.menu_item_ids = JSON.parse(promotionData.menu_item_ids);
+        }
+        const newPromotion = await promotionService.createPromotion(promotionData, req.file);
 
         // Gửi thông báo cho tất cả khách hàng
         notificationService.notifyAllNewPromotion(promotionData.name).catch(err =>
@@ -38,22 +48,31 @@ const createPromotion = async (req, res) => {
         res.status(201).json(newPromotion);
     } catch (error) {
         console.error('Error creating promotion:', error);
-        res.status(500).json({ error: 'Failed to create promotion' });
+        res.status(error.status || 500).json({ error: error.message || 'Failed to create promotion' });
     }
 };
 
 const updatePromotion = async (req, res) => {
     const { id } = req.params;
-    const promotionData = req.body;
     try {
-        const result = await promotionService.updatePromotion(id, promotionData);
+        const promotionData = { ...req.body };
+        if (promotionData.menu_type_ids && typeof promotionData.menu_type_ids === 'string') {
+            promotionData.menu_type_ids = JSON.parse(promotionData.menu_type_ids);
+        }
+        if (promotionData.category_ids && typeof promotionData.category_ids === 'string') {
+            promotionData.category_ids = JSON.parse(promotionData.category_ids);
+        }
+        if (promotionData.menu_item_ids && typeof promotionData.menu_item_ids === 'string') {
+            promotionData.menu_item_ids = JSON.parse(promotionData.menu_item_ids);
+        }
+        const result = await promotionService.updatePromotion(id, promotionData, req.file);
         res.json(result);
     } catch (error) {
         if (error.message === 'PROMOTION_NOT_FOUND') {
             return res.status(404).json({ error: 'Promotion not found' });
         }
         console.error('Error updating promotion:', error);
-        res.status(500).json({ error: 'Failed to update promotion' });
+        res.status(error.status || 500).json({ error: error.message || 'Failed to update promotion' });
     }
 };
 
@@ -91,7 +110,8 @@ const getActivePromotionsForItems = async (req, res) => {
         if (!Array.isArray(menu_item_ids) || menu_item_ids.length === 0) {
             return res.json([]);
         }
-        const promotions = await promotionService.getActivePromotionsForItems(menu_item_ids);
+        const customerRank = req.user?.rank || 'normal';
+        const promotions = await promotionService.getActivePromotionsForItems(menu_item_ids, customerRank);
         res.json(promotions);
     } catch (error) {
         console.error('Error fetching active promotions for items:', error);

@@ -2,8 +2,10 @@ const reviewRepository = require('../repositories/review.repository');
 
 const getFeaturedReviews = async (req, res) => {
     try {
-        const reviews = await reviewRepository.getFeaturedReviews();
-        res.status(200).json({ success: true, data: reviews });
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 3;
+        const result = await reviewRepository.getFeaturedReviews({ page, limit });
+        res.status(200).json({ success: true, data: result.data, pagination: result.pagination });
     } catch (error) {
         console.error('Error fetching featured reviews:', error);
         res.status(500).json({ success: false, message: 'Không thể tải đánh giá nổi bật.' });

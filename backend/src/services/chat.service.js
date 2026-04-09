@@ -1,10 +1,11 @@
 const OpenAI = require("openai");
 const chatRepository = require("../repositories/chat.repository");
 const cartRepository = require("../repositories/cart.repository");
+const orderRepository = require("../repositories/order.repository");
 
 const AI_MODEL = process.env.AI_CHAT_MODEL || "openai/gpt-4o-mini";
 const AI_TIMEOUT_MS = 15_000;
-const HISTORY_LIMIT = 6;
+const HISTORY_LIMIT = 8;
 const FALLBACK_MSG = "Xin lỗi bạn, mình đang gặp sự cố nhỏ. Bạn vui lòng thử lại nhé!";
 
 const createHttpError = (status, message) => {
@@ -44,7 +45,7 @@ const callAI = async (payload) => {
     ]);
 };
 
-const SYSTEM_PROMPT = `Bạn là trợ lý AI tư vấn nhà hàng Ca Dao.
+const SYSTEM_PROMPT = `Bạn là trợ lý AI thông minh của nhà hàng Ca Dao, có thể tư vấn và hoàn thành đặt hàng cho khách.
 
 THÔNG TIN NHÀ HÀNG:
 - Tên: Nhà hàng Ca Dao
@@ -58,14 +59,27 @@ QUY TẮC GIAO TIẾP:
 - Trả lời ngắn gọn, rõ ràng, tối đa 4-6 dòng.
 - Không bịa thông tin món ăn, giá, voucher.
 
-KHI TƯ VẤN:
+KHI TƯ VẤN THỰC ĐƠN:
 - Khách hỏi món ăn / danh mục / loại món: dùng tool search_menu_items.
 - Khách hỏi món rẻ nhất hoặc đắt nhất: dùng tool get_menu_items_by_price.
 - Khách hỏi ưu đãi / mã giảm / voucher: dùng tool get_promotions.
-- Nếu có voucher thì nhắc khách nhập mã ở bước thanh toán.
 - Khách muốn thêm món vào giỏ: dùng tool add_to_cart_item.
-- Khách hỏi đơn hàng / giao đến đâu: dùng tool track_orders.
 - Khách hỏi "trước mình hay gọi gì" / gợi ý: dùng tool get_order_history.
+
+KHI THEO DÕI ĐƠN HÀNG:
+- Khách hỏi đơn hàng / giao đến đâu: dùng tool track_orders.
+
+KHI ĐẶT HÀNG (quy trình hoàn chỉnh):
+1. Khách muốn xem giỏ hàng: dùng tool view_cart.
+2. Khách muốn biết địa chỉ giao hàng: dùng tool get_delivery_info.
+3. Khi khách muốn đặt hàng:
+   - Dùng tool view_cart để kiểm tra giỏ hàng.
+   - Hỏi khách có mã voucher không (nếu chưa đề cập).
+   - Hỏi khách có ghi chú gì cho đơn không.
+   - Dùng tool place_order để hoàn tất đơn hàng.
+   - Sau khi đặt thành công: thông báo mã đơn, tổng tiền, địa chỉ giao.
+4. Nếu khách chưa có địa chỉ mặc định: hướng dẫn vào mục "Địa chỉ" ở trang cá nhân để thêm.
+5. Đơn hàng đặt qua chatbot sẽ thanh toán khi nhận hàng (COD).
 
 XỬ LÝ TỒN KHO:
 - is_available = false: báo món tạm hết, gợi ý món khác nếu có.
@@ -170,6 +184,51 @@ const tools = [
                     }
                 },
                 required: ["itemName"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "view_cart",
+            description: "Xem giỏ hàng hiện tại của khách, bao gồm danh sách món và tổng tiền.",
+            parameters: {
+                type: "object",
+                properties: {},
+                required: []
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_delivery_info",
+            description: "Lấy thông tin địa chỉ giao hàng mặc định của khách hàng.",
+            parameters: {
+                type: "object",
+                properties: {},
+                required: []
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "place_order",
+            description: "Đặt hàng hoàn chỉnh từ giỏ hàng hiện tại của khách (thanh toán COD). Gọi sau khi đã xác nhận giỏ hàng và địa chỉ với khách.",
+            parameters: {
+                type: "object",
+                properties: {
+                    voucherCode: {
+                        type: "string",
+                        description: "Mã voucher áp dụng (tuỳ chọn)"
+                    },
+                    notes: {
+                        type: "string",
+                        description: "Ghi chú cho đơn hàng (tuỳ chọn)"
+                    }
+                },
+                required: []
             }
         }
     }
@@ -316,6 +375,119 @@ const executeAddToCart = async (customerId, itemName, quantity = 1) => {
     });
 };
 
+const executeViewCart = async (customerId) => {
+    const { items, totalCart } = await cartRepository.getCartItems(customerId);
+    if (!items || items.length === 0) {
+        return JSON.stringify({ message: "Giỏ hàng của bạn đang trống." });
+    }
+
+    return JSON.stringify({
+        items: items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: Number(item.price) * Number(item.quantity),
+            note: item.note || null
+        })),
+        totalCart: Number(totalCart)
+    });
+};
+
+const executeGetDeliveryInfo = async (customerId) => {
+    const address = await chatRepository.getCustomerDefaultAddress(customerId);
+    if (!address) {
+        return JSON.stringify({
+            message: "Bạn chưa có địa chỉ giao hàng mặc định. Vui lòng vào trang cá nhân → mục \"Địa chỉ\" để thêm địa chỉ."
+        });
+    }
+
+    return JSON.stringify({
+        address: address.address_line,
+        ward: address.ward_name,
+        shippingFee: Number(address.shipping_fee)
+    });
+};
+
+const executePlaceOrder = async (customerId, voucherCode = null, notes = null) => {
+    // 1. Kiểm tra giỏ hàng
+    const { items, totalCart } = await cartRepository.getCartItems(customerId);
+    if (!items || items.length === 0) {
+        return JSON.stringify({ success: false, message: "Giỏ hàng đang trống. Hãy thêm món trước nhé!" });
+    }
+
+    // 2. Lấy thông tin khách hàng
+    const customer = await chatRepository.getCustomerInfo(customerId);
+    if (!customer || !customer.phone_number) {
+        return JSON.stringify({ success: false, message: "Vui lòng cập nhật số điện thoại trong hồ sơ để đặt hàng." });
+    }
+
+    // 3. Lấy địa chỉ mặc định
+    const address = await chatRepository.getCustomerDefaultAddress(customerId);
+    if (!address) {
+        return JSON.stringify({
+            success: false,
+            message: "Bạn chưa có địa chỉ giao hàng mặc định. Vào trang cá nhân → mục \"Địa chỉ\" để thêm nhé!"
+        });
+    }
+
+    // 4. Tìm voucher nếu có
+    let voucherId = null;
+    let voucherWarning = null;
+    if (voucherCode) {
+        const voucher = await chatRepository.getVoucherByCode(String(voucherCode).trim());
+        if (voucher && voucher.is_active) {
+            voucherId = voucher.id;
+        } else {
+            voucherWarning = `Mã voucher "${voucherCode}" không hợp lệ hoặc đã hết hạn. Đơn hàng sẽ được đặt không áp dụng voucher.`;
+        }
+    }
+
+    // 5. Tạo order (trạng thái 'cart')
+    const orderItems = items.map((item) => ({
+        menu_item_id: item.menu_item_id,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+        note: item.note || null
+    }));
+
+    const createData = {
+        deliveryFullName: customer.full_name,
+        deliveryPhone: customer.phone_number,
+        items: orderItems,
+        discountAmount: 0,
+        notes: notes || null
+    };
+
+    const { orderCode, totalAmount: cartTotal } = await orderRepository.createOrUpdateOrder(customerId, createData);
+
+    // 6. Xác nhận order (chuyển từ 'cart' → 'pending' với COD)
+    const confirmData = {
+        delivery_full_name: customer.full_name,
+        delivery_phone: customer.phone_number,
+        delivery_address: address.address_line,
+        delivery_ward_name: address.ward_name,
+        subtotal: Number(totalCart),
+        voucher_id: voucherId,
+        notes: notes || null
+    };
+
+    const result = await orderRepository.confirmOrder(orderCode, confirmData, "cash");
+
+    // 7. Xóa giỏ hàng
+    await cartRepository.deleteAllCartItems(customerId);
+
+    return JSON.stringify({
+        success: true,
+        orderCode,
+        totalAmount: result.totalAmount,
+        discountAmount: result.discountAmount,
+        shippingFee: Number(address.shipping_fee),
+        deliveryAddress: `${address.address_line}, ${address.ward_name}`,
+        paymentMethod: "Thanh toán khi nhận hàng (COD)",
+        voucherWarning: voucherWarning || null
+    });
+};
+
 const startConversation = async (customerId) => {
     const admin = await chatRepository.getAdminUser();
     if (!admin) {
@@ -405,6 +577,7 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
         });
 
         let aiResponseMsg = firstResponse.choices[0]?.message || { content: "" };
+        let cartUpdated = false;
 
         if (aiResponseMsg.tool_calls?.length > 0) {
             messages.push(aiResponseMsg);
@@ -435,6 +608,20 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
 
                 if (toolCall.function.name === "add_to_cart_item") {
                     dbResult = await executeAddToCart(conversation.customer_id, args.itemName, args.quantity);
+                    try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
+                }
+
+                if (toolCall.function.name === "view_cart") {
+                    dbResult = await executeViewCart(conversation.customer_id);
+                }
+
+                if (toolCall.function.name === "get_delivery_info") {
+                    dbResult = await executeGetDeliveryInfo(conversation.customer_id);
+                }
+
+                if (toolCall.function.name === "place_order") {
+                    dbResult = await executePlaceOrder(conversation.customer_id, args.voucherCode, args.notes);
+                    try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
                 }
 
                 messages.push({
@@ -465,7 +652,8 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
         return {
             userMessage,
             aiMessage,
-            isBotActive: true
+            isBotActive: true,
+            cartUpdated
         };
     } catch (error) {
         console.error("AI chat error:", error.message || error);

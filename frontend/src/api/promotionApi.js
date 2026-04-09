@@ -1,21 +1,38 @@
 import axiosClient from './axiosClient';
 
 const promotionApi = {
-    getAll: () => {
-        const url = '/promotions';
-        return axiosClient.get(url);
+    getAll: (params = {}) => {
+        return axiosClient.get('/promotions', { params });
     },
     getById: (id) => {
         const url = `/promotions/${id}`;
         return axiosClient.get(url);
     },
-    create: (data) => {
-        const url = '/promotions';
-        return axiosClient.post(url, data);
+    create: (data, imageFile) => {
+        const formData = new FormData();
+        for (const key of Object.keys(data)) {
+            const val = data[key];
+            if (Array.isArray(val)) {
+                formData.append(key, JSON.stringify(val));
+            } else if (val !== null && val !== undefined) {
+                formData.append(key, val);
+            }
+        }
+        if (imageFile) formData.append('image', imageFile);
+        return axiosClient.post('/promotions', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
-    update: (id, data) => {
-        const url = `/promotions/${id}`;
-        return axiosClient.put(url, data);
+    update: (id, data, imageFile) => {
+        const formData = new FormData();
+        for (const key of Object.keys(data)) {
+            const val = data[key];
+            if (Array.isArray(val)) {
+                formData.append(key, JSON.stringify(val));
+            } else if (val !== null && val !== undefined) {
+                formData.append(key, val);
+            }
+        }
+        if (imageFile) formData.append('image', imageFile);
+        return axiosClient.put(`/promotions/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     },
     delete: (id) => {
         const url = `/promotions/${id}`;

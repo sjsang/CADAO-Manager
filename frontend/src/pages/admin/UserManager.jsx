@@ -5,7 +5,6 @@ import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
-import { notifyCustomer } from "../../utils/customerNotify";
 
 const PAGE_SIZE = 8;
 
@@ -38,15 +37,6 @@ const UserManagerPage = () => {
     const [sortDir, setSortDir] = useState("desc");
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [creating, setCreating] = useState(false);
-    const [createForm, setCreateForm] = useState({
-        username: "",
-        full_name: "",
-        phone_number: "",
-        role: "shipper",
-        password: ""
-    });
     const navigate = useNavigate();
 
     const fetchUsers = async () => {
@@ -75,61 +65,8 @@ const UserManagerPage = () => {
         setPage(1);
     }, [search, roleFilter, isActiveFilter, sortBy, sortDir]);
 
-    const activeCount = useMemo(() => {
-        return users.filter((user) => user.is_active).length;
-    }, [users]);
-
-    const lockedCount = Math.max(0, users.length - activeCount);
-
     const formatDate = (value) => {
         return formatDateDDMMYYYY(value);
-    };
-
-    const resetCreateForm = () => {
-        setCreateForm({
-            username: "",
-            full_name: "",
-            phone_number: "",
-            role: "shipper",
-            password: ""
-        });
-    };
-
-    const handleCreateUser = async (e) => {
-        e.preventDefault();
-
-        const payload = {
-            username: createForm.username.trim(),
-            full_name: createForm.full_name.trim(),
-            phone_number: createForm.phone_number.trim(),
-            role: createForm.role,
-            password: createForm.password
-        };
-
-        if (!payload.username || !payload.password || !payload.role) {
-            notifyCustomer({ message: "Vui lòng nhập username, mật khẩu và vai trò.", type: "warning" });
-            return;
-        }
-
-        if (payload.password.length < 6) {
-            notifyCustomer({ message: "Mật khẩu phải có ít nhất 6 ký tự.", type: "warning" });
-            return;
-        }
-
-        setCreating(true);
-
-        try {
-            await userApi.create(payload);
-            await fetchUsers();
-            setIsCreateOpen(false);
-            resetCreateForm();
-            notifyCustomer({ message: "Thêm tài khoản thành công.", type: "success" });
-        } catch (error) {
-            console.error("Error creating user:", error);
-            notifyCustomer({ message: error?.response?.data?.message || "Không thể thêm tài khoản.", type: "error" });
-        } finally {
-            setCreating(false);
-        }
     };
 
     return (
@@ -194,23 +131,11 @@ const UserManagerPage = () => {
                             </select>
 
                             <button
-                                onClick={() => setIsCreateOpen(true)}
+                                onClick={() => navigate("/admin/users/add")}
                                 className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
                             >
                                 Thêm tài khoản
                             </button>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
-                                Tổng tài khoản: <strong>{pagination.totalItems}</strong>
-                            </span>
-                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
-                                Đang hoạt động: <strong>{activeCount}</strong>
-                            </span>
-                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
-                                Đã khóa: <strong>{lockedCount}</strong>
-                            </span>
                         </div>
                     </div>
 
@@ -287,107 +212,6 @@ const UserManagerPage = () => {
                         />
                     </div>
                 </main>
-
-                {isCreateOpen ? (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-                        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-                            <div className="mb-5 flex items-start justify-between gap-4">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-slate-800">Thêm tài khoản mới</h2>
-                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản admin hoặc shipper từ trang quản trị.</p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setIsCreateOpen(false);
-                                        resetCreateForm();
-                                    }}
-                                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50"
-                                >
-                                    Đóng
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleCreateUser} className="space-y-4">
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
-                                    <input
-                                        type="text"
-                                        value={createForm.username}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, username: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập username"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Họ và tên</label>
-                                    <input
-                                        type="text"
-                                        value={createForm.full_name}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập họ tên"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Số điện thoại</label>
-                                    <input
-                                        type="text"
-                                        value={createForm.phone_number}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, phone_number: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập số điện thoại"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Vai trò</label>
-                                    <select
-                                        value={createForm.role}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                    >
-                                        {ROLE_OPTIONS.map((item) => (
-                                            <option key={item.value} value={item.value}>{item.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</label>
-                                    <input
-                                        type="password"
-                                        value={createForm.password}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Tối thiểu 6 ký tự"
-                                    />
-                                </div>
-
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsCreateOpen(false);
-                                            resetCreateForm();
-                                        }}
-                                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                    >
-                                        Hủy
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={creating}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                                    >
-                                        {creating ? "Đang tạo..." : "Tạo tài khoản"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                ) : null}
             </div>
         </div>
     );

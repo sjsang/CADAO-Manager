@@ -52,6 +52,9 @@ const customerApi = {
     },
     updateCustomerByAdmin: (id, data) => {
         return axiosClient.patch(`/customers/${id}`, data);
+    },
+    getMyRank: () => {
+        return axiosClient.get('/customers/me/rank');
     }
 }
 

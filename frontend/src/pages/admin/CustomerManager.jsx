@@ -5,7 +5,6 @@ import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
-import NoticeModal from "../../components/admin/modals/NoticeModal";
 
 const PAGE_SIZE = 8;
 
@@ -22,20 +21,7 @@ const CustomerManager = () => {
     const [sortDir, setSortDir] = useState("desc");
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, totalItems: 0, totalPages: 1 });
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [creating, setCreating] = useState(false);
-    const [createForm, setCreateForm] = useState({
-        full_name: "",
-        phone_number: "",
-        email: "",
-        password: ""
-    });
-    const [notice, setNotice] = useState({ isOpen: false, title: "", description: "", tone: "warning" });
     const navigate = useNavigate();
-
-    const openNotice = (title, description, tone = "warning") => {
-        setNotice({ isOpen: true, title, description, tone });
-    };
 
     const fetchCustomers = async () => {
         try {
@@ -62,60 +48,8 @@ const CustomerManager = () => {
         setPage(1);
     }, [search, isActiveFilter, sortBy, sortDir]);
 
-    const activeCount = useMemo(() => {
-        return customers.filter((customer) => customer.is_active).length;
-    }, [customers]);
-
-    const lockedCount = Math.max(0, customers.length - activeCount);
-
     const formatDate = (value) => {
         return formatDateDDMMYYYY(value);
-    };
-
-    const resetCreateForm = () => {
-        setCreateForm({
-            full_name: "",
-            phone_number: "",
-            email: "",
-            password: ""
-        });
-    };
-
-    const handleCreateCustomer = async (e) => {
-        e.preventDefault();
-
-        const payload = {
-            full_name: createForm.full_name.trim(),
-            phone_number: createForm.phone_number.trim(),
-            email: createForm.email.trim(),
-            password: createForm.password
-        };
-
-        if (!payload.full_name || !payload.phone_number || !payload.password) {
-            openNotice("Thiếu thông tin bắt buộc", "Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu.", "warning");
-            return;
-        }
-
-        if (payload.password.length < 6) {
-            openNotice("Mật khẩu chưa hợp lệ", "Mật khẩu phải có ít nhất 6 ký tự.", "warning");
-            return;
-        }
-
-        setCreating(true);
-        try {
-            await customerApi.create(payload);
-            await fetchCustomers();
-
-            setIsCreateOpen(false);
-            resetCreateForm();
-            openNotice("Thao tác thành công", "Thêm khách hàng thành công.", "default");
-        } catch (error) {
-            const message = error?.response?.data?.message || "Không thể thêm khách hàng.";
-            openNotice("Không thể tạo khách hàng", message, "warning");
-            console.error("Error creating customer:", error);
-        } finally {
-            setCreating(false);
-        }
     };
 
     return (
@@ -169,23 +103,11 @@ const CustomerManager = () => {
                             </select>
 
                             <button
-                                onClick={() => setIsCreateOpen(true)}
+                                onClick={() => navigate("/admin/customers/add")}
                                 className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
                             >
                                 Thêm khách hàng
                             </button>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
-                                Tổng khách hàng: <strong>{pagination.totalItems}</strong>
-                            </span>
-                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
-                                Đang hoạt động: <strong>{activeCount}</strong>
-                            </span>
-                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
-                                Đã khóa: <strong>{lockedCount}</strong>
-                            </span>
                         </div>
                     </div>
 
@@ -256,102 +178,6 @@ const CustomerManager = () => {
                         />
                     </div>
                 </main>
-
-                {isCreateOpen ? (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-                        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-                            <div className="mb-5 flex items-start justify-between gap-4">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-slate-800">Thêm khách hàng mới</h2>
-                                    <p className="mt-1 text-sm text-slate-500">Tạo tài khoản khách hàng từ trang quản trị.</p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setIsCreateOpen(false);
-                                        resetCreateForm();
-                                    }}
-                                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-sm text-slate-500 hover:bg-slate-50"
-                                >
-                                    Đóng
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleCreateCustomer} className="space-y-4">
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Họ và tên</label>
-                                    <input
-                                        type="text"
-                                        value={createForm.full_name}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, full_name: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập họ tên khách hàng"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Số điện thoại</label>
-                                    <input
-                                        type="text"
-                                        value={createForm.phone_number}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, phone_number: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập số điện thoại"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Email (không bắt buộc)</label>
-                                    <input
-                                        type="email"
-                                        value={createForm.email}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Nhập email"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</label>
-                                    <input
-                                        type="password"
-                                        value={createForm.password}
-                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
-                                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                                        placeholder="Tối thiểu 6 ký tự"
-                                    />
-                                </div>
-
-                                <div className="flex justify-end gap-2 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsCreateOpen(false);
-                                            resetCreateForm();
-                                        }}
-                                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                    >
-                                        Hủy
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={creating}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-                                    >
-                                        {creating ? "Đang tạo..." : "Tạo khách hàng"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                ) : null}
-
-                <NoticeModal
-                    isOpen={notice.isOpen}
-                    title={notice.title || "Thông báo"}
-                    description={notice.description}
-                    tone={notice.tone}
-                    onClose={() => setNotice({ isOpen: false, title: "", description: "", tone: "warning" })}
-                />
             </div>
         </div>
     );

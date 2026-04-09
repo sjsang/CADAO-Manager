@@ -111,12 +111,6 @@ const MenuManager = () => {
         setPage(1);
     }, [searchTerm, typeFilter, categoryFilter, availabilityFilter, featuredFilter, sortOrder]);
 
-    const availableCount = useMemo(() => {
-        return menuItems.filter((item) => item.is_available).length;
-    }, [menuItems]);
-
-    const unavailableCount = Math.max(0, menuItems.length - availableCount);
-
     const resetFilters = () => {
         setSearchTerm("");
         setTypeFilter("all");
@@ -243,18 +237,6 @@ const MenuManager = () => {
                             >
                                 Thêm món
                             </button>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                            <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-blue-700">
-                                Tổng món: <strong>{menuItems.length}</strong>
-                            </span>
-                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-2 text-emerald-700">
-                                Có sẵn: <strong>{availableCount}</strong>
-                            </span>
-                            <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-2 text-rose-700">
-                                Hết hàng: <strong>{unavailableCount}</strong>
-                            </span>
                         </div>
                     </div>
 

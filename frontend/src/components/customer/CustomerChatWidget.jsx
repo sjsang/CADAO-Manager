@@ -53,11 +53,6 @@ const CustomerChatWidget = () => {
     const [text, setText] = useState("");
     const [errorText, setErrorText] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
-    const [showRating, setShowRating] = useState(false);
-    const [ratingValue, setRatingValue] = useState(0);
-    const [ratingFeedback, setRatingFeedback] = useState("");
-    const [existingRating, setExistingRating] = useState(null);
-
     const listRef = useRef(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -258,6 +253,7 @@ const CustomerChatWidget = () => {
             const userMessage = res.data?.data?.userMessage;
             const aiMessage = res.data?.data?.aiMessage;
             const nextBotStatus = res.data?.data?.isBotActive;
+            const cartUpdated = res.data?.data?.cartUpdated;
 
             setMessages((prev) => {
                 const next = [...prev];
@@ -269,6 +265,10 @@ const CustomerChatWidget = () => {
                 }
                 return next;
             });
+
+            if (cartUpdated) {
+                window.dispatchEvent(new Event("cartUpdated"));
+            }
 
             setConversation((prev) => prev ? { ...prev, is_bot_active: nextBotStatus } : prev);
             await chatApi.markAsRead(conversation.id);
@@ -287,6 +287,8 @@ const CustomerChatWidget = () => {
     const quickReplies = [
         { label: "Xem thực đơn", icon: "fa-utensils", text: "Cho mình xem thực đơn" },
         { label: "Voucher hôm nay", icon: "fa-ticket", text: "Có voucher gì không?" },
+        { label: "Xem giỏ hàng", icon: "fa-cart-shopping", text: "Xem giỏ hàng của mình" },
+        { label: "Đặt hàng ngay", icon: "fa-bag-shopping", text: "Đặt hàng giỏ hàng hiện tại giúp mình" },
         { label: "Đơn hàng của tôi", icon: "fa-truck", text: "Đơn hàng của mình đang ở đâu?" },
         { label: "Gợi ý cho tôi", icon: "fa-lightbulb", text: "Gợi ý món cho mình" }
     ];
@@ -296,30 +298,7 @@ const CustomerChatWidget = () => {
         handleSend(qr.text);
     };
 
-    const handleSubmitRating = async () => {
-        if (!conversation?.id || ratingValue < 1) return;
-        try {
-            await chatApi.rateChatbot(conversation.id, { rating: ratingValue, feedback: ratingFeedback.trim() || null });
-            setExistingRating({ rating: ratingValue, feedback: ratingFeedback.trim() });
-            setShowRating(false);
-            notifyCustomer({ message: "Cảm ơn bạn đã đánh giá!", type: "success" });
-        } catch {
-            notifyCustomer({ message: "Không thể gửi đánh giá.", type: "error" });
-        }
-    };
 
-    // Load existing rating when conversation loads
-    useEffect(() => {
-        if (!conversation?.id || !isCustomer) return;
-        chatApi.getChatRating(conversation.id).then((res) => {
-            const r = res.data?.data;
-            if (r) {
-                setExistingRating(r);
-                setRatingValue(r.rating);
-                setRatingFeedback(r.feedback || "");
-            }
-        }).catch(() => { });
-    }, [conversation?.id, isCustomer]);
 
     if (!shouldRender) {
         return null;
@@ -409,7 +388,7 @@ const CustomerChatWidget = () => {
                     {errorText ? <p className="px-4 pb-1 text-xs text-rose-300">{errorText}</p> : null}
 
                     {/* Quick Replies - hiện khi đã có tin nhắn */}
-                    {!isLoading && messages.length > 0 && !showRating && (
+                    {!isLoading && messages.length > 0 && (
                         <div className="flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none">
                             {quickReplies.map((qr) => (
                                 <button
@@ -426,53 +405,10 @@ const CustomerChatWidget = () => {
                         </div>
                     )}
 
-                    {/* Rating Panel */}
-                    {showRating && (
-                        <div className="border-t border-white/10 px-4 py-3 space-y-2">
-                            <p className="text-xs text-slate-300 font-medium">Đánh giá trải nghiệm chat</p>
-                            <div className="flex gap-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => setRatingValue(star)}
-                                        className={`text-lg transition ${star <= ratingValue ? "text-amber-400" : "text-slate-600"}`}
-                                    >
-                                        <i className="fa-solid fa-star" />
-                                    </button>
-                                ))}
-                            </div>
-                            <input
-                                type="text"
-                                value={ratingFeedback}
-                                onChange={(e) => setRatingFeedback(e.target.value)}
-                                placeholder="Góp ý thêm (tuỳ chọn)..."
-                                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs outline-none focus:border-amber-400/50"
-                            />
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleSubmitRating}
-                                    disabled={ratingValue < 1}
-                                    className="rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-amber-300 disabled:opacity-40"
-                                >
-                                    Gửi đánh giá
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowRating(false)}
-                                    className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:text-white"
-                                >
-                                    Bỏ qua
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Input area */}
                     <div className="border-t border-white/10 px-3 py-3">
-                        <div className="mb-2 flex items-center gap-2">
-                            {conversation?.is_bot_active && (
+                        {conversation?.is_bot_active && (
+                            <div className="mb-2">
                                 <button
                                     type="button"
                                     disabled={isSending}
@@ -482,19 +418,8 @@ const CustomerChatWidget = () => {
                                     <i className="fa-solid fa-headset mr-1" />
                                     Gọi nhân viên
                                 </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => setShowRating((prev) => !prev)}
-                                className={`rounded-lg border px-2.5 py-1 text-[11px] transition ${existingRating
-                                    ? "border-amber-400/30 text-amber-300"
-                                    : "border-white/10 text-slate-400 hover:text-white"
-                                    }`}
-                            >
-                                <i className="fa-solid fa-star mr-1" />
-                                {existingRating ? `Đã đánh giá ${existingRating.rating}★` : "Đánh giá"}
-                            </button>
-                        </div>
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-2">
                             <input

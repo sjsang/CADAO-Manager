@@ -15,6 +15,7 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const chatRoutes = require("./routes/chat.routes");
 const promotionRoutes = require("./routes/promotion.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const feedbackRoutes = require("./routes/feedback.routes");
 
 const app = express();
 app.use(cors());
@@ -36,5 +37,6 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/feedbacks", feedbackRoutes);
 
 module.exports = app;

@@ -88,6 +88,28 @@ const getCustomerAddressesByAdmin = async (customerId) => {
     return await customerRepository.getCustomerAddressesByAdmin(customerId);
 };
 
+const RANK_THRESHOLD = 10000000; // 10 triệu VNĐ
+
+const getCustomerRank = async (customerId) => {
+    const customer = await customerRepository.getCustomerById(customerId);
+    const rank = customer?.rank || 'normal';
+    const totalSpent = Number(customer?.total_spent || 0);
+    return {
+        rank,
+        rank_name: rank === 'loyal' ? 'Khách hàng thân quen' : 'Khách hàng mới',
+        total_spent: totalSpent,
+        threshold: RANK_THRESHOLD,
+        remaining: Math.max(0, RANK_THRESHOLD - totalSpent)
+    };
+};
+
+const recalcAndUpdateRank = async (customerId) => {
+    const totalSpent = await customerRepository.getCustomerTotalSpent(customerId);
+    const rank = totalSpent >= RANK_THRESHOLD ? 'loyal' : 'normal';
+    await customerRepository.updateCustomerRank(customerId, rank, totalSpent);
+    return { rank, totalSpent };
+};
+
 module.exports = {
     getCustomers,
     createCustomerByAdmin,
@@ -102,5 +124,8 @@ module.exports = {
     getCustomerById,
     toggleCustomerStatus,
     getCustomerOrders,
-    getCustomerAddressesByAdmin
+    getCustomerAddressesByAdmin,
+    getCustomerRank,
+    recalcAndUpdateRank,
+    RANK_THRESHOLD
 };
