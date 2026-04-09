@@ -50,6 +50,7 @@ const VoucherCreate = () => {
         maxDiscount: "",
         expiryDate: "",
         usageLimit: "",
+        maxUsagePerCustomer: "",
         isActive: true,
         applicableRank: "all"
     });
@@ -107,6 +108,13 @@ const VoucherCreate = () => {
             }
         }
 
+        if (form.maxUsagePerCustomer) {
+            const perCustomer = Number(form.maxUsagePerCustomer);
+            if (!Number.isInteger(perCustomer) || perCustomer < 1) {
+                newErrors.maxUsagePerCustomer = "Giới hạn mỗi tài khoản phải là số nguyên lớn hơn 0.";
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -131,6 +139,7 @@ const VoucherCreate = () => {
                 maxDiscount: form.discountType === "percent" ? form.maxDiscount : null,
                 expiryDate: parsedExpiryDate,
                 usageLimit: form.usageLimit || null,
+                maxUsagePerCustomer: form.maxUsagePerCustomer || null,
                 isActive: form.isActive,
                 applicableRank: form.applicableRank
             });
@@ -166,7 +175,7 @@ const VoucherCreate = () => {
                         ← Quay lại danh sách
                     </button>
 
-                    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+                    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-800">Thông tin voucher</h2>
                             <p className="mt-1 text-sm text-slate-500">
@@ -285,6 +294,19 @@ const VoucherCreate = () => {
                                             className={inputClass("usageLimit")}
                                         />
                                         {errors.usageLimit ? <p className="mt-1 text-sm text-rose-600">{errors.usageLimit}</p> : null}
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Giới hạn mỗi tài khoản (không bắt buộc)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={form.maxUsagePerCustomer}
+                                            onChange={(e) => onFieldChange("maxUsagePerCustomer", e.target.value)}
+                                            placeholder="Ví dụ: 1"
+                                            className={inputClass("maxUsagePerCustomer")}
+                                        />
+                                        {errors.maxUsagePerCustomer ? <p className="mt-1 text-sm text-rose-600">{errors.maxUsagePerCustomer}</p> : null}
                                     </div>
                                 </div>
 

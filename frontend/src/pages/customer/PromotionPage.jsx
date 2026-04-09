@@ -320,6 +320,12 @@ const PromotionPage = () => {
                                     <span>Đã sử dụng</span>
                                     <span className="text-white font-medium">{selectedVoucher.used_count}/{selectedVoucher.usage_limit || "∞"}</span>
                                 </div>
+                                {selectedVoucher.max_usage_per_customer && (
+                                    <div className="flex justify-between">
+                                        <span>Giới hạn mỗi tài khoản</span>
+                                        <span className="text-white font-medium">{selectedVoucher.max_usage_per_customer} lượt</span>
+                                    </div>
+                                )}
                                 {selectedVoucher.applicable_rank && selectedVoucher.applicable_rank !== 'all' && (
                                     <div className="flex justify-between">
                                         <span>Dành cho</span>

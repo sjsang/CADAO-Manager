@@ -322,7 +322,7 @@ const OrderDetailPage = () => {
                                     </div>
                                     {Number(order.discount_amount) > 0 && (
                                         <div className="flex justify-between text-green-400">
-                                            <span>Giảm giá</span>
+                                            <span>Giảm giá{order.voucher_code ? <span className="ml-2 text-xs font-mono bg-green-900/40 border border-green-500/30 rounded px-2 py-0.5 text-green-300">Voucher: {order.voucher_code}</span> : null}</span>
                                             <span>-{Number(order.discount_amount).toLocaleString('vi-VN')}đ</span>
                                         </div>
                                     )}
@@ -345,7 +345,21 @@ const OrderDetailPage = () => {
                                         <tbody className="divide-y divide-white/5">
                                             {order.items.map((item, idx) => (
                                                 <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                                    <td className="py-3 px-4 text-gray-300">{item.name}</td>
+                                                    <td className="py-3 px-4">
+                                                        <span className="text-gray-300">{item.name}</span>
+                                                        {item.promotion && (
+                                                            <div className="mt-1 flex items-center gap-1.5">
+                                                                <span className="text-xs bg-amber-900/30 border border-amber-500/30 rounded px-1.5 py-0.5 text-amber-300">
+                                                                    <i className="fa-solid fa-tag mr-1 text-[10px]" />
+                                                                    {item.promotion.promotion_name}
+                                                                    {item.promotion.discount_percent > 0 ? ` (-${item.promotion.discount_percent}%)` : ''}
+                                                                </span>
+                                                                {Number(item.promotion.discount_amount) > 0 && (
+                                                                    <span className="text-xs text-green-400">-{Number(item.promotion.discount_amount).toLocaleString('vi-VN')}đ</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                     <td className="py-3 px-4 text-center text-gray-300">{item.quantity}</td>
                                                     <td className="py-3 px-4 text-right text-gray-400 text-sm">{Number(item.price).toLocaleString('vi-VN')}đ</td>
                                                     <td className="py-3 px-4 text-right text-[#e4c590] font-semibold">{Number(item.price * item.quantity).toLocaleString('vi-VN')}đ</td>

@@ -179,14 +179,13 @@ const MenuCategoryManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">STT</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên danh mục</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Loại món</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={3} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Đang tải danh mục thực đơn...
                                             </td>
                                         </tr>
@@ -201,36 +200,12 @@ const MenuCategoryManager = () => {
                                             <td className="px-4 py-3 text-sm text-slate-700">{index + 1}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{category.name}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{category.menu_type_name}</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate(`/admin/menu-categories/${category.id}`);
-                                                        }}
-                                                        className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-medium text-blue-700 transition hover:bg-blue-100"
-                                                    >
-                                                        Sửa
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setDeletingCategory(category);
-                                                        }}
-                                                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 font-medium text-rose-700 transition hover:bg-rose-100"
-                                                    >
-                                                        Xóa
-                                                    </button>
-                                                </div>
-                                            </td>
                                         </tr>
                                     ))}
 
                                     {!isLoading && filteredCategories.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={3} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có danh mục phù hợp với bộ lọc hiện tại.
                                             </td>
                                         </tr>

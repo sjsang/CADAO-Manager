@@ -1,5 +1,6 @@
 const voucherService = require("../services/voucher.service");
 const notificationService = require("../services/notification.service");
+const authRepository = require('../repositories/auth.repository');
 
 const sendError = (res, error, fallbackMessage) => {
     if (error.status) {
@@ -69,11 +70,27 @@ const deleteVoucher = async (req, res) => {
 const validateVoucher = async (req, res) => {
     try {
         const { code, orderValue } = req.body || {};
-        const customerRank = req.user?.rank || 'normal';
-        const result = await voucherService.validateVoucherForOrder(code, orderValue, customerRank);
+        let customerRank = 'normal';
+        if (req.user?.id) {
+            const customer = await authRepository.getCustomerById(req.user.id);
+            customerRank = customer?.rank || 'normal';
+        }
+        const customerId = req.user?.id || null;
+        const result = await voucherService.validateVoucherForOrder(code, orderValue, customerRank, customerId);
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         sendError(res, error, "Không thể áp dụng voucher.");
+    }
+};
+
+const toggleVoucher = async (req, res) => {
+    try {
+        const voucherRepo = require('../repositories/voucher.repository');
+        const voucher = await voucherRepo.toggleVoucher(req.params.id);
+        if (!voucher) return res.status(404).json({ success: false, message: "Không tìm thấy voucher." });
+        res.status(200).json({ success: true, data: voucher });
+    } catch (error) {
+        sendError(res, error, "Không thể thay đổi trạng thái voucher.");
     }
 };
 
@@ -82,5 +99,6 @@ module.exports = {
     createVoucher,
     updateVoucher,
     deleteVoucher,
-    validateVoucher
+    validateVoucher,
+    toggleVoucher
 };

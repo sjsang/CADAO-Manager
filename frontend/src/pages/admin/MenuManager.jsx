@@ -249,6 +249,8 @@ const MenuManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ảnh</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Tên món</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Giá</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Lượt bán</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Đánh giá</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide text-slate-500 uppercase">Nổi bật</th>
                                     </tr>
@@ -279,6 +281,16 @@ const MenuManager = () => {
                                             </td>
                                             <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.name}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(item.price || 0).toLocaleString("vi-VN")}đ</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{item.sold_count || 0}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">
+                                                {Number(item.avg_rating) > 0 ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <span className="text-amber-400">★</span> {Number(item.avg_rating).toFixed(1)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400">-</span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.is_available ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-rose-200 bg-rose-50 text-rose-700"}`}>
                                                     {item.is_available ? "Có sẵn" : "Hết hàng"}
@@ -299,7 +311,7 @@ const MenuManager = () => {
 
                                     {menuItems.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có món ăn phù hợp từ khóa tìm kiếm.
                                             </td>
                                         </tr>

@@ -1,5 +1,6 @@
 const promotionService = require('../services/promotion.service');
 const notificationService = require('../services/notification.service');
+const authRepository = require('../repositories/auth.repository');
 
 const getPromotions = async (req, res) => {
     try {
@@ -110,7 +111,11 @@ const getActivePromotionsForItems = async (req, res) => {
         if (!Array.isArray(menu_item_ids) || menu_item_ids.length === 0) {
             return res.json([]);
         }
-        const customerRank = req.user?.rank || 'normal';
+        let customerRank = 'normal';
+        if (req.user?.id) {
+            const customer = await authRepository.getCustomerById(req.user.id);
+            customerRank = customer?.rank || 'normal';
+        }
         const promotions = await promotionService.getActivePromotionsForItems(menu_item_ids, customerRank);
         res.json(promotions);
     } catch (error) {

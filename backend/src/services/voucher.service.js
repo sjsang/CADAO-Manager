@@ -81,6 +81,7 @@ const validateVoucherPayload = (payload) => {
     const minOrderValue = parseNullableNumber(payload.minOrderValue, "Giá trị đơn tối thiểu");
     const maxDiscount = parseNullableNumber(payload.maxDiscount, "Giảm tối đa");
     const usageLimit = parseNullableInteger(payload.usageLimit, "Giới hạn sử dụng", { allowZero: false });
+    const maxUsagePerCustomer = parseNullableInteger(payload.maxUsagePerCustomer, "Giới hạn sử dụng mỗi tài khoản", { allowZero: false });
     const expiryDate = parseExpiryDate(payload.expiryDate);
     const isActive = Boolean(payload.isActive);
     const applicableRank = ['all', 'normal', 'loyal'].includes(payload.applicableRank) ? payload.applicableRank : 'all';
@@ -113,6 +114,7 @@ const validateVoucherPayload = (payload) => {
         maxDiscount,
         expiryDate,
         usageLimit,
+        maxUsagePerCustomer,
         applicableRank,
         isActive
     };
@@ -181,7 +183,7 @@ const deleteVoucher = async (id) => {
     }
 };
 
-const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal') => {
+const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal', customerId = null) => {
     const normalizedCode = String(code || "").trim().toUpperCase();
     const parsedOrderValue = Number(orderValue);
 
@@ -216,6 +218,13 @@ const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal'
         throw createHttpError(400, "Voucher đã hết lượt sử dụng.");
     }
 
+    if (voucher.max_usage_per_customer !== null && customerId) {
+        const customerUsed = await voucherRepository.getCustomerVoucherUsage(customerId, voucher.id);
+        if (customerUsed >= Number(voucher.max_usage_per_customer)) {
+            throw createHttpError(400, "Bạn đã sử dụng hết lượt cho voucher này.");
+        }
+    }
+
     if (parsedOrderValue < Number(voucher.min_order_value || 0)) {
         throw createHttpError(400, "Đơn hàng chưa đạt giá trị tối thiểu để áp dụng voucher.");
     }
@@ -234,6 +243,11 @@ const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal'
 
     discountAmount = Math.max(0, Math.min(discountAmount, parsedOrderValue));
 
+    let customerUsedCount = 0;
+    if (customerId) {
+        customerUsedCount = await voucherRepository.getCustomerVoucherUsage(customerId, voucher.id);
+    }
+
     return {
         voucherId: voucher.id,
         code: voucher.code,
@@ -241,6 +255,8 @@ const validateVoucherForOrder = async (code, orderValue, customerRank = 'normal'
         minOrderValue: Number(voucher.min_order_value || 0),
         usageLimit: voucher.usage_limit,
         usedCount: Number(voucher.used_count || 0),
+        maxUsagePerCustomer: voucher.max_usage_per_customer,
+        customerUsedCount,
         expiryDate: voucher.expiry_date,
         discountPercent: voucher.discount_percent,
         discountValue: voucher.discount_amount,

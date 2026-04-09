@@ -155,7 +155,7 @@ const PromotionManager = () => {
                     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="border-b border-slate-200 px-5 py-4">
                             <h2 className="text-lg font-semibold text-slate-800">Các chương trình khuyến mãi</h2>
-                            <p className="mt-1 text-sm text-slate-500">Nhấn Sửa để chỉnh sửa hoặc nhấn vào hàng để xem chi tiết.</p>
+                            <p className="mt-1 text-sm text-slate-500">Nhấn vào hàng để xem chi tiết và chỉnh sửa.</p>
                         </div>
 
                         <div className="overflow-x-auto">
@@ -170,14 +170,13 @@ const PromotionManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày kết thúc</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Áp dụng cho</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Hành động</th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Đang tải danh sách khuyến mãi...
                                             </td>
                                         </tr>
@@ -225,38 +224,14 @@ const PromotionManager = () => {
                                                             ))}
                                                         </ul>
                                                     ) : null}
+                                                    {promotion.menu_types.length === 0 && promotion.categories.length === 0 && promotion.menu_items.length === 0 ? (
+                                                        <span className="bg-red-50 rounded-lg px-3 py-1 border border-red-200 text-red-700">Tất cả</span>
+                                                    ) : null}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm">
                                                     <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${status.color}`}>
                                                         {status.label}
                                                     </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); handleToggle(promotion.id); }}
-                                                            className={`rounded-lg border px-3 py-1.5 font-medium transition ${promotion.is_active
-                                                                ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                                                                : "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"}`}
-                                                        >
-                                                            {promotion.is_active ? "Tắt" : "Bật"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/promotions/${promotion.id}`); }}
-                                                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-medium text-blue-700 transition hover:bg-blue-100"
-                                                        >
-                                                            Sửa
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); setDeletingPromotion(promotion); }}
-                                                            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 font-medium text-rose-700 transition hover:bg-rose-100"
-                                                        >
-                                                            Xóa
-                                                        </button>
-                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -264,7 +239,7 @@ const PromotionManager = () => {
 
                                     {!loading && promotions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có chương trình khuyến mãi phù hợp.
                                             </td>
                                         </tr>

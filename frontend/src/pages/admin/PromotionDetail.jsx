@@ -7,6 +7,7 @@ import menuTypeApi from "../../api/menu_typeApi";
 import categoryApi from "../../api/categoryApi";
 import menuItemApi from "../../api/menuApi";
 import { notifyCustomer } from "../../utils/customerNotify";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const PromotionDetail = () => {
     const { id } = useParams();
@@ -14,6 +15,10 @@ const PromotionDetail = () => {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
+    const [isActive, setIsActive] = useState(true);
     const [errors, setErrors] = useState({});
     const [menuTypes, setMenuTypes] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -85,6 +90,7 @@ const PromotionDetail = () => {
                     applicable_rank: p.applicable_rank || "all"
                 });
                 if (p.image_url) setExistingImage(p.image_url);
+                if (typeof p.is_active !== "undefined") setIsActive(p.is_active);
             } catch {
                 notifyCustomer({ message: "Không tải được chi tiết khuyến mãi.", type: "error" });
                 navigate("/admin/promotions");
@@ -95,6 +101,33 @@ const PromotionDetail = () => {
 
         fetchData();
     }, [id, navigate]);
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await promotionApi.delete(id);
+            notifyCustomer({ message: "Đã xóa khuyến mãi.", type: "success" });
+            navigate("/admin/promotions");
+        } catch {
+            notifyCustomer({ message: "Xóa khuyến mãi thất bại.", type: "error" });
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleToggle = async () => {
+        setIsToggling(true);
+        try {
+            await promotionApi.toggle(id);
+            setIsActive((prev) => !prev);
+            notifyCustomer({ message: isActive ? "Đã tắt khuyến mãi." : "Đã bật khuyến mãi.", type: "success" });
+        } catch {
+            notifyCustomer({ message: "Thay đổi trạng thái thất bại.", type: "error" });
+        } finally {
+            setIsToggling(false);
+        }
+    };
 
     const onFieldChange = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -254,7 +287,7 @@ const PromotionDetail = () => {
                 />
 
                 <div className="p-6">
-                    <form onSubmit={handleSave} className="mx-auto max-w-3xl">
+                    <form onSubmit={handleSave} className="mx-auto max-w-4xl">
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-800">Thông tin chỉnh sửa</h2>
                             <p className="mt-1 text-sm text-slate-500">
@@ -472,6 +505,24 @@ const PromotionDetail = () => {
                                     Quay lại
                                 </button>
                                 <button
+                                    type="button"
+                                    onClick={handleToggle}
+                                    disabled={isToggling}
+                                    className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${isActive
+                                            ? "bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300"
+                                            : "bg-green-500 hover:bg-green-600 disabled:bg-green-300"
+                                        }`}
+                                >
+                                    {isToggling ? "Đang xử lý..." : isActive ? "Tắt" : "Bật"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                                >
+                                    Xóa
+                                </button>
+                                <button
                                     type="submit"
                                     disabled={isSaving}
                                     className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
@@ -479,6 +530,18 @@ const PromotionDetail = () => {
                                     {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                                 </button>
                             </div>
+
+                            <ConfirmModal
+                                isOpen={showDeleteModal}
+                                title="Xóa khuyến mãi"
+                                description="Bạn có chắc muốn xóa khuyến mãi này? Hành động không thể hoàn tác."
+                                confirmText="Xóa"
+                                cancelText="Hủy"
+                                tone="danger"
+                                busy={isDeleting}
+                                onClose={() => setShowDeleteModal(false)}
+                                onConfirm={handleDelete}
+                            />
                         </section>
                     </form>
                 </div>

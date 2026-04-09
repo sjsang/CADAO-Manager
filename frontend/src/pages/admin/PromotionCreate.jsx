@@ -210,7 +210,7 @@ const PromotionCreate = () => {
                         ← Quay lại danh sách
                     </button>
 
-                    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
+                    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-800">Thông tin khuyến mãi</h2>
                             <p className="mt-1 text-sm text-slate-500">

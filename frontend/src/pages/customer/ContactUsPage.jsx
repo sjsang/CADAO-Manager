@@ -50,8 +50,8 @@ const ContactUsPage = () => {
                 <div className="grid lg:grid-cols-5 gap-10 items-start">
 
                     <div data-aos="fade-right" className="lg:col-span-3 flex flex-col gap-5">
-                        <h2 className="text-xl font-semibold">Đóng góp ý kiến</h2>
-                        <p className="text-gray-400 text-sm">Quý khách sẽ nhận được phản hồi trong vòng 24 giờ!</p>
+                        <h2 className="text-xl font-semibold">Cho chúng tôi biết ý kiến của quý khách</h2>
+                        <p className="text-gray-400 text-sm">Gửi góp ý/phản hồi của bạn để chúng tôi cải thiện dịch vụ.</p>
                         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-xs tracking-widest text-gray-400 uppercase">Họ và tên</span>

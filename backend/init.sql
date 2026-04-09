@@ -188,9 +188,20 @@ CREATE TABLE vouchers (
     usage_limit INT,
     used_count INT DEFAULT 0,
 
+    max_usage_per_customer INT CHECK (max_usage_per_customer > 0),
+
     applicable_rank VARCHAR(20) DEFAULT 'all' CHECK (applicable_rank IN ('all', 'normal', 'loyal')),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10b. Lịch sử sử dụng voucher theo khách hàng
+CREATE TABLE customer_voucher_usage (
+    id SERIAL PRIMARY KEY,
+    customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    voucher_id INT NOT NULL REFERENCES vouchers(id) ON DELETE CASCADE,
+    used_count INT NOT NULL DEFAULT 1,
+    UNIQUE(customer_id, voucher_id)
 );
 
 -- 11. Order - Voucher

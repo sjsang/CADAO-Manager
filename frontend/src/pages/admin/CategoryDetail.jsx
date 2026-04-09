@@ -5,6 +5,7 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import categoryApi from "../../api/categoryApi";
 import menuTypeApi from "../../api/menu_typeApi";
 import { notifyCustomer } from "../../utils/customerNotify";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const CategoryDetail = () => {
     const { id } = useParams();
@@ -13,6 +14,8 @@ const CategoryDetail = () => {
     const [menuTypes, setMenuTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState({
@@ -164,6 +167,13 @@ const CategoryDetail = () => {
                                     Quay lại
                                 </button>
                                 <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                                >
+                                    Xóa
+                                </button>
+                                <button
                                     type="submit"
                                     disabled={isSaving}
                                     className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
@@ -171,6 +181,30 @@ const CategoryDetail = () => {
                                     {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                                 </button>
                             </div>
+
+                            <ConfirmModal
+                                isOpen={showDeleteModal}
+                                title="Xóa danh mục"
+                                description="Bạn có chắc muốn xóa danh mục này? Hành động không thể hoàn tác."
+                                confirmText="Xóa"
+                                cancelText="Hủy"
+                                tone="danger"
+                                busy={isDeleting}
+                                onClose={() => setShowDeleteModal(false)}
+                                onConfirm={async () => {
+                                    setIsDeleting(true);
+                                    try {
+                                        await categoryApi.delete(id);
+                                        notifyCustomer({ message: "Đã xóa danh mục.", type: "success" });
+                                        navigate("/admin/menu-categories");
+                                    } catch {
+                                        notifyCustomer({ message: "Xóa danh mục thất bại.", type: "error" });
+                                    } finally {
+                                        setIsDeleting(false);
+                                        setShowDeleteModal(false);
+                                    }
+                                }}
+                            />
                         </section>
                     </form>
                 </div>

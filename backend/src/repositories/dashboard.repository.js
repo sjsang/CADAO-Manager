@@ -378,7 +378,6 @@ const getDashboardStatistics = async (rawFilters = {}) => {
         ORDER BY count DESC
     `;
 
-    const wardDemandParams = [...params, 5];
     const wardDemandQuery = `
         SELECT
             COALESCE(NULLIF(TRIM(o.delivery_ward_name), ''), 'Chưa xác định') AS ward_name,
@@ -388,7 +387,105 @@ const getDashboardStatistics = async (rawFilters = {}) => {
         ${whereClause}
         GROUP BY COALESCE(NULLIF(TRIM(o.delivery_ward_name), ''), 'Chưa xác định')
         ORDER BY order_count DESC, revenue DESC
-        LIMIT $${wardDemandParams.length}
+    `;
+
+    const customerRankingParams = [...params, filters.topLimit];
+    const customerRankingQuery = `
+        SELECT
+            c.id,
+            c.full_name,
+            c.phone_number,
+            c.rank,
+            COUNT(o.id)::int AS order_count,
+            COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total_amount ELSE 0 END), 0) AS total_spent
+        FROM customers c
+        JOIN orders o ON o.customer_id = c.id
+        ${whereClause}
+        GROUP BY c.id, c.full_name, c.phone_number, c.rank
+        ORDER BY total_spent DESC, order_count DESC
+        LIMIT $${customerRankingParams.length}
+    `;
+
+    const customerRankDistributionQuery = `
+        WITH filtered_customers AS (
+            SELECT DISTINCT o.customer_id
+            FROM orders o
+            ${whereClause}
+        )
+        SELECT
+            c.rank,
+            COUNT(*)::int AS count
+        FROM customers c
+        JOIN filtered_customers fc ON fc.customer_id = c.id
+        GROUP BY c.rank
+        ORDER BY count DESC
+    `;
+
+    const promotionMetricsQuery = `
+        WITH promo_items AS (
+            SELECT oip.id AS promo_id, oip.discount_amount, oi.order_id
+            FROM order_item_promotions oip
+            JOIN order_items oi ON oi.id = oip.order_item_id
+            JOIN orders o ON o.id = oi.order_id
+            ${whereClause}
+        ),
+        promo_order_ids AS (
+            SELECT DISTINCT order_id FROM promo_items
+        )
+        SELECT
+            COUNT(pi.promo_id)::int AS promotion_usage_count,
+            (SELECT COUNT(*)::int FROM promo_order_ids) AS orders_with_promotion,
+            COALESCE(SUM(pi.discount_amount), 0) AS total_promotion_discount,
+            COALESCE((SELECT SUM(o.total_amount) FROM orders o WHERE o.status = 'completed' AND o.id IN (SELECT order_id FROM promo_order_ids)), 0) AS revenue_with_promotion
+        FROM promo_items pi
+    `;
+
+    const topPromotionsParams = [...params, 10];
+    const topPromotionsQuery = `
+        SELECT
+            p.id,
+            p.name,
+            p.discount_percent,
+            p.discount_amount AS flat_discount,
+            COUNT(DISTINCT oi.order_id)::int AS order_count,
+            COALESCE(SUM(oip.discount_amount), 0) AS total_discount_given
+        FROM order_item_promotions oip
+        JOIN promotions p ON p.id = oip.promotion_id
+        JOIN order_items oi ON oi.id = oip.order_item_id
+        JOIN orders o ON o.id = oi.order_id
+        ${whereClause}
+        GROUP BY p.id, p.name, p.discount_percent, p.discount_amount
+        ORDER BY total_discount_given DESC, order_count DESC
+        LIMIT $${topPromotionsParams.length}
+    `;
+
+    const staffMetricsQuery = `
+        SELECT
+            u.id,
+            u.full_name,
+            u.phone_number,
+            u.role,
+            u.is_active,
+            COUNT(CASE WHEN o.status <> 'cart' THEN 1 END)::int AS assigned_orders,
+            COUNT(CASE WHEN o.status = 'completed' THEN 1 END)::int AS completed_orders,
+            COUNT(CASE WHEN o.status = 'cancelled' THEN 1 END)::int AS cancelled_orders,
+            COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total_amount ELSE 0 END), 0) AS delivered_revenue
+        FROM users u
+        LEFT JOIN orders o ON o.shipper_id = u.id
+            AND DATE(o.created_at) >= $1
+            AND DATE(o.created_at) <= $2
+        WHERE u.role = 'shipper'
+        GROUP BY u.id, u.full_name, u.phone_number, u.role, u.is_active
+        ORDER BY completed_orders DESC, assigned_orders DESC
+    `;
+
+    const staffSummaryQuery = `
+        SELECT
+            COUNT(*) FILTER (WHERE role = 'admin')::int AS total_admins,
+            COUNT(*) FILTER (WHERE role = 'shipper')::int AS total_shippers,
+            COUNT(*) FILTER (WHERE role = 'shipper' AND is_active = TRUE)::int AS active_shippers,
+            COUNT(*) FILTER (WHERE role = 'shipper' AND is_active = FALSE)::int AS inactive_shippers
+        FROM users
     `;
 
     const trendQuery = filters.groupBy === "week"
@@ -457,7 +554,13 @@ const getDashboardStatistics = async (rawFilters = {}) => {
         fulfillmentResult,
         voucherMetricsResult,
         paymentStatusResult,
-        wardDemandResult
+        wardDemandResult,
+        customerRankingResult,
+        customerRankDistributionResult,
+        promotionMetricsResult,
+        topPromotionsResult,
+        staffMetricsResult,
+        staffSummaryResult
     ] = await Promise.all([
         db.query(summaryQuery, params),
         db.query(trendQuery, params),
@@ -472,7 +575,13 @@ const getDashboardStatistics = async (rawFilters = {}) => {
         db.query(fulfillmentQuery, params),
         db.query(voucherMetricsQuery, params),
         db.query(paymentStatusQuery, params),
-        db.query(wardDemandQuery, wardDemandParams)
+        db.query(wardDemandQuery, params),
+        db.query(customerRankingQuery, customerRankingParams),
+        db.query(customerRankDistributionQuery, params),
+        db.query(promotionMetricsQuery, params),
+        db.query(topPromotionsQuery, topPromotionsParams),
+        db.query(staffMetricsQuery, [filters.fromDate, filters.toDate]),
+        db.query(staffSummaryQuery)
     ]);
 
     const summary = summaryResult.rows[0] || {};
@@ -481,6 +590,8 @@ const getDashboardStatistics = async (rawFilters = {}) => {
     const menuMetrics = menuMetricsResult.rows[0] || {};
     const fulfillmentMetrics = fulfillmentResult.rows[0] || {};
     const voucherMetrics = voucherMetricsResult.rows[0] || {};
+    const promotionMetricsRow = promotionMetricsResult.rows[0] || {};
+    const staffSummary = staffSummaryResult.rows[0] || {};
     const totalOrders = Number(summary.total_orders || 0);
     const cancelledOrders = Number(summary.cancelled_orders || 0);
     const completedOrders = Number(summary.completed_orders || 0);
@@ -584,6 +695,54 @@ const getDashboardStatistics = async (rawFilters = {}) => {
             orderCount: Number(item.order_count || 0),
             revenue: Number(item.revenue || 0)
         })),
+        customerRanking: customerRankingResult.rows.map((item) => ({
+            id: item.id,
+            fullName: item.full_name,
+            phone: item.phone_number,
+            rank: item.rank,
+            orderCount: Number(item.order_count || 0),
+            totalSpent: Number(item.total_spent || 0)
+        })),
+        customerRankDistribution: customerRankDistributionResult.rows.map((item) => ({
+            rank: item.rank,
+            count: Number(item.count || 0)
+        })),
+        promotionMetrics: {
+            promotionUsageCount: Number(promotionMetricsRow.promotion_usage_count || 0),
+            ordersWithPromotion: Number(promotionMetricsRow.orders_with_promotion || 0),
+            totalPromotionDiscount: Number(promotionMetricsRow.total_promotion_discount || 0),
+            revenueWithPromotion: Number(promotionMetricsRow.revenue_with_promotion || 0),
+            promotionUsageRate: totalOrders > 0 ? Number(((Number(promotionMetricsRow.orders_with_promotion || 0) / totalOrders) * 100).toFixed(1)) : 0
+        },
+        topPromotions: topPromotionsResult.rows.map((item) => ({
+            id: item.id,
+            name: item.name,
+            discountPercent: Number(item.discount_percent || 0),
+            flatDiscount: Number(item.flat_discount || 0),
+            orderCount: Number(item.order_count || 0),
+            totalDiscountGiven: Number(item.total_discount_given || 0)
+        })),
+        staffMetrics: {
+            summary: {
+                totalAdmins: Number(staffSummary.total_admins || 0),
+                totalShippers: Number(staffSummary.total_shippers || 0),
+                activeShippers: Number(staffSummary.active_shippers || 0),
+                inactiveShippers: Number(staffSummary.inactive_shippers || 0)
+            },
+            shippers: staffMetricsResult.rows.map((item) => ({
+                id: item.id,
+                fullName: item.full_name,
+                phone: item.phone,
+                isActive: item.is_active,
+                assignedOrders: Number(item.assigned_orders || 0),
+                completedOrders: Number(item.completed_orders || 0),
+                cancelledOrders: Number(item.cancelled_orders || 0),
+                deliveredRevenue: Number(item.delivered_revenue || 0),
+                completionRate: Number(item.assigned_orders || 0) > 0
+                    ? Number(((Number(item.completed_orders || 0) / Number(item.assigned_orders || 0)) * 100).toFixed(1))
+                    : 0
+            }))
+        },
         alerts,
         trend: trendResult.rows.map((item) => ({
             periodStart: item.period_start,

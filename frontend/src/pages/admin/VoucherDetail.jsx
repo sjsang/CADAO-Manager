@@ -5,6 +5,7 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import voucherApi from "../../api/voucherApi";
 import { formatDateDDMMYYYY } from "../../functions/formatDate";
 import { notifyCustomer } from "../../utils/customerNotify";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const toDateInputDDMMYYYY = (value) => {
     if (!value) {
@@ -51,6 +52,9 @@ const VoucherDetail = () => {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
     const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState({
@@ -62,6 +66,7 @@ const VoucherDetail = () => {
         maxDiscount: "",
         expiryDate: "",
         usageLimit: "",
+        maxUsagePerCustomer: "",
         isActive: true,
         applicableRank: "all"
     });
@@ -91,6 +96,7 @@ const VoucherDetail = () => {
                     maxDiscount: voucher.max_discount ?? "",
                     expiryDate: toDateInputDDMMYYYY(voucher.expiry_date),
                     usageLimit: voucher.usage_limit ?? "",
+                    maxUsagePerCustomer: voucher.max_usage_per_customer ?? "",
                     isActive: Boolean(voucher.is_active),
                     applicableRank: voucher.applicable_rank || "all"
                 });
@@ -158,6 +164,13 @@ const VoucherDetail = () => {
             }
         }
 
+        if (form.maxUsagePerCustomer) {
+            const perCustomer = Number(form.maxUsagePerCustomer);
+            if (!Number.isInteger(perCustomer) || perCustomer < 1) {
+                newErrors.maxUsagePerCustomer = "Giới hạn mỗi tài khoản phải là số nguyên lớn hơn 0.";
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -182,6 +195,7 @@ const VoucherDetail = () => {
                 maxDiscount: form.discountType === "percent" ? form.maxDiscount : null,
                 expiryDate: parsedExpiryDate,
                 usageLimit: form.usageLimit || null,
+                maxUsagePerCustomer: form.maxUsagePerCustomer || null,
                 isActive: form.isActive,
                 applicableRank: form.applicableRank
             });
@@ -198,6 +212,21 @@ const VoucherDetail = () => {
 
     const inputClass = (field) =>
         `w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-blue-300 ${errors[field] ? "border-rose-400 bg-rose-50" : "border-slate-300 bg-white"}`;
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await voucherApi.deleteVoucher(id);
+            notifyCustomer({ message: "Xóa voucher thành công.", type: "success" });
+            navigate("/admin/vouchers");
+        } catch (error) {
+            const message = error.response?.data?.message || "Không thể xóa voucher.";
+            notifyCustomer({ message, type: "error" });
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -219,7 +248,7 @@ const VoucherDetail = () => {
                 />
 
                 <div className="p-6">
-                    <form onSubmit={handleSave} className="mx-auto max-w-3xl">
+                    <form onSubmit={handleSave} className="mx-auto max-w-4xl">
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 className="text-lg font-semibold text-slate-800">Thông tin chỉnh sửa</h2>
                             <p className="mt-1 text-sm text-slate-500">
@@ -333,17 +362,21 @@ const VoucherDetail = () => {
                                         />
                                         {errors.usageLimit ? <p className="mt-1 text-sm text-rose-600">{errors.usageLimit}</p> : null}
                                     </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">Giới hạn mỗi tài khoản (không bắt buộc)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={form.maxUsagePerCustomer}
+                                            onChange={(e) => onFieldChange("maxUsagePerCustomer", e.target.value)}
+                                            className={inputClass("maxUsagePerCustomer")}
+                                        />
+                                        {errors.maxUsagePerCustomer ? <p className="mt-1 text-sm text-rose-600">{errors.maxUsagePerCustomer}</p> : null}
+                                    </div>
                                 </div>
 
-                                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.isActive}
-                                        onChange={(e) => onFieldChange("isActive", e.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-300"
-                                    />
-                                    Kích hoạt voucher
-                                </label>
+
 
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-slate-700">Áp dụng cho hạng khách hàng</label>
@@ -368,6 +401,36 @@ const VoucherDetail = () => {
                                     Quay lại
                                 </button>
                                 <button
+                                    type="button"
+                                    disabled={isToggling}
+                                    onClick={async () => {
+                                        setIsToggling(true);
+                                        try {
+                                            await voucherApi.toggleVoucher(id);
+                                            const next = !form.isActive;
+                                            onFieldChange("isActive", next);
+                                            notifyCustomer({ message: next ? "Đã bật voucher." : "Đã tắt voucher.", type: "success" });
+                                        } catch {
+                                            notifyCustomer({ message: "Thay đổi trạng thái thất bại.", type: "error" });
+                                        } finally {
+                                            setIsToggling(false);
+                                        }
+                                    }}
+                                    className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed ${form.isActive
+                                            ? "bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300"
+                                            : "bg-green-500 hover:bg-green-600 disabled:bg-green-300"
+                                        }`}
+                                >
+                                    {isToggling ? "Đang xử lý..." : form.isActive ? "Tắt" : "Bật"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                                >
+                                    Xóa
+                                </button>
+                                <button
                                     type="submit"
                                     disabled={isSaving}
                                     className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
@@ -377,6 +440,18 @@ const VoucherDetail = () => {
                             </div>
                         </section>
                     </form>
+
+                    <ConfirmModal
+                        isOpen={showDeleteModal}
+                        title="Xác nhận xóa voucher"
+                        description={`Bạn có chắc muốn xóa voucher "${form.code}"? Hành động này không thể hoàn tác.`}
+                        confirmText="Xóa voucher"
+                        cancelText="Giữ lại"
+                        tone="danger"
+                        busy={isDeleting}
+                        onClose={() => setShowDeleteModal(false)}
+                        onConfirm={handleDelete}
+                    />
                 </div>
             </div>
         </div>

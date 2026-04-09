@@ -5,7 +5,8 @@ const voucherApi = {
     validateForOrder: (payload) => axiosClient.post("/vouchers/validate", payload),
     createVoucher: (payload) => axiosClient.post("/vouchers", payload),
     updateVoucher: (id, payload) => axiosClient.put(`/vouchers/${id}`, payload),
-    deleteVoucher: (id) => axiosClient.delete(`/vouchers/${id}`)
+    deleteVoucher: (id) => axiosClient.delete(`/vouchers/${id}`),
+    toggleVoucher: (id) => axiosClient.patch(`/vouchers/${id}/toggle`)
 };
 
 export default voucherApi;

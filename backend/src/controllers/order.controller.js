@@ -373,6 +373,7 @@ const confirmOrder = async (req, res) => {
             VOUCHER_INACTIVE: { status: 400, message: "Voucher hiện không hoạt động." },
             VOUCHER_EXPIRED: { status: 400, message: "Voucher đã hết hạn." },
             VOUCHER_USAGE_LIMIT_REACHED: { status: 400, message: "Voucher đã hết lượt sử dụng." },
+            VOUCHER_CUSTOMER_LIMIT_REACHED: { status: 400, message: "Bạn đã sử dụng hết lượt cho voucher này." },
             VOUCHER_MIN_ORDER_NOT_MET: { status: 400, message: "Đơn hàng chưa đạt giá trị tối thiểu để áp dụng voucher." },
             INVALID_PAYMENT_METHOD: { status: 400, message: "Phương thức thanh toán không hợp lệ." },
             INVALID_DELIVERY_WARD: { status: 400, message: "Phường giao hàng không hợp lệ." },

@@ -302,6 +302,12 @@ const getActivePromotionsForItems = async (menuItemIds, customerRank = 'normal')
             src.mi_id AS menu_item_id
         FROM promotions p
         JOIN LATERAL (
+            -- Áp dụng cho tất cả (không có scope cụ thể)
+            SELECT unnest($1::int[]) AS mi_id
+            WHERE NOT EXISTS (SELECT 1 FROM promotion_menu_items WHERE promotion_id = p.id)
+              AND NOT EXISTS (SELECT 1 FROM promotion_categories WHERE promotion_id = p.id)
+              AND NOT EXISTS (SELECT 1 FROM promotion_menu_types WHERE promotion_id = p.id)
+            UNION
             -- Áp dụng trực tiếp cho món
             SELECT pmi.menu_item_id AS mi_id
             FROM promotion_menu_items pmi

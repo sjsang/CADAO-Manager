@@ -211,7 +211,12 @@ const CheckoutPage = () => {
                 code: voucherData.code
             });
             setVoucherCode(voucherData.code || voucherCode.trim().toUpperCase());
-            setVoucherMessage(`Áp dụng voucher ${voucherData.code} thành công.`);
+
+            const messages = [`Áp dụng voucher ${voucherData.code} thành công.`];
+            if (voucherData.maxUsagePerCustomer) {
+                messages.push(`Bạn đã dùng ${voucherData.customerUsedCount || 0}/${voucherData.maxUsagePerCustomer} lượt.`);
+            }
+            setVoucherMessage(messages.join(" "));
         } catch (error) {
             if (!isMountedRef.current) return;
             const message = error.response?.data?.message || "Không thể áp dụng voucher.";

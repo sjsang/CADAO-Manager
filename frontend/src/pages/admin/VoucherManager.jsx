@@ -174,14 +174,13 @@ const VoucherManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Sử dụng</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Hạn dùng</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Thao tác</th>
                                     </tr>
                                 </thead>
 
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {isLoading ? (
                                         <tr>
-                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Đang tải danh sách voucher...
                                             </td>
                                         </tr>
@@ -211,37 +210,13 @@ const VoucherManager = () => {
                                                         {voucher.is_active && !isExpired ? "Hoạt động" : "Ngừng"}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                navigate(`/admin/vouchers/${voucher.id}`);
-                                                            }}
-                                                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-medium text-blue-700 transition hover:bg-blue-100"
-                                                        >
-                                                            Sửa
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setDeletingVoucher(voucher);
-                                                            }}
-                                                            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 font-medium text-rose-700 transition hover:bg-rose-100"
-                                                        >
-                                                            Xóa
-                                                        </button>
-                                                    </div>
-                                                </td>
                                             </tr>
                                         );
                                     })}
 
                                     {!isLoading && vouchers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có voucher phù hợp với từ khóa tìm kiếm.
                                             </td>
                                         </tr>

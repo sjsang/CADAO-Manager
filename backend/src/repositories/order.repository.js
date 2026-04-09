@@ -17,7 +17,7 @@ const getVoucherForUpdate = async (voucherId, client = db) => {
     const result = await client.query(
         `
             SELECT id, code, discount_percent, discount_amount, min_order_value, max_discount,
-                   expiry_date, usage_limit, used_count, is_active
+                   expiry_date, usage_limit, used_count, max_usage_per_customer, is_active
             FROM vouchers
             WHERE id = $1
             FOR UPDATE
@@ -28,7 +28,7 @@ const getVoucherForUpdate = async (voucherId, client = db) => {
     return result.rows[0] || null;
 };
 
-const calculateVoucherDiscount = (voucher, subtotal) => {
+const calculateVoucherDiscount = (voucher, subtotal, customerVoucherUsed = 0) => {
     if (!voucher) {
         return 0;
     }
@@ -43,6 +43,10 @@ const calculateVoucherDiscount = (voucher, subtotal) => {
 
     if (voucher.usage_limit !== null && Number(voucher.used_count) >= Number(voucher.usage_limit)) {
         throw new Error("VOUCHER_USAGE_LIMIT_REACHED");
+    }
+
+    if (voucher.max_usage_per_customer !== null && customerVoucherUsed >= Number(voucher.max_usage_per_customer)) {
+        throw new Error("VOUCHER_CUSTOMER_LIMIT_REACHED");
     }
 
     const minOrderValue = toSafeNumber(voucher.min_order_value, 0);
@@ -389,7 +393,7 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
         await db.query("BEGIN");
 
         const currentOrderResult = await db.query(
-            `SELECT id, status FROM orders WHERE order_code = $1 FOR UPDATE`,
+            `SELECT id, status, customer_id FROM orders WHERE order_code = $1 FOR UPDATE`,
             [orderCode]
         );
 
@@ -401,6 +405,16 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
 
         if (currentOrder.status !== 'cart') {
             throw new Error("ORDER_NOT_IN_CART");
+        }
+
+        // Lấy rank khách hàng để lọc khuyến mãi
+        let customerRank = 'normal';
+        if (currentOrder.customer_id) {
+            const rankResult = await db.query(
+                `SELECT rank FROM customers WHERE id = $1`,
+                [currentOrder.customer_id]
+            );
+            customerRank = rankResult.rows[0]?.rank || 'normal';
         }
 
         const selectedWard = await getWardByName(orderData.delivery_ward_name, db);
@@ -453,8 +467,9 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                 WHERE p.is_active = TRUE
                   AND p.start_time <= NOW()
                   AND p.end_time >= NOW()
+                  AND (p.applicable_rank = 'all' OR p.applicable_rank = $2)
                 ORDER BY src.mi_id, p.id
-            `, [menuItemIds]);
+            `, [menuItemIds, customerRank]);
 
             // Gom tất cả promotion theo từng item
             const promoGroups = {};
@@ -528,7 +543,16 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                 throw new Error("VOUCHER_NOT_FOUND");
             }
 
-            voucherDiscount = calculateVoucherDiscount(appliedVoucher, subtotal - promotionDiscount);
+            let customerVoucherUsed = 0;
+            if (appliedVoucher.max_usage_per_customer !== null && currentOrder.customer_id) {
+                const usageResult = await db.query(
+                    `SELECT used_count FROM customer_voucher_usage WHERE customer_id = $1 AND voucher_id = $2`,
+                    [currentOrder.customer_id, voucherId]
+                );
+                customerVoucherUsed = usageResult.rows[0]?.used_count || 0;
+            }
+
+            voucherDiscount = calculateVoucherDiscount(appliedVoucher, subtotal - promotionDiscount, customerVoucherUsed);
         }
 
         const discountAmount = promotionDiscount + voucherDiscount;
@@ -572,6 +596,18 @@ const confirmOrder = async (orderCode, orderData, paymentMethod) => {
                 `,
                 [voucherId]
             );
+
+            if (currentOrder.customer_id) {
+                await db.query(
+                    `
+                        INSERT INTO customer_voucher_usage (customer_id, voucher_id, used_count)
+                        VALUES ($1, $2, 1)
+                        ON CONFLICT (customer_id, voucher_id)
+                        DO UPDATE SET used_count = customer_voucher_usage.used_count + 1
+                    `,
+                    [currentOrder.customer_id, voucherId]
+                );
+            }
         } else {
             await db.query(`DELETE FROM order_vouchers WHERE order_id = $1`, [orderId]);
         }
@@ -624,6 +660,29 @@ const getOrderByOrderCode = async (orderCode) => {
         const statusHistory = await getOrderStatusHistoryByOrderId(order.id);
         const review = await getOrderReviewByOrderId(order.id);
         const reviewItems = review ? await getOrderReviewItemsByOrderId(order.id) : [];
+
+        const promoResult = await db.query(
+            `SELECT oip.order_item_id, oip.promotion_name, oip.discount_percent, oip.discount_amount,
+                    oi.menu_item_id
+             FROM order_item_promotions oip
+             JOIN order_items oi ON oi.id = oip.order_item_id
+             WHERE oi.order_id = $1`,
+            [order.id]
+        );
+        const promoMap = {};
+        for (const row of promoResult.rows) {
+            promoMap[row.menu_item_id] = {
+                promotion_name: row.promotion_name,
+                discount_percent: row.discount_percent,
+                discount_amount: row.discount_amount
+            };
+        }
+        if (order.items) {
+            order.items = order.items.map(item => ({
+                ...item,
+                promotion: promoMap[item.menu_item_id] || null
+            }));
+        }
 
         order.payment = payment;
         order.status_history = statusHistory;

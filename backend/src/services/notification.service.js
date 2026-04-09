@@ -79,7 +79,7 @@ const notifyRankUp = async (customerId) => {
         type: 'rank',
         title: 'Chúc mừng! Bạn đã được thăng hạng',
         message: 'Bạn đã được nâng cấp lên hạng "Khách hàng thân quen". Cảm ơn bạn đã đồng hành cùng chúng tôi!',
-        link: '/profile'
+        link: '/customers/me'
     });
 };
 

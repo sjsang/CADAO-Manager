@@ -4,6 +4,7 @@ import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import wardApi from "../../api/wardApi";
 import { notifyCustomer } from "../../utils/customerNotify";
+import ConfirmModal from "../../components/admin/modals/ConfirmModal";
 
 const WardDetail = () => {
     const { id } = useParams();
@@ -11,6 +12,8 @@ const WardDetail = () => {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState({
@@ -155,6 +158,13 @@ const WardDetail = () => {
                                     Quay lại
                                 </button>
                                 <button
+                                    type="button"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                                >
+                                    Xóa
+                                </button>
+                                <button
                                     type="submit"
                                     disabled={isSaving}
                                     className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
@@ -162,6 +172,30 @@ const WardDetail = () => {
                                     {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                                 </button>
                             </div>
+
+                            <ConfirmModal
+                                isOpen={showDeleteModal}
+                                title="Xóa phường/xã"
+                                description="Bạn có chắc muốn xóa phường/xã này? Hành động không thể hoàn tác."
+                                confirmText="Xóa"
+                                cancelText="Hủy"
+                                tone="danger"
+                                busy={isDeleting}
+                                onClose={() => setShowDeleteModal(false)}
+                                onConfirm={async () => {
+                                    setIsDeleting(true);
+                                    try {
+                                        await wardApi.deleteWard(id);
+                                        notifyCustomer({ message: "Đã xóa phường/xã.", type: "success" });
+                                        navigate("/admin/wards");
+                                    } catch {
+                                        notifyCustomer({ message: "Xóa phường/xã thất bại.", type: "error" });
+                                    } finally {
+                                        setIsDeleting(false);
+                                        setShowDeleteModal(false);
+                                    }
+                                }}
+                            />
                         </section>
                     </form>
                 </div>

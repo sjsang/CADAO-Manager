@@ -512,6 +512,9 @@ const AdminOrderDetail = () => {
                                 <InfoRow label="Tạm tính" value={`${Number(order.subtotal || 0).toLocaleString("vi-VN")}đ`} />
                                 <InfoRow label="Phí vận chuyển" value={`${Number(order.shipping_fee || 0).toLocaleString("vi-VN")}đ`} />
                                 <InfoRow label="Giảm giá" value={`${Number(order.discount_amount || 0).toLocaleString("vi-VN")}đ`} />
+                                {order.voucher_code && (
+                                    <InfoRow label="Voucher áp dụng" value={order.voucher_code} />
+                                )}
                                 <InfoRow label="Tổng thanh toán" value={`${Number(order.total_amount || 0).toLocaleString("vi-VN")}đ`} />
                             </div>
                         </div>
@@ -648,6 +651,7 @@ const AdminOrderDetail = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Số lượng</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Đơn giá</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Thành tiền</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Khuyến mãi</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ghi chú</th>
                                     </tr>
                                 </thead>
@@ -659,6 +663,15 @@ const AdminOrderDetail = () => {
                                             <td className="px-4 py-3 text-sm text-slate-700">{item.quantity}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number(item.price || 0).toLocaleString("vi-VN")}đ</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{Number((item.price || 0) * (item.quantity || 0)).toLocaleString("vi-VN")}đ</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">
+                                                {item.promotion ? (
+                                                    <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                                        {item.promotion.promotion_name}
+                                                        {item.promotion.discount_percent ? ` (-${item.promotion.discount_percent}%)` : ''}
+                                                        {' '}-{Number(item.promotion.discount_amount || 0).toLocaleString("vi-VN")}đ
+                                                    </span>
+                                                ) : "-"}
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{item.note || "-"}</td>
                                         </tr>
                                     ))}
