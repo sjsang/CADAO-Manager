@@ -11,8 +11,7 @@ router.patch("/conversations/:conversationId/read", authenticate, requireAnyRole
 router.patch("/conversations/:conversationId/bot-status", authenticate, requireRole("admin"), chatController.toggleBot);
 router.get("/unread-count", authenticate, requireAnyRole("admin", "customer"), chatController.getUnreadCount);
 router.post("/messages", authenticate, requireAnyRole("admin", "customer"), chatController.sendMessage);
-router.post("/conversations/:conversationId/rate", authenticate, requireRole("customer"), chatController.rateChatbot);
-router.get("/conversations/:conversationId/rate", authenticate, requireRole("customer"), chatController.getChatRating);
+
 router.get("/conversations/:conversationId/summary", authenticate, requireRole("admin"), chatController.getConversationSummary);
 router.get("/dashboard-stats", authenticate, requireRole("admin"), chatController.getChatDashboardStats);
 

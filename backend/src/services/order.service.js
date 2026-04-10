@@ -1,4 +1,5 @@
 const orderRepository = require("../repositories/order.repository");
+const cartRepository = require("../repositories/cart.repository");
 const notificationService = require("./notification.service");
 
 const ADMIN_STATUS_TRANSITIONS = {
@@ -145,6 +146,20 @@ const completeDelivery = async (orderCode, shipperId) => {
     return await orderRepository.completeDelivery(orderCode, shipperId);
 };
 
+const reorderToCart = async (orderCode, customerId) => {
+    const items = await orderRepository.getOrderItemsForReorder(orderCode, customerId);
+
+    if (!items || items.length === 0) {
+        throw new Error("REORDER_NO_ITEMS");
+    }
+
+    for (const item of items) {
+        await cartRepository.addCartItem(customerId, item.menu_item_id, item.quantity, item.note || "");
+    }
+
+    return { addedCount: items.length };
+};
+
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
@@ -158,5 +173,6 @@ module.exports = {
     getOrdersByShipperId,
     getDeliveryHistoryByShipperId,
     completeDelivery,
-    notifyCustomerOrderStatus
+    notifyCustomerOrderStatus,
+    reorderToCart
 };

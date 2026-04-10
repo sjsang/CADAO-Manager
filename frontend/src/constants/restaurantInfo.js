@@ -3,5 +3,3 @@ export const RESTAURANT_INFO = {
     address: "02 Phan Van Tri, Ninh Kieu, Can Tho",
     phone: "090 103 39 99"
 };
-
-export const RESTAURANT_FOOTER_TEXT = `${RESTAURANT_INFO.name} - ${RESTAURANT_INFO.address}. - ${RESTAURANT_INFO.phone}`;

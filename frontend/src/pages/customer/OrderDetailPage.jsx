@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import AOS from "aos";
 import { getStatusText, getPaymentMethodText, getPaymentStatusText } from "../../functions/formatOrderFields";
@@ -11,6 +11,7 @@ import { useSocket } from "../../contexts/SocketContext";
 
 const OrderDetailPage = () => {
     const { orderCode } = useParams();
+    const navigate = useNavigate();
     const socket = useSocket();
     const [order, setOrder] = useState(null);
     const [itemRatings, setItemRatings] = useState({});
@@ -20,6 +21,7 @@ const OrderDetailPage = () => {
     const [isRefundFormOpen, setIsRefundFormOpen] = useState(false);
     const [isCancellingOrder, setIsCancellingOrder] = useState(false);
     const [isRetryingVnpay, setIsRetryingVnpay] = useState(false);
+    const [isReordering, setIsReordering] = useState(false);
     const [refundForm, setRefundForm] = useState({
         bankName: "",
         accountNumber: "",
@@ -165,6 +167,24 @@ const OrderDetailPage = () => {
             ...prev,
             [menuItemId]: rating
         }));
+    };
+
+    const handleReorder = async () => {
+        if (isReordering) return;
+        setIsReordering(true);
+        try {
+            const res = await orderApi.reorder(orderCode);
+            notifyCustomer({ message: res.data?.message || "Đã thêm các món vào giỏ hàng!", type: "success" });
+            navigate("/cart-items");
+        } catch (error) {
+            console.error("Reorder failed:", error);
+            notifyCustomer({
+                message: error.response?.data?.message || "Không thể đặt lại món. Vui lòng thử lại sau.",
+                type: "error"
+            });
+        } finally {
+            setIsReordering(false);
+        }
     };
 
     const computeAverageItemRating = (ratingsMap, items) => {
@@ -461,6 +481,22 @@ const OrderDetailPage = () => {
                                         </div>
                                     </div>
                                     <p className="text-xs text-amber-200/90">Hiện tại hệ thống chỉ hỗ trợ hoàn tiền qua chuyển khoản ngân hàng.</p>
+                                </div>
+                            )}
+
+                            {(order.status === "completed" || order.status === "cancelled") && (
+                                <div data-aos="fade-up" data-aos-delay="200">
+                                    <button
+                                        className="group relative overflow-hidden w-full px-8 py-3 border border-[#e4c590]/60 text-[#e4c590] rounded-lg cursor-pointer disabled:opacity-60"
+                                        onClick={handleReorder}
+                                        disabled={isReordering}
+                                    >
+                                        <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                        <span className="relative z-10 text-sm font-bold tracking-widest group-hover:text-black transition-colors">
+                                            <i className="fa-solid fa-rotate-right mr-2" />
+                                            {isReordering ? "ĐANG XỬ LÝ..." : "ĐẶT LẠI MÓN"}
+                                        </span>
+                                    </button>
                                 </div>
                             )}
 

@@ -126,36 +126,7 @@ const getUnreadCount = async (req, res) => {
     }
 };
 
-const rateChatbot = async (req, res) => {
-    try {
-        const conversationId = parseConversationId(req.params.conversationId);
-        const { rating, feedback } = req.body || {};
-        const result = await chatService.rateChatbot({
-            currentUser: req.user,
-            conversationId,
-            rating: Number(rating),
-            feedback: String(feedback || "").trim() || null
-        });
 
-        return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        return sendError(res, error, "Không thể gửi đánh giá chatbot.");
-    }
-};
-
-const getChatRating = async (req, res) => {
-    try {
-        const conversationId = parseConversationId(req.params.conversationId);
-        const result = await chatService.getChatRating({
-            currentUser: req.user,
-            conversationId
-        });
-
-        return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        return sendError(res, error, "Không thể lấy đánh giá chatbot.");
-    }
-};
 
 const getChatDashboardStats = async (req, res) => {
     try {
@@ -185,8 +156,6 @@ module.exports = {
     toggleBot,
     markMessagesAsRead,
     getUnreadCount,
-    rateChatbot,
-    getChatRating,
     getChatDashboardStats,
     getConversationSummary
 };

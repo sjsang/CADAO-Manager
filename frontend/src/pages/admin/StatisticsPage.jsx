@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import dashboardApi from "../../api/dashboardApi";
+import chatApi from "../../api/chatApi";
 import { getPaymentMethodText, getStatusText } from "../../functions/formatOrderFields";
 import {
     Bar,
@@ -36,7 +37,8 @@ const TABS = [
     { key: "reviews", label: "Đánh giá", icon: "fa-solid fa-star" },
     { key: "vouchers", label: "Voucher & KM", icon: "fa-solid fa-ticket" },
     { key: "areas", label: "Khu vực", icon: "fa-solid fa-map-location-dot" },
-    { key: "staff", label: "Nhân sự", icon: "fa-solid fa-user-tie" }
+    { key: "staff", label: "Nhân sự", icon: "fa-solid fa-user-tie" },
+    { key: "chatbot", label: "Chatbot", icon: "fa-solid fa-robot" }
 ];
 
 const STATUS_OPTIONS = [
@@ -1048,6 +1050,132 @@ const StaffTab = ({ loading, staffMetrics }) => {
     );
 };
 
+/* ─── Tab: Chatbot ─── */
+const ChatbotTab = ({ loading, chatStats }) => {
+    const dailyData = (chatStats.dailyMessages || []).map((d) => ({
+        label: new Date(d.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+        customer: d.customer,
+        bot: d.bot,
+        admin: d.admin,
+        total: d.total
+    }));
+
+    const msgTotal = Number(chatStats.total_messages || 0);
+    const botPct = msgTotal > 0 ? ((Number(chatStats.bot_messages || 0) / msgTotal) * 100).toFixed(1) : "0";
+    const custPct = msgTotal > 0 ? ((Number(chatStats.customer_messages || 0) / msgTotal) * 100).toFixed(1) : "0";
+    const adminPct = msgTotal > 0 ? ((Number(chatStats.admin_messages || 0) / msgTotal) * 100).toFixed(1) : "0";
+
+    const pieData = [
+        { name: "Bot", value: Number(chatStats.bot_messages || 0), color: "#06b6d4" },
+        { name: "Khách hàng", value: Number(chatStats.customer_messages || 0), color: "#8b5cf6" },
+        { name: "Admin", value: Number(chatStats.admin_messages || 0), color: "#f59e0b" }
+    ].filter((d) => d.value > 0);
+
+    const avgTime = chatStats.avgResponseTimeSeconds;
+    const avgTimeDisplay = avgTime != null ? (avgTime < 60 ? `${avgTime}s` : `${(avgTime / 60).toFixed(1)} phút`) : "—";
+
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <SummaryCard label="Tổng hội thoại" value={chatStats.totalConversations} hint={`${chatStats.conversationsThisWeek} tuần này`} tone="border-sky-200 bg-sky-50/70" icon="fa-solid fa-comments" />
+                <SummaryCard label="Tổng tin nhắn" value={msgTotal} hint={`Bot: ${chatStats.bot_messages || 0} · Admin: ${chatStats.admin_messages || 0}`} tone="border-violet-200 bg-violet-50/70" icon="fa-solid fa-message" />
+                <SummaryCard label="Tỷ lệ tự động (Bot)" value={`${chatStats.botAutomationRate}%`} hint={`${chatStats.bot_messages || 0} / ${msgTotal} tin nhắn`} tone="border-emerald-200 bg-emerald-50/70" icon="fa-solid fa-robot" />
+                <SummaryCard label="Thời gian phản hồi TB" value={avgTimeDisplay} hint="Từ tin khách → bot/admin" tone="border-amber-200 bg-amber-50/70" icon="fa-solid fa-clock" />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <SummaryCard label="Bot đang hoạt động" value={chatStats.activeConversations} hint="Hội thoại có bot bật" tone="border-teal-200 bg-teal-50/70" icon="fa-solid fa-toggle-on" />
+                <SummaryCard label="Chuyển admin" value={chatStats.handoffCount} hint="Lượt yêu cầu nhân viên" tone="border-rose-200 bg-rose-50/70" icon="fa-solid fa-headset" />
+                <SummaryCard label="Tin nhắn KH" value={chatStats.customer_messages || 0} hint={`${custPct}% tổng tin`} tone="border-indigo-200 bg-indigo-50/70" icon="fa-solid fa-user" />
+                <SummaryCard label="Tin nhắn Admin" value={chatStats.admin_messages || 0} hint={`${adminPct}% tổng tin`} tone="border-orange-200 bg-orange-50/70" icon="fa-solid fa-user-shield" />
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+                <SectionCard tag="Daily Messages" title="Tin nhắn theo ngày (30 ngày)">
+                    {loading ? <SkeletonBlock className="h-80" /> : dailyData.length > 0 ? (
+                        <div className="h-80 rounded-3xl bg-slate-50/70 p-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={dailyData}>
+                                    <defs>
+                                        <linearGradient id="chatBotGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#06b6d4" />
+                                            <stop offset="100%" stopColor="#0891b2" />
+                                        </linearGradient>
+                                        <linearGradient id="chatCustGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#8b5cf6" />
+                                            <stop offset="100%" stopColor="#7c3aed" />
+                                        </linearGradient>
+                                        <linearGradient id="chatAdminGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#f59e0b" />
+                                            <stop offset="100%" stopColor="#d97706" />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 6" vertical={false} />
+                                    <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fill: "#64748b", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                    <Tooltip content={<ChartTooltip formatter={(v) => `${v} tin`} />} />
+                                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                                    <Bar dataKey="bot" name="Bot" fill="url(#chatBotGrad)" radius={[6, 6, 0, 0]} stackId="msg" />
+                                    <Bar dataKey="customer" name="Khách hàng" fill="url(#chatCustGrad)" radius={[0, 0, 0, 0]} stackId="msg" />
+                                    <Bar dataKey="admin" name="Admin" fill="url(#chatAdminGrad)" radius={[0, 0, 0, 0]} stackId="msg" />
+                                    <Line type="monotone" dataKey="total" name="Tổng" stroke="#334155" strokeWidth={2} dot={false} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : <EmptyState message="Chưa có dữ liệu tin nhắn." />}
+                </SectionCard>
+
+                <SectionCard tag="Message Distribution" title="Phân bổ tin nhắn">
+                    {loading ? <SkeletonBlock className="h-80" /> : pieData.length > 0 ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="h-56 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                                            {pieData.map((entry) => (
+                                                <Cell key={entry.name} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip content={<ChartTooltip formatter={(v) => `${v} tin`} />} />
+                                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="w-full space-y-2">
+                                {pieData.map((d) => (
+                                    <div key={d.name} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-2.5">
+                                        <span className="flex items-center gap-2 text-sm text-slate-600">
+                                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                                            {d.name}
+                                        </span>
+                                        <span className="text-sm font-semibold text-slate-900">{d.value} ({msgTotal > 0 ? ((d.value / msgTotal) * 100).toFixed(1) : 0}%)</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : <EmptyState message="Chưa có dữ liệu." />}
+                </SectionCard>
+            </div>
+
+            <SectionCard tag="Top Questions" title="Câu hỏi phổ biến nhất (30 ngày)">
+                {loading ? <SkeletonBlock className="h-64" /> : (chatStats.topQuestions || []).length > 0 ? (
+                    <div className="space-y-2">
+                        {chatStats.topQuestions.map((q, idx) => (
+                            <div key={idx} className="flex items-start gap-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">{idx + 1}</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-slate-800 leading-relaxed break-words">{q.text}</p>
+                                </div>
+                                <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{q.count} lần</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : <EmptyState message="Chưa có dữ liệu câu hỏi." />}
+            </SectionCard>
+        </div>
+    );
+};
+
 /* ─── Main Page Component ─── */
 const StatisticsPage = () => {
     const [activeTab, setActiveTab] = useState("overview");
@@ -1058,6 +1186,8 @@ const StatisticsPage = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [isExporting, setIsExporting] = useState(false);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [chatStats, setChatStats] = useState({});
+    const [chatLoading, setChatLoading] = useState(false);
 
     useEffect(() => {
         const fetchStatistics = async () => {
@@ -1081,6 +1211,22 @@ const StatisticsPage = () => {
         };
         fetchStatistics();
     }, [filters]);
+
+    useEffect(() => {
+        if (activeTab !== "chatbot") return;
+        const fetchChatStats = async () => {
+            setChatLoading(true);
+            try {
+                const response = await chatApi.getDashboardStats();
+                setChatStats(response.data?.data || {});
+            } catch (error) {
+                console.error("Error fetching chat stats:", error);
+            } finally {
+                setChatLoading(false);
+            }
+        };
+        fetchChatStats();
+    }, [activeTab]);
 
     const summary = statistics?.summary || { totalOrders: 0, completedOrders: 0, cancelledOrders: 0, activeOrders: 0, totalRevenue: 0, averageOrderValue: 0, completionRate: 0, cancellationRate: 0 };
     const trend = statistics?.trend || [];
@@ -1245,6 +1391,8 @@ const StatisticsPage = () => {
                 return <AreasTab loading={loading} wardDemand={wardDemand} />;
             case "staff":
                 return <StaffTab loading={loading} staffMetrics={staffMetrics} />;
+            case "chatbot":
+                return <ChatbotTab loading={chatLoading} chatStats={chatStats} />;
             default:
                 return null;
         }

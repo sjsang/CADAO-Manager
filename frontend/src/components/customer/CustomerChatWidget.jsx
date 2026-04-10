@@ -156,7 +156,8 @@ const CustomerChatWidget = () => {
         const handleNewMessage = (msg) => {
             setMessages((prev) => {
                 if (prev.some((m) => m.id === msg.id)) return prev;
-                return [...prev, msg];
+                const next = prev.filter((m) => !(String(m.id).startsWith("temp-") && m.sender_type === msg.sender_type && m.text === msg.text));
+                return [...next, msg];
             });
             if (msg.sender_type === "bot" || msg.sender_type === "admin") {
                 setIsSending(false);
@@ -240,9 +241,18 @@ const CustomerChatWidget = () => {
             return;
         }
 
+        const tempId = `temp-${Date.now()}`;
+        const optimisticMsg = {
+            id: tempId,
+            sender_type: "customer",
+            text: payloadText,
+            created_at: new Date().toISOString()
+        };
+
         setIsSending(true);
         setErrorText("");
         setText("");
+        setMessages((prev) => [...prev, optimisticMsg]);
 
         try {
             const res = await chatApi.sendMessage({
@@ -256,11 +266,11 @@ const CustomerChatWidget = () => {
             const cartUpdated = res.data?.data?.cartUpdated;
 
             setMessages((prev) => {
-                const next = [...prev];
-                if (userMessage && !prev.some((m) => m.id === userMessage.id)) {
+                let next = prev.filter((m) => m.id !== tempId);
+                if (userMessage && !next.some((m) => m.id === userMessage.id)) {
                     next.push(userMessage);
                 }
-                if (aiMessage && !prev.some((m) => m.id === aiMessage.id)) {
+                if (aiMessage && !next.some((m) => m.id === aiMessage.id)) {
                     next.push(aiMessage);
                 }
                 return next;
@@ -273,6 +283,7 @@ const CustomerChatWidget = () => {
             setConversation((prev) => prev ? { ...prev, is_bot_active: nextBotStatus } : prev);
             await chatApi.markAsRead(conversation.id);
         } catch (error) {
+            setMessages((prev) => prev.filter((m) => m.id !== tempId));
             setErrorText(error.response?.data?.message || "Không thể gửi tin nhắn.");
         } finally {
             setIsSending(false);
@@ -286,7 +297,7 @@ const CustomerChatWidget = () => {
 
     const quickReplies = [
         { label: "Xem thực đơn", icon: "fa-utensils", text: "Cho mình xem thực đơn" },
-        { label: "Voucher hôm nay", icon: "fa-ticket", text: "Có voucher gì không?" },
+        { label: "Ưu đãi hôm nay", icon: "fa-ticket", text: "Có khuyến mãi/voucher gì không?" },
         { label: "Xem giỏ hàng", icon: "fa-cart-shopping", text: "Xem giỏ hàng của mình" },
         { label: "Đặt hàng ngay", icon: "fa-bag-shopping", text: "Đặt hàng giỏ hàng hiện tại giúp mình" },
         { label: "Đơn hàng của tôi", icon: "fa-truck", text: "Đơn hàng của mình đang ở đâu?" },

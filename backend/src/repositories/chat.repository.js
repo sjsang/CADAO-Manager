@@ -274,9 +274,27 @@ const searchMenuItems = async (query, limit = 5) => {
     return result.rows;
 };
 
-const getMenuItemsByPrice = async ({ sort = "asc", limit = 1 } = {}) => {
+const getMenuItemsByPrice = async ({ sort = "asc", limit = 1, menuType, category } = {}) => {
     const safeSort = sort === "desc" ? "DESC" : "ASC";
     const safeLimit = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 10) : 1;
+
+    const conditions = ["mi.is_available = TRUE"];
+    const params = [];
+    let idx = 1;
+
+    if (menuType) {
+        conditions.push(`mt.name ILIKE $${idx}`);
+        params.push(`%${menuType}%`);
+        idx++;
+    }
+
+    if (category) {
+        conditions.push(`c.name ILIKE $${idx}`);
+        params.push(`%${category}%`);
+        idx++;
+    }
+
+    params.push(safeLimit);
 
     const result = await db.query(
         `
@@ -291,11 +309,11 @@ const getMenuItemsByPrice = async ({ sort = "asc", limit = 1 } = {}) => {
             FROM menu_items mi
             JOIN categories c ON c.id = mi.category_id
             JOIN menu_types mt ON mt.id = c.menu_type_id
-            WHERE mi.is_available = TRUE
+            WHERE ${conditions.join(' AND ')}
             ORDER BY mi.price ${safeSort}, mi.name ASC
-            LIMIT $1
+            LIMIT $${idx}
         `,
-        [safeLimit]
+        params
     );
 
     return result.rows;
@@ -326,25 +344,52 @@ const getActiveVouchers = async () => {
     return result.rows;
 };
 
+const getActivePromotions = async () => {
+    const result = await db.query(
+        `
+            SELECT
+                id,
+                name,
+                description,
+                discount_percent,
+                discount_amount,
+                start_time,
+                end_time,
+                applicable_rank,
+                is_active,
+                created_at
+            FROM promotions
+            WHERE is_active = TRUE
+              AND (start_time IS NULL OR start_time <= NOW())
+
+              AND (end_time IS NULL OR end_time >= NOW())
+            ORDER BY created_at DESC, id DESC
+            LIMIT 20
+        `
+    );
+
+    return result.rows;
+};
+
 // #1 - Lịch sử đơn hàng khách hàng (gợi ý cá nhân hóa)
 const getCustomerOrderHistory = async (customerId, limit = 5) => {
     const result = await db.query(
         `
             SELECT
                 o.order_code,
-                o.status,
-                o.total_amount,
-                o.created_at,
-                json_agg(json_build_object(
-                    'name', mi.name,
-                    'quantity', oi.quantity,
-                    'price', oi.price
-                ) ORDER BY oi.id) AS items
+        o.status,
+        o.total_amount,
+        o.created_at,
+        json_agg(json_build_object(
+            'name', mi.name,
+            'quantity', oi.quantity,
+            'price', oi.price
+        ) ORDER BY oi.id) AS items
             FROM orders o
             JOIN order_items oi ON oi.order_id = o.id
             JOIN menu_items mi ON mi.id = oi.menu_item_id
             WHERE o.customer_id = $1
-              AND o.status IN ('completed', 'shipping', 'preparing', 'confirmed')
+              AND o.status IN('completed', 'shipping', 'preparing', 'confirmed')
             GROUP BY o.id
             ORDER BY o.created_at DESC
             LIMIT $2
@@ -361,19 +406,19 @@ const getCustomerActiveOrders = async (customerId) => {
         `
             SELECT
                 o.order_code,
-                o.status,
-                o.total_amount,
-                o.delivery_address,
-                o.delivery_ward_name,
-                o.shipping_fee,
-                o.created_at,
-                o.updated_at,
-                u.full_name AS shipper_name,
-                u.phone_number AS shipper_phone
+        o.status,
+        o.total_amount,
+        o.delivery_address,
+        o.delivery_ward_name,
+        o.shipping_fee,
+        o.created_at,
+        o.updated_at,
+        u.full_name AS shipper_name,
+        u.phone_number AS shipper_phone
             FROM orders o
             LEFT JOIN users u ON u.id = o.shipper_id
             WHERE o.customer_id = $1
-              AND o.status IN ('pending', 'confirmed', 'preparing', 'shipping')
+              AND o.status IN('pending', 'confirmed', 'preparing', 'shipping')
             ORDER BY o.updated_at DESC
             LIMIT 5
         `,
@@ -392,7 +437,7 @@ const findMenuItemByName = async (name) => {
             WHERE name ILIKE $1
             LIMIT 1
         `,
-        [`%${name}%`]
+        [`% ${name} % `]
     );
 
     return result.rows[0] || null;
@@ -404,14 +449,14 @@ const searchMenuItemsWithImage = async (query, limit = 5) => {
         `
             SELECT
                 mi.id,
-                mi.name,
-                mi.description,
-                mi.price,
-                mi.sold_count,
-                mi.is_available,
-                mi.image_url,
-                c.name AS category_name,
-                mt.name AS menu_type_name
+        mi.name,
+        mi.description,
+        mi.price,
+        mi.sold_count,
+        mi.is_available,
+        mi.image_url,
+        c.name AS category_name,
+        mt.name AS menu_type_name
             FROM menu_items mi
             JOIN categories c ON c.id = mi.category_id
             JOIN menu_types mt ON mt.id = c.menu_type_id
@@ -422,36 +467,13 @@ const searchMenuItemsWithImage = async (query, limit = 5) => {
             ORDER BY mi.is_available DESC, mi.sold_count DESC, mi.name ASC
             LIMIT $2
         `,
-        [`%${query}%`, limit]
+        [`% ${query} % `, limit]
     );
 
     return result.rows;
 };
 
-// #5 - Đánh giá chatbot
-const createChatRating = async ({ conversationId, customerId, rating, feedback }) => {
-    const result = await db.query(
-        `
-            INSERT INTO chat_ratings (conversation_id, customer_id, rating, feedback)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (conversation_id, customer_id)
-            DO UPDATE SET rating = EXCLUDED.rating, feedback = EXCLUDED.feedback, created_at = NOW()
-            RETURNING *
-        `,
-        [conversationId, customerId, rating, feedback || null]
-    );
 
-    return result.rows[0];
-};
-
-const getChatRating = async (conversationId, customerId) => {
-    const result = await db.query(
-        `SELECT * FROM chat_ratings WHERE conversation_id = $1 AND customer_id = $2 LIMIT 1`,
-        [conversationId, customerId]
-    );
-
-    return result.rows[0] || null;
-};
 
 // #9 - Dashboard thống kê chatbot
 const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
@@ -461,33 +483,33 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
     const params = fromDate && toDate ? [fromDate, toDate] : [];
 
     const totalConversations = await db.query(
-        `SELECT COUNT(*)::int AS total FROM chat_conversations`
+        `SELECT COUNT(*):: int AS total FROM chat_conversations`
     );
 
     const activeConversations = await db.query(
-        `SELECT COUNT(*)::int AS total FROM chat_conversations WHERE is_bot_active = TRUE`
+        `SELECT COUNT(*):: int AS total FROM chat_conversations WHERE is_bot_active = TRUE`
     );
 
     const conversationsThisWeek = await db.query(
-        `SELECT COUNT(*)::int AS total FROM chat_conversations WHERE created_at >= NOW() - INTERVAL '7 days'`
+        `SELECT COUNT(*):: int AS total FROM chat_conversations WHERE created_at >= NOW() - INTERVAL '7 days'`
     );
 
     const messageStats = await db.query(
         `
             SELECT
-                COUNT(*)::int AS total_messages,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'customer')::int AS customer_messages,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'bot')::int AS bot_messages,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'admin')::int AS admin_messages
+                COUNT(*):: int AS total_messages,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'customer'):: int AS customer_messages,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'bot'):: int AS bot_messages,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'admin'):: int AS admin_messages
             FROM chat_messages cm
-            WHERE 1=1 ${dateFilter}
+            WHERE 1 = 1 ${dateFilter}
         `,
         params
     );
 
     const handoffCount = await db.query(
         `
-            SELECT COUNT(*)::int AS total
+            SELECT COUNT(*):: int AS total
             FROM chat_messages cm
             WHERE cm.text = 'Mình muốn được nhân viên tư vấn trực tiếp.'
               AND cm.sender_type = 'customer'
@@ -500,10 +522,10 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
         `
             SELECT
                 DATE(cm.created_at) AS date,
-                COUNT(*)::int AS total,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'customer')::int AS customer,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'bot')::int AS bot,
-                COUNT(*) FILTER (WHERE cm.sender_type = 'admin')::int AS admin
+        COUNT(*):: int AS total,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'customer'):: int AS customer,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'bot'):: int AS bot,
+        COUNT(*) FILTER(WHERE cm.sender_type = 'admin'):: int AS admin
             FROM chat_messages cm
             WHERE cm.created_at >= NOW() - INTERVAL '30 days'
             GROUP BY DATE(cm.created_at)
@@ -515,7 +537,7 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
         `
             SELECT
                 cm.text,
-                COUNT(*)::int AS count
+        COUNT(*):: int AS count
             FROM chat_messages cm
             WHERE cm.sender_type = 'customer'
               AND LENGTH(cm.text) > 5
@@ -529,17 +551,17 @@ const getChatDashboardStats = async ({ fromDate, toDate } = {}) => {
 
     const avgResponseTime = await db.query(
         `
-            SELECT ROUND(AVG(EXTRACT(EPOCH FROM (bot_msg.created_at - cust_msg.created_at)))::numeric, 1) AS avg_seconds
+            SELECT ROUND(AVG(EXTRACT(EPOCH FROM(bot_msg.created_at - cust_msg.created_at))):: numeric, 1) AS avg_seconds
             FROM chat_messages cust_msg
-            JOIN LATERAL (
-                SELECT created_at
+            JOIN LATERAL(
+            SELECT created_at
                 FROM chat_messages
                 WHERE conversation_id = cust_msg.conversation_id
-                  AND sender_type IN ('bot', 'admin')
+                  AND sender_type IN('bot', 'admin')
                   AND created_at > cust_msg.created_at
                 ORDER BY created_at ASC
                 LIMIT 1
-            ) bot_msg ON TRUE
+        ) bot_msg ON TRUE
             WHERE cust_msg.sender_type = 'customer'
               AND cust_msg.created_at >= NOW() - INTERVAL '30 days'
         `
@@ -601,11 +623,85 @@ const getCustomerDefaultAddress = async (customerId) => {
     return result.rows[0] || null;
 };
 
+// #12b - Lọc món ăn đa năng
+const getMenuItemsByFilter = async ({ category, menuType, minPrice, maxPrice, isFeatured, isAvailable, sortBy, limit = 10 } = {}) => {
+    const conditions = [];
+    const params = [];
+    let idx = 1;
+
+    if (category) {
+        conditions.push(`c.name ILIKE $${idx}`);
+        params.push(`% ${category} % `);
+        idx++;
+    }
+
+    if (menuType) {
+        conditions.push(`mt.name ILIKE $${idx}`);
+        params.push(`% ${menuType} % `);
+        idx++;
+    }
+
+    if (minPrice != null) {
+        conditions.push(`mi.price >= $${idx}`);
+        params.push(Number(minPrice));
+        idx++;
+    }
+
+    if (maxPrice != null) {
+        conditions.push(`mi.price <= $${idx}`);
+        params.push(Number(maxPrice));
+        idx++;
+    }
+
+    if (isFeatured === true) {
+        conditions.push(`mi.is_featured = TRUE`);
+    }
+
+    if (isAvailable === true) {
+        conditions.push(`mi.is_available = TRUE`);
+    } else if (isAvailable === false) {
+        conditions.push(`mi.is_available = FALSE`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const validSorts = {
+        price_asc: 'mi.price ASC',
+        price_desc: 'mi.price DESC',
+        bestseller: 'mi.sold_count DESC',
+        newest: 'mi.created_at DESC',
+        name: 'mi.name ASC'
+    };
+    const orderClause = validSorts[sortBy] || 'mi.sold_count DESC, mi.name ASC';
+
+    const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 20);
+    params.push(safeLimit);
+
+    const result = await db.query(
+        `
+            SELECT
+                mi.id, mi.name, mi.description, mi.price, mi.sold_count,
+        mi.is_available, mi.is_featured, mi.image_url,
+        c.name AS category_name,
+        mt.name AS menu_type_name
+            FROM menu_items mi
+            JOIN categories c ON c.id = mi.category_id
+            JOIN menu_types mt ON mt.id = c.menu_type_id
+            ${whereClause}
+            ORDER BY ${orderClause}
+            LIMIT $${idx}
+        `,
+        params
+    );
+
+    return result.rows;
+};
+
 // #13 - Tìm voucher theo mã
 const getVoucherByCode = async (code) => {
     const result = await db.query(
         `SELECT id, code, discount_percent, discount_amount, min_order_value, max_discount,
-                expiry_date, usage_limit, used_count, is_active
+        expiry_date, usage_limit, used_count, is_active
          FROM vouchers
          WHERE UPPER(code) = UPPER($1)
          LIMIT 1`,
@@ -630,15 +726,15 @@ module.exports = {
     searchMenuItems,
     getMenuItemsByPrice,
     getActiveVouchers,
+    getActivePromotions,
     getCustomerOrderHistory,
     getCustomerActiveOrders,
     findMenuItemByName,
     searchMenuItemsWithImage,
-    createChatRating,
-    getChatRating,
     getChatDashboardStats,
     getConversationSummaryData,
     getCustomerInfo,
     getCustomerDefaultAddress,
-    getVoucherByCode
+    getVoucherByCode,
+    getMenuItemsByFilter
 };

@@ -1010,6 +1010,23 @@ const completeDelivery = async (orderCode, shipperId) => {
     }
 };
 
+const getOrderItemsForReorder = async (orderCode, customerId) => {
+    const result = await db.query(
+        `
+            SELECT oi.menu_item_id, oi.quantity, oi.note
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            JOIN menu_items mi ON mi.id = oi.menu_item_id
+            WHERE o.order_code = $1
+              AND o.customer_id = $2
+              AND o.status IN ('completed', 'cancelled')
+              AND mi.is_available = true
+        `,
+        [orderCode, customerId]
+    );
+    return result.rows;
+};
+
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
@@ -1019,11 +1036,9 @@ module.exports = {
     confirmOrder,
     cancelOrder,
     updateOrderStatus,
-    createOrderStatusHistory,
-    getOrderStatusHistoryByOrderId,
-    getOrderReviewByOrderId,
     getShippers,
     getOrdersByShipperId,
     getDeliveryHistoryByShipperId,
-    completeDelivery
+    completeDelivery,
+    getOrderItemsForReorder
 };

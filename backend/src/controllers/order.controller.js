@@ -590,6 +590,21 @@ const markPaymentRefundedByAdmin = async (req, res) => {
     }
 };
 
+const reorder = async (req, res) => {
+    try {
+        const customerId = req.user.id;
+        const { orderCode } = req.params;
+        const result = await orderService.reorderToCart(orderCode, customerId);
+        res.status(200).json({ success: true, data: result, message: `Đã thêm ${result.addedCount} món vào giỏ hàng.` });
+    } catch (error) {
+        console.error("Reorder failed:", error);
+        const msg = error.message === "REORDER_NO_ITEMS"
+            ? "Không có món nào khả dụng để đặt lại."
+            : "Không thể đặt lại món. Vui lòng thử lại sau.";
+        res.status(400).json({ success: false, message: msg });
+    }
+};
+
 module.exports = {
     createQr,
     vnpayReturn,
@@ -605,5 +620,6 @@ module.exports = {
     getMyDeliveryHistory,
     completeDelivery,
     markTransferPaymentPaidByAdmin,
-    markPaymentRefundedByAdmin
+    markPaymentRefundedByAdmin,
+    reorder
 };

@@ -3,7 +3,7 @@
  * @param {object} promo
  * @param {number} unitPrice - Giá 1 đơn vị (chưa nhân số lượng)
  */
-export const calcPromoDiscount = (promo, unitPrice) => {
+const calcPromoDiscount = (promo, unitPrice) => {
     if (!promo) return 0;
     if (promo.discount_percent) return unitPrice * Number(promo.discount_percent) / 100;
     return Math.min(Number(promo.discount_amount ?? 0), unitPrice);
@@ -15,7 +15,7 @@ export const calcPromoDiscount = (promo, unitPrice) => {
  * @param {number} unitPrice
  * @returns {object|null}
  */
-export const pickBestPromo = (promos, unitPrice) => {
+const pickBestPromo = (promos, unitPrice) => {
     if (!promos || promos.length === 0) return null;
     return promos.reduce((best, promo) =>
         calcPromoDiscount(promo, unitPrice) > calcPromoDiscount(best, unitPrice) ? promo : best

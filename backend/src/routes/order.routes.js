@@ -15,6 +15,7 @@ router.post('/create-qr', authenticate, requireRole('customer'), orderController
 router.get('/check-payment-vnpay', orderController.vnpayReturn);
 
 router.get("/:orderCode", authenticate, requireAnyRole("customer", "admin"), orderController.getOrderByOrderCode);
+router.post("/:orderCode/reorder", authenticate, requireRole("customer"), orderController.reorder);
 router.post("/:orderCode/review", authenticate, requireRole("customer"), orderController.submitOrderReview);
 router.patch("/:orderCode/status", authenticate, requireRole("customer"), orderController.updateOrderStatus);
 router.patch("/:orderCode/admin-status", authenticate, requireRole("admin"), orderController.updateOrderStatusByAdmin);

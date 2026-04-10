@@ -59,17 +59,6 @@ const deleteAllCartItems = async (req, res) => {
     }
 };
 
-const totalPrice = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const price = await cartService.totalPrice(userId);
-        res.json({ totalPrice: price });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-};
-
 module.exports = {
     getCartItems,
     addCartItem,

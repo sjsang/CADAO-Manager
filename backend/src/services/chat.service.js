@@ -39,6 +39,9 @@ const callAI = async (payload) => {
         throw createHttpError(500, "OPENAI_API_KEY chưa được cấu hình.");
     }
 
+    // Log ra prompt gửi đi
+    console.log("[AI PROMPT] payload gửi đến AI:", JSON.stringify(payload, null, 2));
+
     return Promise.race([
         client.chat.completions.create(payload),
         new Promise((_, reject) => setTimeout(() => reject(new Error("AI request timed out")), AI_TIMEOUT_MS))
@@ -55,15 +58,20 @@ THÔNG TIN NHÀ HÀNG:
 - Phí giao hàng: Tùy theo phường (trung bình 15.000 - 30.000 VND)
 
 QUY TẮC GIAO TIẾP:
-- Xưng "mình", gọi khách là "bạn".
+- Luôn bắt đầu bằng "dạ".
+- Xưng "tôi", gọi khách là "quý khách".
 - Trả lời ngắn gọn, rõ ràng, tối đa 4-6 dòng.
 - Không bịa thông tin món ăn, giá, voucher.
+- Khách hỏi những vấn đề ngoài thực đơn/đặt hàng: trả lời lịch sự, gợi ý khách nhấn nút gọi nhân viên/liên hệ hotline hoặc đến trực tiếp nhà hàng.
 
 KHI TƯ VẤN THỰC ĐƠN:
-- Khách hỏi món ăn / danh mục / loại món: dùng tool search_menu_items.
+- Khách tìm món theo tên / từ khóa: dùng tool search_menu_items.
+- Khách lọc theo danh mục, loại món, khoảng giá, món nổi bật (best seller), bán chạy: dùng tool filter_menu_items.
 - Khách hỏi món rẻ nhất hoặc đắt nhất: dùng tool get_menu_items_by_price.
-- Khách hỏi ưu đãi / mã giảm / voucher: dùng tool get_promotions.
-- Khách muốn thêm món vào giỏ: dùng tool add_to_cart_item.
+- Khách hỏi khuyến mãi / ưu đãi / mã / voucher: dùng tool get_promotions.
+- Khách muốn thêm món vào giỏ: dùng tool add_to_cart_item (hỗ trợ số lượng và ghi chú).
+- Khách muốn sửa số lượng/ghi chú món trong giỏ: dùng tool update_cart_item.
+- Khách muốn xóa món khỏi giỏ: dùng tool remove_cart_item.
 - Khách hỏi "trước mình hay gọi gì" / gợi ý: dùng tool get_order_history.
 
 KHI THEO DÕI ĐƠN HÀNG:
@@ -77,7 +85,8 @@ KHI ĐẶT HÀNG (quy trình hoàn chỉnh):
    - Hỏi khách có mã voucher không (nếu chưa đề cập).
    - Hỏi khách có ghi chú gì cho đơn không.
    - Dùng tool place_order để hoàn tất đơn hàng.
-   - Sau khi đặt thành công: thông báo mã đơn, tổng tiền, địa chỉ giao.
+   - Sau khi đặt thành công: thông báo mã đơn, tạm tính (subtotal), giảm giá khuyến mãi (promotionDiscount), giảm giá voucher (voucherDiscount), phí ship, tổng thanh toán (totalAmount), địa chỉ giao.
+   - Nếu có giảm giá (promotionDiscount > 0 hoặc voucherDiscount > 0): liệt kê rõ từng khoản giảm.
 4. Nếu khách chưa có địa chỉ mặc định: hướng dẫn vào mục "Địa chỉ" ở trang cá nhân để thêm.
 5. Đơn hàng đặt qua chatbot sẽ thanh toán khi nhận hàng (COD).
 
@@ -107,7 +116,7 @@ const tools = [
         type: "function",
         function: {
             name: "get_menu_items_by_price",
-            description: "Lấy món theo giá tăng dần hoặc giảm dần.",
+            description: "Lấy món rẻ nhất hoặc đắt nhất, có thể lọc theo loại (Đồ ăn/Đồ uống) hoặc danh mục.",
             parameters: {
                 type: "object",
                 properties: {
@@ -119,6 +128,14 @@ const tools = [
                     limit: {
                         type: "number",
                         description: "Số lượng món cần lấy"
+                    },
+                    menuType: {
+                        type: "string",
+                        description: "Loại (VD: món ăn, món uống)"
+                    },
+                    category: {
+                        type: "string",
+                        description: "Danh mục (VD: món kho, nước ép, cà phê...)"
                     }
                 },
                 required: ["sort"]
@@ -129,7 +146,7 @@ const tools = [
         type: "function",
         function: {
             name: "get_promotions",
-            description: "Lấy danh sách voucher đang hoạt động.",
+            description: "Lấy danh sách voucher và chương trình khuyến mãi đang hoạt động.",
             parameters: {
                 type: "object",
                 properties: {},
@@ -181,6 +198,10 @@ const tools = [
                     quantity: {
                         type: "number",
                         description: "Số lượng (mặc định 1)"
+                    },
+                    note: {
+                        type: "string",
+                        description: "Ghi chú cho món (VD: ít cay, không hành, thêm rau...)"
                     }
                 },
                 required: ["itemName"]
@@ -231,6 +252,60 @@ const tools = [
                 required: []
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "filter_menu_items",
+            description: "Lọc món ăn theo nhiều tiêu chí: danh mục, loại món, khoảng giá, món nổi bật (best seller), bán chạy.",
+            parameters: {
+                type: "object",
+                properties: {
+                    category: { type: "string", description: "Tên danh mục (VD: món kho, món chiên...)" },
+                    menuType: { type: "string", description: "Tên loại (VD: món ăn, món uống...)" },
+                    minPrice: { type: "number", description: "Giá tối thiểu (VND)" },
+                    maxPrice: { type: "number", description: "Giá tối đa (VND)" },
+                    isFeatured: { type: "boolean", description: "Chỉ lấy món nổi bật (đặc sản nhà hàng)" },
+                    sortBy: {
+                        type: "string",
+                        enum: ["price_asc", "price_desc", "bestseller", "newest", "name"],
+                        description: "Cách sắp xếp kết quả"
+                    },
+                    limit: { type: "number", description: "Số lượng kết quả (mặc định 10, tối đa 20)" }
+                },
+                required: []
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "update_cart_item",
+            description: "Cập nhật số lượng hoặc ghi chú của một món đã có trong giỏ hàng.",
+            parameters: {
+                type: "object",
+                properties: {
+                    itemName: { type: "string", description: "Tên món cần cập nhật" },
+                    quantity: { type: "number", description: "Số lượng mới" },
+                    note: { type: "string", description: "Ghi chú mới cho món" }
+                },
+                required: ["itemName"]
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "remove_cart_item",
+            description: "Xóa một món khỏi giỏ hàng.",
+            parameters: {
+                type: "object",
+                properties: {
+                    itemName: { type: "string", description: "Tên món cần xóa khỏi giỏ" }
+                },
+                required: ["itemName"]
+            }
+        }
     }
 ];
 
@@ -271,8 +346,8 @@ const executeSearchMenuItems = async (query) => {
     );
 };
 
-const executeGetMenuItemsByPrice = async (sort = "asc", limit = 1) => {
-    const items = await chatRepository.getMenuItemsByPrice({ sort, limit });
+const executeGetMenuItemsByPrice = async (sort = "asc", limit = 1, menuType, category) => {
+    const items = await chatRepository.getMenuItemsByPrice({ sort, limit, menuType, category });
     if (items.length === 0) {
         return JSON.stringify({ message: "Hiện không có món phù hợp." });
     }
@@ -291,12 +366,13 @@ const executeGetMenuItemsByPrice = async (sort = "asc", limit = 1) => {
 
 const executeGetPromotions = async () => {
     const vouchers = await chatRepository.getActiveVouchers();
-    if (vouchers.length === 0) {
-        return JSON.stringify({ message: "Hiện chưa có voucher nào đang hoạt động." });
+    const promotions = await chatRepository.getActivePromotions();
+    if (vouchers.length === 0 && promotions.length === 0) {
+        return JSON.stringify({ message: "Hiện chưa có voucher hoặc chương trình khuyến mãi nào đang hoạt động." });
     }
 
     return JSON.stringify({
-        message: "Danh sách voucher hiện tại",
+        message: "Danh sách voucher và chương trình khuyến mãi hiện tại",
         vouchers: vouchers.map((v) => ({
             code: v.code,
             discountPercent: v.discount_percent,
@@ -305,6 +381,15 @@ const executeGetPromotions = async () => {
             maxDiscount: v.max_discount,
             remainingUsage: v.usage_limit === null ? null : Number(v.usage_limit) - Number(v.used_count || 0),
             expiryDate: v.expiry_date
+        })),
+        promotions: promotions.map((p) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            discountPercent: p.discount_percent,
+            discountAmount: p.discount_amount,
+            startTime: p.start_time,
+            endTime: p.end_time
         }))
     });
 };
@@ -356,7 +441,7 @@ const executeTrackOrders = async (customerId) => {
     });
 };
 
-const executeAddToCart = async (customerId, itemName, quantity = 1) => {
+const executeAddToCart = async (customerId, itemName, quantity = 1, note = null) => {
     const menuItem = await chatRepository.findMenuItemByName(itemName);
     if (!menuItem) {
         return JSON.stringify({ success: false, message: `Không tìm thấy món "${itemName}".` });
@@ -367,11 +452,13 @@ const executeAddToCart = async (customerId, itemName, quantity = 1) => {
     }
 
     const safeQty = Math.max(1, Math.min(Number(quantity) || 1, 20));
-    await cartRepository.addCartItem(customerId, menuItem.id, safeQty, null);
+    const safeNote = note ? String(note).trim().slice(0, 200) : null;
+    await cartRepository.addCartItem(customerId, menuItem.id, safeQty, safeNote);
 
+    const noteInfo = safeNote ? ` (ghi chú: ${safeNote})` : "";
     return JSON.stringify({
         success: true,
-        message: `Đã thêm ${safeQty}x "${menuItem.name}" (${Number(menuItem.price).toLocaleString("vi-VN")} VND) vào giỏ hàng.`
+        message: `Đã thêm ${safeQty}x "${menuItem.name}" (${Number(menuItem.price).toLocaleString("vi-VN")} VND) vào giỏ hàng${noteInfo}.`
     });
 };
 
@@ -390,6 +477,68 @@ const executeViewCart = async (customerId) => {
             note: item.note || null
         })),
         totalCart: Number(totalCart)
+    });
+};
+
+const executeFilterMenuItems = async ({ category, menuType, minPrice, maxPrice, isFeatured, sortBy, limit } = {}) => {
+    const items = await chatRepository.getMenuItemsByFilter({
+        category, menuType, minPrice, maxPrice,
+        isFeatured, isAvailable: true, sortBy, limit
+    });
+
+    if (items.length === 0) {
+        return JSON.stringify({ message: "Không tìm thấy món phù hợp với bộ lọc." });
+    }
+
+    return JSON.stringify(
+        items.map((item) => ({
+            name: item.name,
+            price: item.price,
+            category: item.category_name,
+            menuType: item.menu_type_name,
+            soldCount: item.sold_count,
+            isAvailable: item.is_available,
+            isFeatured: item.is_featured,
+            imageUrl: item.image_url || null,
+            description: String(item.description || "").slice(0, 150)
+        }))
+    );
+};
+
+const executeUpdateCartItem = async (customerId, itemName, quantity, note) => {
+    const menuItem = await chatRepository.findMenuItemByName(itemName);
+    if (!menuItem) {
+        return JSON.stringify({ success: false, message: `Không tìm thấy món "${itemName}".` });
+    }
+
+    const { items } = await cartRepository.getCartItems(customerId);
+    const currentItem = items.find((i) => Number(i.menu_item_id) === Number(menuItem.id));
+    if (!currentItem) {
+        return JSON.stringify({ success: false, message: `Món "${menuItem.name}" không có trong giỏ hàng.` });
+    }
+
+    const newQty = quantity != null ? Math.max(1, Math.min(Number(quantity) || 1, 20)) : currentItem.quantity;
+    const newNote = note !== undefined && note !== null ? String(note).trim().slice(0, 200) || null : (currentItem.note || null);
+
+    await cartRepository.updateCartItem(customerId, menuItem.id, newQty, newNote);
+
+    return JSON.stringify({
+        success: true,
+        message: `Đã cập nhật "${menuItem.name}": ${newQty} phần${newNote ? `, ghi chú: ${newNote}` : ""}.`
+    });
+};
+
+const executeRemoveCartItem = async (customerId, itemName) => {
+    const menuItem = await chatRepository.findMenuItemByName(itemName);
+    if (!menuItem) {
+        return JSON.stringify({ success: false, message: `Không tìm thấy món "${itemName}".` });
+    }
+
+    await cartRepository.deleteCartItem(customerId, menuItem.id);
+
+    return JSON.stringify({
+        success: true,
+        message: `Đã xóa "${menuItem.name}" khỏi giỏ hàng.`
     });
 };
 
@@ -479,11 +628,15 @@ const executePlaceOrder = async (customerId, voucherCode = null, notes = null) =
     return JSON.stringify({
         success: true,
         orderCode,
-        totalAmount: result.totalAmount,
+        subtotal: Number(totalCart),
+        promotionDiscount: result.promotionDiscount || 0,
+        voucherDiscount: result.voucherDiscount || 0,
         discountAmount: result.discountAmount,
         shippingFee: Number(address.shipping_fee),
+        totalAmount: result.totalAmount,
         deliveryAddress: `${address.address_line}, ${address.ward_name}`,
         paymentMethod: "Thanh toán khi nhận hàng (COD)",
+        voucherCode: result.voucherCode || null,
         voucherWarning: voucherWarning || null
     });
 };
@@ -568,7 +721,7 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
             }))
         ];
 
-        const firstResponse = await callAI({
+        let response = await callAI({
             model: AI_MODEL,
             messages,
             tools,
@@ -576,10 +729,13 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
             temperature: 0.5
         });
 
-        let aiResponseMsg = firstResponse.choices[0]?.message || { content: "" };
+        let aiResponseMsg = response.choices[0]?.message || { content: "" };
         let cartUpdated = false;
+        let toolRounds = 0;
+        const MAX_TOOL_ROUNDS = 3;
 
-        if (aiResponseMsg.tool_calls?.length > 0) {
+        while (aiResponseMsg.tool_calls?.length > 0 && toolRounds < MAX_TOOL_ROUNDS) {
+            toolRounds++;
             messages.push(aiResponseMsg);
 
             for (const toolCall of aiResponseMsg.tool_calls) {
@@ -591,7 +747,7 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
                 }
 
                 if (toolCall.function.name === "get_menu_items_by_price") {
-                    dbResult = await executeGetMenuItemsByPrice(args.sort, args.limit);
+                    dbResult = await executeGetMenuItemsByPrice(args.sort, args.limit, args.menuType, args.category);
                 }
 
                 if (toolCall.function.name === "get_promotions") {
@@ -607,7 +763,7 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
                 }
 
                 if (toolCall.function.name === "add_to_cart_item") {
-                    dbResult = await executeAddToCart(conversation.customer_id, args.itemName, args.quantity);
+                    dbResult = await executeAddToCart(conversation.customer_id, args.itemName, args.quantity, args.note);
                     try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
                 }
 
@@ -624,6 +780,20 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
                     try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
                 }
 
+                if (toolCall.function.name === "filter_menu_items") {
+                    dbResult = await executeFilterMenuItems(args);
+                }
+
+                if (toolCall.function.name === "update_cart_item") {
+                    dbResult = await executeUpdateCartItem(conversation.customer_id, args.itemName, args.quantity, args.note);
+                    try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
+                }
+
+                if (toolCall.function.name === "remove_cart_item") {
+                    dbResult = await executeRemoveCartItem(conversation.customer_id, args.itemName);
+                    try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
+                }
+
                 messages.push({
                     role: "tool",
                     tool_call_id: toolCall.id,
@@ -632,13 +802,15 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
                 });
             }
 
-            const secondResponse = await callAI({
+            response = await callAI({
                 model: AI_MODEL,
                 messages,
+                tools,
+                tool_choice: "auto",
                 temperature: 0.5
             });
 
-            aiResponseMsg = secondResponse.choices[0]?.message || { content: "" };
+            aiResponseMsg = response.choices[0]?.message || { content: "" };
         }
 
         const aiText = String(aiResponseMsg.content || "").trim() || FALLBACK_MSG;
@@ -717,32 +889,7 @@ const getUnreadCount = async (currentUser) => {
     return chatRepository.getUnreadCount({ userId: currentUser.id, role: currentUser.role });
 };
 
-const rateChatbot = async ({ currentUser, conversationId, rating, feedback }) => {
-    if (currentUser.role !== "customer") {
-        throw createHttpError(403, "Chỉ khách hàng mới được đánh giá chatbot.");
-    }
 
-    const conversation = await chatRepository.getConversationById(conversationId);
-    assertConversationAccess(conversation, currentUser);
-
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-        throw createHttpError(400, "Đánh giá phải từ 1 đến 5.");
-    }
-
-    return chatRepository.createChatRating({
-        conversationId,
-        customerId: currentUser.id,
-        rating,
-        feedback
-    });
-};
-
-const getChatRating = async ({ currentUser, conversationId }) => {
-    const conversation = await chatRepository.getConversationById(conversationId);
-    assertConversationAccess(conversation, currentUser);
-
-    return chatRepository.getChatRating(conversationId, currentUser.id);
-};
 
 const getChatDashboardStats = async (filters) => {
     return chatRepository.getChatDashboardStats(filters);
@@ -790,8 +937,6 @@ module.exports = {
     toggleBot,
     markMessagesAsRead,
     getUnreadCount,
-    rateChatbot,
-    getChatRating,
     getChatDashboardStats,
     getConversationSummary
 };
