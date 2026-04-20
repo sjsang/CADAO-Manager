@@ -23,6 +23,9 @@ const customerApi = {
             }
         });
     },
+    deleteAvatar: () => {
+        return axiosClient.delete('/customers/me/avatar');
+    },
     // Address Management
     getAddresses: () => {
         const url = '/customers/addresses';

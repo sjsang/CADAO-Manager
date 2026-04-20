@@ -19,6 +19,7 @@ const orderApi = {
     getMyDeliveries: () => axiosClient.get('/orders/my-deliveries'),
     getMyDeliveryHistory: () => axiosClient.get('/orders/my-deliveries/history'),
     completeDelivery: (orderCode) => axiosClient.patch(`/orders/${orderCode}/shipper-complete`),
+    cancelDelivery: (orderCode, reason) => axiosClient.patch(`/orders/${orderCode}/shipper-cancel`, { reason }),
     markTransferPaid: (orderCode) => axiosClient.patch(`/orders/${orderCode}/admin-payment`),
     markPaymentRefunded: (orderCode) => axiosClient.patch(`/orders/${orderCode}/admin-payment-refunded`),
     reorder: (orderCode) => axiosClient.post(`/orders/${orderCode}/reorder`)

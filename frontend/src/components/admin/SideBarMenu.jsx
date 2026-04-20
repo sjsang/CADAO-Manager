@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import chatApi from "../../api/chatApi";
+import { useSocket } from "../../contexts/SocketContext";
 
 const SideBarMenu = ({ activePage }) => {
     const navigate = useNavigate();
+    const socket = useSocket();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [chatUnread, setChatUnread] = useState(0);
 
     const token = sessionStorage.getItem("token");
     let currentRole = "admin";
@@ -25,6 +29,29 @@ const SideBarMenu = ({ activePage }) => {
     }, []);
 
     const isShipper = currentRole === "shipper";
+
+    const fetchChatUnread = useCallback(async () => {
+        if (isShipper) return;
+        try {
+            const res = await chatApi.getUnreadCount();
+            setChatUnread(res.data?.data?.unreadCount || 0);
+        } catch {
+            // silent
+        }
+    }, [isShipper]);
+
+    useEffect(() => {
+        fetchChatUnread();
+        const intervalId = setInterval(fetchChatUnread, 30000);
+        return () => clearInterval(intervalId);
+    }, [fetchChatUnread]);
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleConvUpdated = () => fetchChatUnread();
+        socket.on("chat:conversationUpdated", handleConvUpdated);
+        return () => socket.off("chat:conversationUpdated", handleConvUpdated);
+    }, [socket, fetchChatUnread]);
 
     if (isShipper) {
         return null;
@@ -80,12 +107,17 @@ const SideBarMenu = ({ activePage }) => {
                         <li key={item.key}>
                             <button
                                 type="button"
-                                className={`${itemClass} ${activePage === item.key ? activeClass : ""} w-full ${isCollapsed ? "justify-center" : "justify-start"}`}
+                                className={`${itemClass} ${activePage === item.key ? activeClass : ""} w-full ${isCollapsed ? "justify-center" : "justify-start"} relative`}
                                 onClick={() => navigate(item.path)}
                                 title={item.label}
                             >
                                 <i className={`${item.icon} ${iconClass}`} />
                                 {!isCollapsed ? <span className="truncate">{item.label}</span> : null}
+                                {item.key === "chat" && chatUnread > 0 && (
+                                    <span className={`flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ${isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"}`}>
+                                        {chatUnread > 99 ? "99+" : chatUnread}
+                                    </span>
+                                )}
                             </button>
                         </li>
                     ))}

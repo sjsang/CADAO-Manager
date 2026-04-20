@@ -710,6 +710,12 @@ const getVoucherByCode = async (code) => {
     return result.rows[0] || null;
 };
 
+const deleteConversation = async (conversationId) => {
+    await db.query(`DELETE FROM chat_messages WHERE conversation_id = $1`, [conversationId]);
+    const result = await db.query(`DELETE FROM chat_conversations WHERE id = $1 RETURNING id`, [conversationId]);
+    return result.rows[0] || null;
+};
+
 module.exports = {
     getAdminUser,
     getConversationByCustomerId,
@@ -736,5 +742,6 @@ module.exports = {
     getCustomerInfo,
     getCustomerDefaultAddress,
     getVoucherByCode,
-    getMenuItemsByFilter
+    getMenuItemsByFilter,
+    deleteConversation
 };

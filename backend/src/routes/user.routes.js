@@ -10,6 +10,7 @@ router.get("/", authenticate, requireRole("admin"), userController.getUsers);
 router.get("/me", authenticate, requireAnyRole("admin", "shipper"), userController.getMyProfile);
 router.patch("/me", authenticate, requireAnyRole("admin", "shipper"), userController.updateMyProfile);
 router.patch("/me/avatar", authenticate, requireAnyRole("admin", "shipper"), upload.single("avatar"), userController.updateMyAvatar);
+router.delete("/me/avatar", authenticate, requireAnyRole("admin", "shipper"), userController.deleteMyAvatar);
 router.get("/:id", authenticate, requireRole("admin"), userController.getUserById);
 router.patch("/:id/toggle-status", authenticate, requireRole("admin"), userController.toggleUserStatus);
 router.patch("/:id", authenticate, requireRole("admin"), userController.updateUser);

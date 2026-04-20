@@ -652,6 +652,20 @@ const startConversation = async (customerId) => {
     return conversation;
 };
 
+const startConversationByAdmin = async (adminUserId, customerId) => {
+    let conversation = await chatRepository.getConversationByCustomerId(customerId);
+    if (!conversation) {
+        conversation = await chatRepository.createConversation(customerId, adminUserId);
+    }
+
+    // Turn off bot so admin can chat directly
+    if (conversation.is_bot_active) {
+        conversation = await chatRepository.setBotActiveStatus(conversation.id, false);
+    }
+
+    return conversation;
+};
+
 const assertConversationAccess = (conversation, currentUser) => {
     if (!conversation) {
         throw createHttpError(404, "Hội thoại không tồn tại.");
@@ -928,8 +942,17 @@ const getConversationSummary = async ({ conversationId }) => {
     }
 };
 
+const deleteConversation = async (conversationId) => {
+    const conversation = await chatRepository.getConversationById(conversationId);
+    if (!conversation) {
+        throw createHttpError(404, "Không tìm thấy hội thoại.");
+    }
+    await chatRepository.deleteConversation(conversationId);
+};
+
 module.exports = {
     startConversation,
+    startConversationByAdmin,
     sendMessage,
     getMessages,
     getConversations,
@@ -937,5 +960,6 @@ module.exports = {
     markMessagesAsRead,
     getUnreadCount,
     getChatDashboardStats,
-    getConversationSummary
+    getConversationSummary,
+    deleteConversation
 };

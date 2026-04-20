@@ -30,6 +30,9 @@ const userApi = {
                 "Content-Type": "multipart/form-data"
             }
         });
+    },
+    deleteMyAvatar: () => {
+        return axiosClient.delete("/users/me/avatar");
     }
 }
 

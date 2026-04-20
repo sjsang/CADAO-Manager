@@ -8,8 +8,8 @@ const loginAdmin = async (username) => {
 
 const registerCustomer = async (customerData) => {
     const { full_name, phone_number, email, password_hash } = customerData;
-    const query = `INSERT INTO customers (full_name, phone_number, email, password_hash)
-                   VALUES ($1, $2, $3, $4) RETURNING id`;
+    const query = `INSERT INTO customers (full_name, phone_number, email, password_hash, avatar_url)
+                   VALUES ($1, $2, $3, $4, 'no-avatar_hblnf5') RETURNING id`;
     const result = await db.query(query, [full_name, phone_number, email, password_hash]);
     return result.rows[0].id;
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import chatApi from "../../api/chatApi";
@@ -76,8 +77,12 @@ const TypingIndicator = () => (
 
 const ChatManager = () => {
     const socket = useSocket();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [conversations, setConversations] = useState([]);
-    const [selectedConversationId, setSelectedConversationId] = useState(null);
+    const [selectedConversationId, setSelectedConversationId] = useState(() => {
+        const paramId = searchParams.get("conversationId");
+        return paramId ? Number(paramId) : null;
+    });
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [text, setText] = useState("");
@@ -87,6 +92,7 @@ const ChatManager = () => {
     const [waitingBot, setWaitingBot] = useState(false);
     const [summary, setSummary] = useState("");
     const [loadingSummary, setLoadingSummary] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -166,6 +172,22 @@ const ChatManager = () => {
             setLoadingSummary(false);
         }
     }, [selectedConversationId]);
+
+    const handleDeleteConversation = useCallback(async () => {
+        if (!deleteTarget) return;
+        try {
+            await chatApi.deleteConversation(deleteTarget);
+            setConversations((prev) => prev.filter((c) => Number(c.id) !== Number(deleteTarget)));
+            if (Number(selectedConversationId) === Number(deleteTarget)) {
+                setSelectedConversationId(null);
+                setMessages([]);
+            }
+        } catch {
+            // silent
+        } finally {
+            setDeleteTarget(null);
+        }
+    }, [deleteTarget, selectedConversationId]);
 
     useEffect(() => {
         scrollToBottom();
@@ -411,6 +433,15 @@ const ChatManager = () => {
                                                 <i className={`fa-solid ${loadingSummary ? "fa-spinner fa-spin" : "fa-wand-magic-sparkles"} mr-1`} />
                                                 Tóm tắt
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeleteTarget(selectedConversation.id)}
+                                                className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100"
+                                                title="Xóa hội thoại"
+                                            >
+                                                <i className="fa-solid fa-trash-can mr-1" />
+                                                Xóa
+                                            </button>
                                         </div>
                                     </div>
 
@@ -500,6 +531,32 @@ const ChatManager = () => {
                         </section>
                     </div>
                 </main>
+
+                {/* Delete confirmation modal */}
+                {deleteTarget && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+                            <h3 className="text-lg font-semibold text-slate-800 mb-2">Xóa hội thoại</h3>
+                            <p className="text-sm text-slate-500 mb-5">Toàn bộ tin nhắn trong hội thoại sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?</p>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteTarget(null)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteConversation}
+                                    className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 transition"
+                                >
+                                    Xóa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

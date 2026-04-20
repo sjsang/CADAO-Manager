@@ -36,6 +36,8 @@ const ShipperDeliveries = () => {
     const [activeTab, setActiveTab] = useState("shipping");
     const [nowTs, setNowTs] = useState(Date.now());
     const [confirmOrderCode, setConfirmOrderCode] = useState(null);
+    const [cancelOrderCode, setCancelOrderCode] = useState(null);
+    const [cancelReason, setCancelReason] = useState("");
 
     const loadOrders = useCallback(async () => {
         try {
@@ -98,6 +100,30 @@ const ShipperDeliveries = () => {
         } finally {
             setCompleting(null);
             setConfirmOrderCode(null);
+        }
+    };
+
+    const handleCancelDelivery = (orderCode) => {
+        setCancelOrderCode(orderCode);
+        setCancelReason("");
+    };
+
+    const handleCancelConfirmed = async () => {
+        setCompleting(cancelOrderCode);
+        try {
+            await orderApi.cancelDelivery(cancelOrderCode, cancelReason.trim() || null);
+            await loadOrders();
+            notifyCustomer({ message: "Đã hủy đơn hàng thành công.", type: "success" });
+        } catch (error) {
+            console.error("Failed to cancel delivery:", error);
+            notifyCustomer({
+                message: error.response?.data?.message || "Không thể hủy đơn hàng. Vui lòng thử lại.",
+                type: "error"
+            });
+        } finally {
+            setCompleting(null);
+            setCancelOrderCode(null);
+            setCancelReason("");
         }
     };
 
@@ -197,7 +223,15 @@ const ShipperDeliveries = () => {
                                         </div>
 
                                         {activeTab === "shipping" ? (
-                                            <div className="mt-4 flex justify-end">
+                                            <div className="mt-4 flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    disabled={completing === order.order_code}
+                                                    onClick={() => handleCancelDelivery(order.order_code)}
+                                                    className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+                                                >
+                                                    {completing === order.order_code ? "Đang xử lý..." : "Hủy đơn"}
+                                                </button>
                                                 <button
                                                     type="button"
                                                     disabled={completing === order.order_code}
@@ -227,6 +261,44 @@ const ShipperDeliveries = () => {
                 onConfirm={handleCompleteConfirmed}
                 onClose={() => setConfirmOrderCode(null)}
             />
+
+            {cancelOrderCode !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-2 text-lg font-semibold text-slate-800">Xác nhận hủy đơn hàng</h3>
+                        <p className="mb-4 text-sm text-slate-600">
+                            Bạn muốn hủy đơn <span className="font-semibold">{cancelOrderCode}</span>?
+                        </p>
+                        <textarea
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            placeholder="Lý do hủy đơn (không bắt buộc)..."
+                            rows={3}
+                            className="mb-4 w-full rounded-lg border border-slate-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCancelOrderCode(null);
+                                    setCancelReason("");
+                                }}
+                                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                type="button"
+                                disabled={completing !== null}
+                                onClick={handleCancelConfirmed}
+                                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300"
+                            >
+                                {completing !== null ? "Đang xử lý..." : "Xác nhận hủy"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

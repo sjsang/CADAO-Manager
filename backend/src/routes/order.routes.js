@@ -22,5 +22,6 @@ router.patch("/:orderCode/admin-status", authenticate, requireRole("admin"), ord
 router.patch("/:orderCode/admin-payment", authenticate, requireRole("admin"), orderController.markTransferPaymentPaidByAdmin);
 router.patch("/:orderCode/admin-payment-refunded", authenticate, requireRole("admin"), orderController.markPaymentRefundedByAdmin);
 router.patch("/:orderCode/shipper-complete", authenticate, requireRole("shipper"), orderController.completeDelivery);
+router.patch("/:orderCode/shipper-cancel", authenticate, requireRole("shipper"), orderController.cancelDeliveryByShipper);
 
 module.exports = router;

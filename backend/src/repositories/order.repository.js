@@ -1010,6 +1010,44 @@ const completeDelivery = async (orderCode, shipperId) => {
     }
 };
 
+const cancelDeliveryByShipper = async (orderCode, shipperId, reason) => {
+    try {
+        await db.query("BEGIN");
+
+        const check = await db.query(
+            `SELECT id, status, shipper_id FROM orders WHERE order_code = $1 FOR UPDATE`,
+            [orderCode]
+        );
+
+        if (check.rowCount === 0) throw new Error('ORDER_NOT_FOUND');
+        const order = check.rows[0];
+
+        if (order.status !== 'shipping') throw new Error('ORDER_NOT_SHIPPING');
+        if (order.shipper_id !== shipperId) throw new Error('NOT_ASSIGNED');
+
+        const result = await db.query(
+            `UPDATE orders SET status='cancelled', updated_at=CURRENT_TIMESTAMP
+             WHERE order_code=$1 RETURNING id, order_code, status`,
+            [orderCode]
+        );
+
+        const payment = await getPaymentByOrderId(result.rows[0].id, db);
+        if ((payment?.method === 'vnpay' || payment?.method === 'transfer') && payment.payment_status === 'paid') {
+            await markOrderPaymentRefunded(result.rows[0].id, db);
+        } else {
+            await markOrderPaymentFailed(result.rows[0].id, db);
+        }
+
+        await createOrderStatusHistory(result.rows[0].id, 'shipping', 'cancelled', shipperId, reason || 'Shipper hủy đơn');
+
+        await db.query("COMMIT");
+        return result.rows[0];
+    } catch (error) {
+        await db.query("ROLLBACK");
+        throw error;
+    }
+};
+
 const getOrderItemsForReorder = async (orderCode, customerId) => {
     const result = await db.query(
         `
@@ -1040,5 +1078,6 @@ module.exports = {
     getOrdersByShipperId,
     getDeliveryHistoryByShipperId,
     completeDelivery,
+    cancelDeliveryByShipper,
     getOrderItemsForReorder
 };

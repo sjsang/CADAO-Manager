@@ -69,6 +69,16 @@ const updateMyAvatar = async (id, avatarFile) => {
         throw new Error("AVATAR_FILE_REQUIRED");
     }
 
+    // Get current avatar to destroy old one on Cloudinary
+    const currentUser = await userRepository.getMyProfile(id);
+    if (currentUser?.avatar_url && currentUser.avatar_url !== 'no-avatar_hblnf5') {
+        try {
+            await cloudinary.uploader.destroy(currentUser.avatar_url);
+        } catch (err) {
+            console.error('Failed to destroy old avatar on Cloudinary:', err.message);
+        }
+    }
+
     const uploadResult = await cloudinary.uploader.upload(avatarFile.path, {
         folder: "CADAO/avatars/users",
         resource_type: "image"
@@ -77,6 +87,19 @@ const updateMyAvatar = async (id, avatarFile) => {
     fs.unlinkSync(avatarFile.path);
 
     return await userRepository.updateMyAvatar(id, uploadResult.public_id);
+};
+
+const deleteMyAvatar = async (id) => {
+    const currentUser = await userRepository.getMyProfile(id);
+    if (currentUser?.avatar_url && currentUser.avatar_url !== 'no-avatar_hblnf5') {
+        try {
+            await cloudinary.uploader.destroy(currentUser.avatar_url);
+        } catch (err) {
+            console.error('Failed to destroy avatar on Cloudinary:', err.message);
+        }
+    }
+
+    return await userRepository.updateMyAvatar(id, 'no-avatar_hblnf5');
 };
 
 const getAssignedOrders = async (userId) => {
@@ -93,4 +116,5 @@ module.exports = {
     getAssignedOrders,
     updateMyProfile,
     updateMyAvatar,
+    deleteMyAvatar,
 };

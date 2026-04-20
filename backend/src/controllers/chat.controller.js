@@ -37,6 +37,19 @@ const startConversation = async (req, res) => {
     }
 };
 
+const startConversationByAdmin = async (req, res) => {
+    try {
+        const { customerId } = req.body;
+        if (!customerId) {
+            return res.status(400).json({ success: false, message: "customerId là bắt buộc." });
+        }
+        const conversation = await chatService.startConversationByAdmin(req.user.id, customerId);
+        return res.status(200).json({ success: true, data: conversation });
+    } catch (error) {
+        return sendError(res, error, "Không thể tạo hội thoại với khách hàng.");
+    }
+};
+
 const sendMessage = async (req, res) => {
     try {
         const { conversationId, text } = req.body || {};
@@ -148,8 +161,19 @@ const getConversationSummary = async (req, res) => {
     }
 };
 
+const deleteConversation = async (req, res) => {
+    try {
+        const conversationId = parseConversationId(req.params.conversationId);
+        await chatService.deleteConversation(conversationId);
+        return res.status(200).json({ success: true, message: "Đã xóa hội thoại." });
+    } catch (error) {
+        return sendError(res, error, "Không thể xóa hội thoại.");
+    }
+};
+
 module.exports = {
     startConversation,
+    startConversationByAdmin,
     sendMessage,
     getMessages,
     getConversations,
@@ -157,5 +181,6 @@ module.exports = {
     markMessagesAsRead,
     getUnreadCount,
     getChatDashboardStats,
-    getConversationSummary
+    getConversationSummary,
+    deleteConversation
 };

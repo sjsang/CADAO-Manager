@@ -41,6 +41,16 @@ const updateCustomerAvatar = async (id, avatarFile) => {
         throw new Error('AVATAR_FILE_REQUIRED');
     }
 
+    // Get current avatar to destroy old one on Cloudinary
+    const currentCustomer = await customerRepository.getCustomerById(id);
+    if (currentCustomer?.avatar_url && currentCustomer.avatar_url !== 'no-avatar_hblnf5') {
+        try {
+            await cloudinary.uploader.destroy(currentCustomer.avatar_url);
+        } catch (err) {
+            console.error('Failed to destroy old avatar on Cloudinary:', err.message);
+        }
+    }
+
     const uploadResult = await cloudinary.uploader.upload(avatarFile.path, {
         folder: 'CADAO/avatars/customers',
         resource_type: 'image'
@@ -49,6 +59,19 @@ const updateCustomerAvatar = async (id, avatarFile) => {
     fs.unlinkSync(avatarFile.path);
 
     return await customerRepository.updateCustomerAvatar(id, uploadResult.public_id);
+};
+
+const deleteCustomerAvatar = async (id) => {
+    const currentCustomer = await customerRepository.getCustomerById(id);
+    if (currentCustomer?.avatar_url && currentCustomer.avatar_url !== 'no-avatar_hblnf5') {
+        try {
+            await cloudinary.uploader.destroy(currentCustomer.avatar_url);
+        } catch (err) {
+            console.error('Failed to destroy avatar on Cloudinary:', err.message);
+        }
+    }
+
+    return await customerRepository.updateCustomerAvatar(id, 'no-avatar_hblnf5');
 };
 
 // Address Management
@@ -116,6 +139,7 @@ module.exports = {
     updateCustomer,
     updateCustomerByAdmin,
     updateCustomerAvatar,
+    deleteCustomerAvatar,
     getCustomerAddresses,
     addCustomerAddress,
     updateCustomerAddress,

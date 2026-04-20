@@ -518,6 +518,36 @@ const completeDelivery = async (req, res) => {
     }
 };
 
+const cancelDeliveryByShipper = async (req, res) => {
+    try {
+        const orderCode = req.params.orderCode;
+        const shipperId = req.user.id;
+        const reason = req.body?.reason || null;
+        const result = await orderService.cancelDeliveryByShipper(orderCode, shipperId, reason);
+
+        // Thông báo cho customer khi shipper hủy đơn
+        orderService.notifyCustomerOrderStatus(orderCode, 'cancelled');
+
+        // Real-time qua socket
+        const order = await orderRepository.getOrderByOrderCode(orderCode);
+        if (order?.customer_id) {
+            emitOrderStatusUpdate(order.customer_id, { orderCode, status: 'cancelled' });
+        }
+
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        console.error("Error cancelling delivery by shipper:", error);
+        const status = error.message === 'ORDER_NOT_FOUND' ? 404
+            : error.message === 'NOT_ASSIGNED' ? 403
+                : 400;
+        const msg = error.message === 'ORDER_NOT_FOUND' ? 'Không tìm thấy đơn hàng'
+            : error.message === 'NOT_ASSIGNED' ? 'Bạn không được phân công đơn này'
+                : error.message === 'ORDER_NOT_SHIPPING' ? 'Đơn hàng không ở trạng thái đang giao'
+                    : 'Không thể hủy đơn hàng';
+        res.status(status).json({ success: false, message: msg });
+    }
+};
+
 const markTransferPaymentPaidByAdmin = async (req, res) => {
     try {
         const orderCode = String(req.params.orderCode || '').trim();
@@ -619,6 +649,7 @@ module.exports = {
     getMyDeliveries,
     getMyDeliveryHistory,
     completeDelivery,
+    cancelDeliveryByShipper,
     markTransferPaymentPaidByAdmin,
     markPaymentRefundedByAdmin,
     reorder

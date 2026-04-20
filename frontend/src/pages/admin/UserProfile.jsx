@@ -114,6 +114,26 @@ const UserProfilePage = () => {
         }
     };
 
+    const handleDeleteAvatar = async () => {
+        setUploadingAvatar(true);
+        try {
+            const response = await userApi.deleteMyAvatar();
+            const updated = response.data?.data;
+            if (updated) {
+                setProfile((prev) => ({
+                    ...prev,
+                    avatar_url: updated.avatar_url
+                }));
+            }
+            notifyCustomer({ message: "Đã xóa ảnh đại diện.", type: "success" });
+        } catch (error) {
+            console.error("Failed to delete avatar:", error);
+            notifyCustomer({ message: error.response?.data?.message || "Không thể xóa ảnh đại diện.", type: "error" });
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen bg-slate-100">
@@ -158,16 +178,28 @@ const UserProfilePage = () => {
 
                                 <div className="flex flex-col gap-2">
                                     <h2 className="text-base font-semibold text-slate-800">Hồ sơ tài khoản</h2>
-                                    <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                                        {uploadingAvatar ? "Đang tải..." : "Đổi ảnh đại diện"}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleAvatarChange}
-                                            disabled={uploadingAvatar}
-                                            className="hidden"
-                                        />
-                                    </label>
+                                    <div className="flex gap-2">
+                                        <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                            {uploadingAvatar ? "Đang tải..." : "Đổi ảnh đại diện"}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleAvatarChange}
+                                                disabled={uploadingAvatar}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        {profile?.avatar_url && profile.avatar_url !== 'no-avatar_hblnf5' && (
+                                            <button
+                                                type="button"
+                                                onClick={handleDeleteAvatar}
+                                                disabled={uploadingAvatar}
+                                                className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                Xóa ảnh
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

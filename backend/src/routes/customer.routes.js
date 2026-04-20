@@ -9,6 +9,7 @@ const upload = multer({ dest: "uploads/" });
 // Customer self-management routes
 router.put("/me", authenticate, requireRole("customer"), customerController.updateCustomer);
 router.patch("/me/avatar", authenticate, requireRole("customer"), upload.single("avatar"), customerController.updateCustomerAvatar);
+router.delete("/me/avatar", authenticate, requireRole("customer"), customerController.deleteCustomerAvatar);
 router.get("/me/rank", authenticate, requireRole("customer"), customerController.getMyRank);
 
 // Address Management Routes

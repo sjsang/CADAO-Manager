@@ -146,6 +146,10 @@ const completeDelivery = async (orderCode, shipperId) => {
     return await orderRepository.completeDelivery(orderCode, shipperId);
 };
 
+const cancelDeliveryByShipper = async (orderCode, shipperId, reason) => {
+    return await orderRepository.cancelDeliveryByShipper(orderCode, shipperId, reason);
+};
+
 const reorderToCart = async (orderCode, customerId) => {
     const items = await orderRepository.getOrderItemsForReorder(orderCode, customerId);
 
@@ -173,6 +177,7 @@ module.exports = {
     getOrdersByShipperId,
     getDeliveryHistoryByShipperId,
     completeDelivery,
+    cancelDeliveryByShipper,
     notifyCustomerOrderStatus,
     reorderToCart
 };

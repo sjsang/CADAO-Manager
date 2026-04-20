@@ -65,8 +65,8 @@ const getCustomers = async ({ search = "", isActive = "all", sortBy = "created_a
 const createCustomerByAdmin = async (customerData) => {
     const { full_name, phone_number, email, password_hash } = customerData;
     const query = `
-        INSERT INTO customers (full_name, phone_number, email, password_hash)
-        VALUES ($1, $2, NULLIF($3, ''), $4)
+        INSERT INTO customers (full_name, phone_number, email, password_hash, avatar_url)
+        VALUES ($1, $2, NULLIF($3, ''), $4, 'no-avatar_hblnf5')
         RETURNING id, full_name, phone_number, email, avatar_url, rank, total_spent, is_active, created_at
     `;
     const result = await db.query(query, [full_name, phone_number, email || '', password_hash]);

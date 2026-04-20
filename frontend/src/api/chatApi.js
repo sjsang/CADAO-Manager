@@ -5,6 +5,10 @@ const chatApi = {
         return axiosClient.post("/chats/conversations/start");
     },
 
+    startConversationByAdmin(customerId) {
+        return axiosClient.post("/chats/conversations/start-by-admin", { customerId });
+    },
+
     getConversations() {
         return axiosClient.get("/chats/conversations");
     },
@@ -33,6 +37,10 @@ const chatApi = {
 
     getConversationSummary(conversationId) {
         return axiosClient.get(`/chats/conversations/${conversationId}/summary`);
+    },
+
+    deleteConversation(conversationId) {
+        return axiosClient.delete(`/chats/conversations/${conversationId}`);
     },
 
     getDashboardStats(params = {}) {

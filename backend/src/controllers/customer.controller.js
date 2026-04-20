@@ -227,6 +227,20 @@ const updateCustomerAvatar = async (req, res) => {
     }
 };
 
+const deleteCustomerAvatar = async (req, res) => {
+    try {
+        const id = req.user.id;
+        const customer = await customerService.deleteCustomerAvatar(id);
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Khách hàng không tồn tại' });
+        }
+        res.status(200).json({ success: true, data: customer });
+    } catch (error) {
+        console.error('Error deleting customer avatar:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete avatar' });
+    }
+};
+
 const getMyRank = async (req, res) => {
     try {
         const customerId = req.user.id;
@@ -244,6 +258,7 @@ module.exports = {
     updateCustomer,
     updateCustomerByAdmin,
     updateCustomerAvatar,
+    deleteCustomerAvatar,
     getAddresses,
     addAddress,
     updateAddress,

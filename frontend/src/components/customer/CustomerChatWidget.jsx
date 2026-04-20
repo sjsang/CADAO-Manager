@@ -28,13 +28,27 @@ const formatTime = (value) => {
     return `${hh}:${mm}`;
 };
 
+const formatDateLabel = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) return "Hôm nay";
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return "Hôm qua";
+    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
+
 const TypingDots = () => (
     <div className="mr-auto flex items-end gap-2 max-w-[85%]">
-        <div className="rounded-2xl rounded-bl-sm bg-white/10 px-4 py-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e4c590]/15 text-[#e4c590] text-[10px]">
+            <i className="fa-solid fa-robot" />
+        </span>
+        <div className="rounded-2xl rounded-bl-sm bg-white/6 border border-white/8 px-4 py-3">
             <div className="flex gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e4c590]/60 animate-bounce [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e4c590]/60 animate-bounce [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e4c590]/60 animate-bounce [animation-delay:300ms]" />
             </div>
         </div>
     </div>
@@ -212,10 +226,10 @@ const CustomerChatWidget = () => {
 
     const conversationTitle = useMemo(() => {
         if (!conversation?.is_bot_active) {
-            return "Nhân viên đang hỗ trợ";
+            return "Nhân viên hỗ trợ";
         }
 
-        return "Trợ lý CD AI";
+        return "Trợ lý Ca Dao";
     }, [conversation?.is_bot_active]);
 
     const handleOpen = () => {
@@ -296,12 +310,12 @@ const CustomerChatWidget = () => {
     };
 
     const quickReplies = [
-        { label: "Xem thực đơn", icon: "fa-utensils", text: "Cho mình xem thực đơn" },
-        { label: "Ưu đãi hôm nay", icon: "fa-ticket", text: "Có khuyến mãi/voucher gì không?" },
-        { label: "Xem giỏ hàng", icon: "fa-cart-shopping", text: "Xem giỏ hàng của mình" },
-        { label: "Đặt hàng ngay", icon: "fa-bag-shopping", text: "Đặt hàng giỏ hàng hiện tại giúp mình" },
-        { label: "Đơn hàng của tôi", icon: "fa-truck", text: "Đơn hàng của mình đang ở đâu?" },
-        { label: "Gợi ý cho tôi", icon: "fa-lightbulb", text: "Gợi ý món cho mình" }
+        { label: "Thực đơn", icon: "fa-utensils", text: "Cho mình xem thực đơn" },
+        { label: "Ưu đãi", icon: "fa-ticket", text: "Có khuyến mãi/voucher gì không?" },
+        { label: "Giỏ hàng", icon: "fa-cart-shopping", text: "Xem giỏ hàng của mình" },
+        { label: "Đặt hàng", icon: "fa-bag-shopping", text: "Đặt hàng giỏ hàng hiện tại giúp mình" },
+        { label: "Đơn hàng", icon: "fa-truck", text: "Đơn hàng của mình đang ở đâu?" },
+        { label: "Gợi ý", icon: "fa-lightbulb", text: "Gợi ý món cho mình" }
     ];
 
     const handleQuickReply = (qr) => {
@@ -309,7 +323,19 @@ const CustomerChatWidget = () => {
         handleSend(qr.text);
     };
 
-
+    const groupedMessages = useMemo(() => {
+        const groups = [];
+        let lastDate = "";
+        for (const msg of messages) {
+            const d = new Date(msg.created_at).toDateString();
+            if (d !== lastDate) {
+                groups.push({ type: "date", label: formatDateLabel(msg.created_at), key: `date-${d}` });
+                lastDate = d;
+            }
+            groups.push({ type: "msg", data: msg, key: `msg-${msg.id}` });
+        }
+        return groups;
+    }, [messages]);
 
     if (!shouldRender) {
         return null;
@@ -318,50 +344,70 @@ const CustomerChatWidget = () => {
     return (
         <div className="fixed bottom-6 right-6 z-70">
             {isOpen ? (
-                <div className="mb-3 flex flex-col w-90 max-w-[92vw] rounded-2xl border border-white/20 bg-slate-950/95 text-white shadow-2xl backdrop-blur-sm animate-in slide-in-from-bottom-4 fade-in duration-200">
+                <div className="mb-3 flex flex-col w-95 max-w-[92vw] h-140 max-h-[80vh] rounded-2xl border border-[#e4c590]/20 bg-gray-950/97 text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-200">
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${conversation?.is_bot_active ? "bg-violet-500/20 text-violet-300" : "bg-emerald-500/20 text-emerald-300"}`}>
-                                <i className={`fa-solid ${conversation?.is_bot_active ? "fa-robot" : "fa-headset"}`} />
-                            </span>
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm ${conversation?.is_bot_active ? "bg-[#e4c590]/15 text-[#e4c590]" : "bg-emerald-500/15 text-emerald-400"}`}>
+                                    <i className={`fa-solid ${conversation?.is_bot_active ? "fa-robot" : "fa-headset"}`} />
+                                </span>
+                                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-gray-950 ${conversation?.is_bot_active ? "bg-[#e4c590]" : "bg-emerald-400"}`} />
+                            </div>
                             <div>
-                                <p className="text-sm font-semibold">{conversationTitle}</p>
-                                <p className="text-[11px] text-slate-400">
-                                    {conversation?.is_bot_active ? "Trả lời tự động" : "Đang kết nối với nhân viên"}
+                                <p className="text-sm font-semibold text-white">{conversationTitle}</p>
+                                <p className="text-[11px] text-white/40">
+                                    {conversation?.is_bot_active ? "Trả lời tự động 24/7" : "Đang trực tuyến"}
                                 </p>
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            <i className="fa-solid fa-xmark text-sm" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {conversation?.is_bot_active && (
+                                <button
+                                    type="button"
+                                    disabled={isSending}
+                                    onClick={handleRequestHuman}
+                                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-[#e4c590]/80 transition hover:bg-[#e4c590]/10 hover:text-[#e4c590] disabled:opacity-50"
+                                    title="Gọi nhân viên hỗ trợ"
+                                >
+                                    <i className="fa-solid fa-headset mr-1" />
+                                    Nhân viên
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                className="rounded-lg p-2 text-white/40 hover:bg-white/6 hover:text-white transition"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <i className="fa-solid fa-xmark text-sm" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Messages */}
-                    <div ref={listRef} className="h-80 overflow-y-auto px-4 py-3 space-y-2.5">
+                    <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                                <i className="fa-solid fa-spinner fa-spin text-xl mb-2" />
+                            <div className="flex flex-col items-center justify-center h-full text-white/30">
+                                <i className="fa-solid fa-spinner fa-spin text-xl mb-2 text-[#e4c590]/50" />
                                 <p className="text-sm">Đang tải...</p>
                             </div>
                         ) : null}
                         {!isLoading && messages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                                <i className="fa-regular fa-comment-dots text-3xl mb-2" />
-                                <p className="text-sm text-center mb-3">Xin chào! Bạn cần hỗ trợ gì?</p>
-                                <div className="flex flex-wrap justify-center gap-1.5">
+                            <div className="flex flex-col items-center justify-center h-full">
+                                <div className="w-16 h-16 rounded-full bg-[#e4c590]/10 flex items-center justify-center mb-4">
+                                    <i className="fa-solid fa-comments text-2xl text-[#e4c590]/50" />
+                                </div>
+                                <p className="text-sm text-white/50 text-center mb-1 font-medium">Xin chào!</p>
+                                <p className="text-xs text-white/30 text-center mb-5">Bạn cần hỗ trợ gì hôm nay?</p>
+                                <div className="flex flex-wrap justify-center gap-2">
                                     {quickReplies.map((qr) => (
                                         <button
                                             key={qr.text}
                                             type="button"
                                             onClick={() => handleQuickReply(qr)}
-                                            className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-200 transition hover:bg-amber-500/20"
+                                            className="rounded-full border border-[#e4c590]/20 bg-[#e4c590]/6 px-3 py-1.5 text-[11px] text-[#e4c590]/80 transition hover:bg-[#e4c590]/15 hover:text-[#e4c590] hover:border-[#e4c590]/30"
                                         >
-                                            <i className={`fa-solid ${qr.icon} mr-1`} />
+                                            <i className={`fa-solid ${qr.icon} mr-1.5`} />
                                             {qr.label}
                                         </button>
                                     ))}
@@ -369,23 +415,34 @@ const CustomerChatWidget = () => {
                             </div>
                         ) : null}
 
-                        {messages.map((msg) => {
+                        {groupedMessages.map((item) => {
+                            if (item.type === "date") {
+                                return (
+                                    <div key={item.key} className="flex items-center gap-3 py-2">
+                                        <div className="flex-1 border-t border-white/6" />
+                                        <span className="shrink-0 text-[10px] font-medium text-white/25">{item.label}</span>
+                                        <div className="flex-1 border-t border-white/6" />
+                                    </div>
+                                );
+                            }
+
+                            const msg = item.data;
                             const isSelf = msg.sender_type === "customer";
                             const isBot = msg.sender_type === "bot";
 
                             return (
-                                <div key={msg.id} className={`flex items-end gap-2 ${isSelf ? "justify-end" : "justify-start"}`}>
+                                <div key={item.key} className={`flex items-end gap-2 ${isSelf ? "justify-end" : "justify-start"}`}>
                                     {!isSelf && (
-                                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] ${isBot ? "bg-violet-500/20 text-violet-300" : "bg-emerald-500/20 text-emerald-300"}`}>
+                                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] ${isBot ? "bg-[#e4c590]/15 text-[#e4c590]" : "bg-emerald-500/15 text-emerald-400"}`}>
                                             <i className={`fa-solid ${isBot ? "fa-robot" : "fa-headset"}`} />
                                         </span>
                                     )}
-                                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${isSelf
-                                        ? "rounded-br-sm bg-amber-500 text-black"
-                                        : "rounded-bl-sm bg-white/10 text-white"
+                                    <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${isSelf
+                                        ? "rounded-br-sm bg-[#e4c590] text-gray-950"
+                                        : "rounded-bl-sm bg-white/6 border border-white/6 text-white/90"
                                         }`}>
-                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                                        <p className={`mt-1 text-[10px] ${isSelf ? "text-black/50" : "text-slate-500"}`}>
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                        <p className={`mt-1 text-[10px] ${isSelf ? "text-gray-950/40" : "text-white/25"}`}>
                                             {formatTime(msg.created_at)}
                                         </p>
                                     </div>
@@ -396,7 +453,7 @@ const CustomerChatWidget = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {errorText ? <p className="px-4 pb-1 text-xs text-rose-300">{errorText}</p> : null}
+                    {errorText ? <p className="px-4 pb-1 text-xs text-rose-400">{errorText}</p> : null}
 
                     {/* Quick Replies - hiện khi đã có tin nhắn */}
                     {!isLoading && messages.length > 0 && (
@@ -407,7 +464,7 @@ const CustomerChatWidget = () => {
                                     type="button"
                                     disabled={isSending}
                                     onClick={() => handleQuickReply(qr)}
-                                    className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
+                                    className="shrink-0 rounded-full border border-white/8 bg-white/3 px-2.5 py-1 text-[11px] text-white/40 transition hover:bg-white/6 hover:text-white/60 hover:border-white/12 disabled:opacity-40"
                                 >
                                     <i className={`fa-solid ${qr.icon} mr-1`} />
                                     {qr.label}
@@ -417,21 +474,7 @@ const CustomerChatWidget = () => {
                     )}
 
                     {/* Input area */}
-                    <div className="border-t border-white/10 px-3 py-3">
-                        {conversation?.is_bot_active && (
-                            <div className="mb-2">
-                                <button
-                                    type="button"
-                                    disabled={isSending}
-                                    onClick={handleRequestHuman}
-                                    className="rounded-lg border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
-                                >
-                                    <i className="fa-solid fa-headset mr-1" />
-                                    Gọi nhân viên
-                                </button>
-                            </div>
-                        )}
-
+                    <div className="border-t border-white/8 px-4 py-3">
                         <div className="flex items-center gap-2">
                             <input
                                 ref={inputRef}
@@ -445,14 +488,14 @@ const CustomerChatWidget = () => {
                                     }
                                 }}
                                 placeholder="Nhập tin nhắn..."
-                                className="flex-1 rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-amber-400/50 focus:bg-white/10 transition"
+                                className="flex-1 rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#e4c590]/30 focus:bg-white/6 transition"
                                 disabled={isSending}
                             />
                             <button
                                 type="button"
                                 onClick={() => handleSend(text)}
                                 disabled={isSending || !text.trim()}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-black transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e4c590] text-gray-950 transition hover:bg-[#d4b580] disabled:cursor-not-allowed disabled:opacity-30"
                             >
                                 <i className="fa-solid fa-paper-plane text-sm" />
                             </button>
@@ -465,13 +508,13 @@ const CustomerChatWidget = () => {
                 <button
                     type="button"
                     onClick={handleOpen}
-                    className="relative flex h-14 w-14 items-center justify-center rounded-full bg-amber-400 text-black shadow-xl transition hover:scale-105 hover:bg-amber-300"
+                    className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-[#e4c590] text-gray-950 shadow-[0_8px_30px_rgba(228,197,144,0.3)] transition-all hover:scale-105 hover:shadow-[0_8px_40px_rgba(228,197,144,0.4)]"
                     aria-label="Mở chat hỗ trợ"
                     title="Chat hỗ trợ"
                 >
                     <i className="fa-solid fa-comments text-xl" />
                     {unreadCount > 0 && (
-                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-lg">
                             {unreadCount > 9 ? "9+" : unreadCount}
                         </span>
                     )}

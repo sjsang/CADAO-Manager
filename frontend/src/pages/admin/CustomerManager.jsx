@@ -1,6 +1,7 @@
 import SideBarMenu from "../../components/admin/SideBarMenu";
 import AdminHeader from "../../components/admin/AdminHeader";
 import customerApi from "../../api/customerApi";
+import chatApi from "../../api/chatApi";
 import TablePagination from "../../components/admin/TablePagination";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +51,19 @@ const CustomerManager = () => {
 
     const formatDate = (value) => {
         return formatDateDDMMYYYY(value);
+    };
+
+    const handleStartChat = async (e, customerId) => {
+        e.stopPropagation();
+        try {
+            const response = await chatApi.startConversationByAdmin(customerId);
+            const conversation = response.data?.data;
+            if (conversation?.id) {
+                navigate(`/admin/chats?conversationId=${conversation.id}`);
+            }
+        } catch (error) {
+            console.error("Failed to start chat:", error);
+        }
     };
 
     return (
@@ -123,6 +137,7 @@ const CustomerManager = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Email</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Trạng thái</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Ngày tạo</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">Hành động</th>
                                     </tr>
                                 </thead>
 
@@ -156,12 +171,22 @@ const CustomerManager = () => {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{formatDate(customer.created_at)}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleStartChat(e, customer.id)}
+                                                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                                                    title="Gửi tin nhắn"
+                                                >
+                                                    Nhắn tin
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
 
                                     {customers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                                            <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
                                                 Không có khách hàng phù hợp.
                                             </td>
                                         </tr>

@@ -31,7 +31,7 @@ CREATE TABLE users (
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name VARCHAR(150),
-    avatar_url TEXT,
+    avatar_url TEXT DEFAULT 'no-avatar_hblnf5',
     phone_number VARCHAR(20),
     role VARCHAR(20) NOT NULL
         CHECK (role IN ('admin', 'shipper')),
@@ -45,7 +45,7 @@ CREATE TABLE customers (
     full_name VARCHAR(150) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     email VARCHAR(150) UNIQUE,
-    avatar_url TEXT,
+    avatar_url TEXT DEFAULT 'no-avatar_hblnf5',
     password_hash TEXT,
     rank VARCHAR(20) DEFAULT 'normal' CHECK (rank IN ('normal', 'loyal')),
     total_spent NUMERIC(15,2) DEFAULT 0,

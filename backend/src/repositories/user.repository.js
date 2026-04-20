@@ -71,8 +71,8 @@ const getUsers = async ({ search = "", role = "all", isActive = "all", sortBy = 
 const createUserByAdmin = async (userData) => {
     const { username, password_hash, full_name, phone_number, role } = userData;
     const query = `
-        INSERT INTO users (username, password_hash, full_name, phone_number, role)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (username, password_hash, full_name, phone_number, role, avatar_url)
+        VALUES ($1, $2, $3, $4, $5, 'no-avatar_hblnf5')
         RETURNING id, username, full_name, phone_number, avatar_url, role, is_active, created_at
     `;
     const result = await db.query(query, [username, password_hash, full_name, phone_number, role]);
