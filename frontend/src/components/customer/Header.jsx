@@ -187,7 +187,7 @@ const Header = ({ activePage }) => {
                 <div className="flex gap-12 items-center">
                     <p><i className="fa-solid fa-phone mr-1"></i>090 103 39 99</p>
                     <div className="w-2 h-2 border border-[#e4c590] rotate-45"></div>
-                    <p><i className="fa-solid fa-envelope mr-1"></i>cadaorestaurant@gmail.com</p>
+                    <p><i className="fa-solid fa-envelope mr-1"></i>cd@gmail.com</p>
                 </div>
             </div>
 
@@ -202,9 +202,9 @@ const Header = ({ activePage }) => {
                     <img
                         src="/logo.png"
                         className="w-10 h-10 object-cover drop-shadow-[0_6px_16px_rgba(234,179,8,0.25)]"
-                        alt="Logo Ca Dao"
+                        alt="Logo CD"
                     />
-                    <p className="font-bold text-xl tracking-wide">CA DAO</p>
+                    <p className="font-bold text-xl tracking-wide">CD</p>
                 </button>
 
                 <nav className="hidden md:block" aria-label="Điều hướng chính">
@@ -292,7 +292,7 @@ const Header = ({ activePage }) => {
                     aria-label="Menu di động"
                 >
                     <div className="flex items-center justify-between mb-5">
-                        <p className="text-lg font-semibold tracking-wide text-yellow-300">Khám phá Ca Dao</p>
+                        <p className="text-lg font-semibold tracking-wide text-yellow-300">Khám phá CD</p>
                         <button
                             type="button"
                             className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"

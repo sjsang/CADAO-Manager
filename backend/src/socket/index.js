@@ -36,7 +36,6 @@ const initSocket = (httpServer) => {
     io.on("connection", (socket) => {
         const { id, role } = socket.user;
 
-        // Mỗi user join room riêng theo role + id
         socket.join(`user:${id}`);
 
         if (role === "customer") {
@@ -51,17 +50,12 @@ const initSocket = (httpServer) => {
             socket.join(`shipper:${id}`);
         }
 
-        // Chat: join conversation room
         socket.on("chat:join", (conversationId) => {
             socket.join(`chat:${conversationId}`);
         });
 
         socket.on("chat:leave", (conversationId) => {
             socket.leave(`chat:${conversationId}`);
-        });
-
-        socket.on("disconnect", () => {
-            // cleanup handled by socket.io automatically
         });
     });
 

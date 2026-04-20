@@ -47,7 +47,7 @@ const HomePage = () => {
     const sectionDots = useMemo(() => [
         { id: "home-hero", label: "Mở đầu" },
         { id: "home-featured", label: "Món nổi bật" },
-        { id: "home-why", label: "Vì sao chọn Ca Dao" },
+        { id: "home-why", label: "Vì sao chọn CD" },
         ...(featuredPromotions.length > 0 ? [{ id: "home-promos", label: "Khuyến mãi" }] : []),
         ...(reviews.length > 0 || reviewPage > 1 ? [{ id: "home-reviews", label: "Đánh giá" }] : [])
     ], [reviews.length, reviewPage, featuredPromotions.length]);
@@ -242,9 +242,9 @@ const HomePage = () => {
 
             <section id="home-hero" className="h-screen w-7xl mx-auto -mt-20 flex items-center justify-between gap-12">
                 <div data-aos="fade-right" data-aos-duration="900" className="text-white flex-4 flex flex-col gap-6">
-                    <h1 className="text-5xl font-bold">Ca Dao Restaurant & Café</h1>
-                    <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, Ca Dao tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
-                        Mỗi món ăn tại Ca Dao là một “lời kể” về văn hóa, về con người Nam Bộ mộc mạc, chân chất.
+                    <h1 className="text-5xl font-bold">CD Restaurant & Café</h1>
+                    <p className="text-gray-300">Hơn 20 năm lan tỏa nét đẹp ẩm thực Việt, CD tự hào là nơi đầu tiên mang món Bún Huyền Mễ đến với thực khách trong và ngoài nước.
+                        Mỗi món ăn tại CD là một “lời kể” về văn hóa, về con người Nam Bộ mộc mạc, chân chất.
                     </p>
                     <p className="text-gray-300">
                         Khám phá thực đơn đa dạng của chúng tôi, từ những món ăn truyền thống đậm đà hương vị đến những sáng tạo độc đáo, tất cả đều được chế biến từ những nguyên liệu tươi ngon nhất, mang đến trải nghiệm ẩm thực khó quên cho mọi thực khách.
@@ -325,7 +325,7 @@ const HomePage = () => {
                                     </div>
 
                                     <p className="text-gray-400 text-sm leading-relaxed mb-4 min-h-20 text-center">
-                                        {item.description || "Món ăn được thực khách lựa chọn nhiều nhất tại Ca Dao."}
+                                        {item.description || "Món ăn được thực khách lựa chọn nhiều nhất tại CD."}
                                     </p>
 
                                     <div className="mt-auto flex justify-center gap-4">
@@ -463,7 +463,7 @@ const HomePage = () => {
             {(reviews.length > 0 || reviewPage > 1) && (
                 <section id="home-reviews" className="w-7xl mx-auto py-20">
                     <div data-aos="fade-up" className="text-center mb-8">
-                        <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Những đánh giá nổi bật từ khách hàng đã dùng dịch vụ của Ca Dao</p>
+                        <p className="text-xs tracking-[0.3em] text-[#e4c590] uppercase mb-3">Những đánh giá nổi bật từ khách hàng đã dùng dịch vụ của CD</p>
                         <h1 className="text-5xl font-bold mb-5 text-white">Khách hàng nói gì về chúng tôi?</h1>
                         <div className="w-12 h-px bg-[#e4c590]/60 mx-auto" />
                     </div>

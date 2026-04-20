@@ -381,7 +381,7 @@ const executeGetPromotions = async () => {
         })),
         promotions: promotions.map((p) => ({
             id: p.id,
-            title: p.title,
+            title: p.name,
             description: p.description,
             discountPercent: p.discount_percent,
             discountAmount: p.discount_amount,

@@ -437,7 +437,7 @@ const findMenuItemByName = async (name) => {
             WHERE name ILIKE $1
             LIMIT 1
         `,
-        [`% ${name} % `]
+        [`%${name}%`]
     );
 
     return result.rows[0] || null;
@@ -467,7 +467,7 @@ const searchMenuItemsWithImage = async (query, limit = 5) => {
             ORDER BY mi.is_available DESC, mi.sold_count DESC, mi.name ASC
             LIMIT $2
         `,
-        [`% ${query} % `, limit]
+        [`%${query}%`, limit]
     );
 
     return result.rows;
@@ -631,13 +631,13 @@ const getMenuItemsByFilter = async ({ category, menuType, minPrice, maxPrice, is
 
     if (category) {
         conditions.push(`c.name ILIKE $${idx}`);
-        params.push(`% ${category} % `);
+        params.push(`%${category}%`);
         idx++;
     }
 
     if (menuType) {
         conditions.push(`mt.name ILIKE $${idx}`);
-        params.push(`% ${menuType} % `);
+        params.push(`%${menuType}%`);
         idx++;
     }
 

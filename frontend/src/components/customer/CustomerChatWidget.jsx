@@ -215,7 +215,7 @@ const CustomerChatWidget = () => {
             return "Nhân viên đang hỗ trợ";
         }
 
-        return "Trợ lý CADAO AI";
+        return "Trợ lý CD AI";
     }, [conversation?.is_bot_active]);
 
     const handleOpen = () => {

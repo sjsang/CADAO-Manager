@@ -53,6 +53,31 @@ body::before {
     background: rgba(0, 8, 17, 0.8);
 }
 
+/* Toàn bộ scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    /* chiều rộng dọc */
+    height: 10px;
+    /* chiều cao ngang */
+}
+
+/* Track (phần nền) */
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+/* Thumb (thanh kéo) */
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+/* Hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 @keyframes toastIn {
     from {
         opacity: 0;
