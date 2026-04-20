@@ -25,15 +25,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import make_scorer, mean_absolute_error, root_mean_squared_error, r2_score
 
 # ── Các thuật toán ──
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import (
-    RandomForestRegressor,
-    GradientBoostingRegressor,
-    AdaBoostRegressor,
-)
-from sklearn.svm import SVR
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 
 from config import FEATURE_NAMES, DATA_DIR, MODEL_DIR
@@ -52,43 +46,16 @@ def get_models():
             ("scaler", StandardScaler()),
             ("model", Ridge(alpha=1.0)),
         ]),
-        "Lasso": Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", Lasso(alpha=1.0)),
-        ]),
-        "ElasticNet": Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", ElasticNet(alpha=1.0, l1_ratio=0.5)),
-        ]),
-        "KNN (k=5)": Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", KNeighborsRegressor(n_neighbors=5)),
-        ]),
-        "KNN (k=10)": Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", KNeighborsRegressor(n_neighbors=10)),
-        ]),
         "Decision Tree": DecisionTreeRegressor(
             max_depth=6, min_samples_leaf=5, random_state=42
         ),
         "Random Forest": RandomForestRegressor(
             n_estimators=100, max_depth=8, min_samples_leaf=3, random_state=42
         ),
-        "Gradient Boosting": GradientBoostingRegressor(
-            n_estimators=100, max_depth=4, learning_rate=0.1,
-            min_samples_leaf=5, random_state=42
-        ),
-        "AdaBoost": AdaBoostRegressor(
-            n_estimators=100, learning_rate=0.1, random_state=42
-        ),
         "XGBoost": XGBRegressor(
             n_estimators=100, max_depth=4, learning_rate=0.1,
             min_child_weight=5, random_state=42, verbosity=0
         ),
-        "SVR (RBF)": Pipeline([
-            ("scaler", StandardScaler()),
-            ("model", SVR(kernel="rbf", C=100, epsilon=1.0)),
-        ]),
     }
 
 
