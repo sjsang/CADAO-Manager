@@ -207,7 +207,7 @@ const CartPage = () => {
                                         onClick={handleCheckout}
                                     >
                                         <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
-                                        <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">THANH TOÁN</span>
+                                        <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">ĐẶT HÀNG</span>
                                     </button>
                                     <button
                                         className="group relative overflow-hidden px-8 py-3 border border-red-500/40 text-red-400 rounded-lg cursor-pointer"

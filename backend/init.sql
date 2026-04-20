@@ -396,3 +396,65 @@ CREATE TABLE feedbacks (
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =============================================
+-- INDEXES BỔ SUNG (FK + Performance)
+-- =============================================
+
+-- orders: FK + filter + sort
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_shipper_id ON orders(shipper_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);
+CREATE INDEX idx_orders_delivery_ward ON orders(delivery_ward_name);
+
+-- order_items: FK
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_menu_item_id ON order_items(menu_item_id);
+
+-- menu_items: FK + partial
+CREATE INDEX idx_menu_items_category_id ON menu_items(category_id);
+CREATE INDEX idx_menu_items_available ON menu_items(is_available) WHERE is_available = TRUE;
+CREATE INDEX idx_menu_items_featured ON menu_items(is_featured) WHERE is_featured = TRUE;
+
+-- categories: FK
+CREATE INDEX idx_categories_menu_type_id ON categories(menu_type_id);
+
+-- customer_addresses: FK
+CREATE INDEX idx_customer_addresses_customer_id ON customer_addresses(customer_id);
+CREATE INDEX idx_customer_addresses_ward_id ON customer_addresses(ward_id);
+
+-- order_status_history: FK
+CREATE INDEX idx_order_status_history_order_id ON order_status_history(order_id);
+
+-- order_reviews: FK + partial
+CREATE INDEX idx_order_reviews_customer_id ON order_reviews(customer_id);
+CREATE INDEX idx_order_reviews_featured ON order_reviews(is_featured) WHERE is_featured = TRUE;
+
+-- order_item_promotions: FK
+CREATE INDEX idx_order_item_promotions_order_item_id ON order_item_promotions(order_item_id);
+CREATE INDEX idx_order_item_promotions_promotion_id ON order_item_promotions(promotion_id);
+
+-- promotion junction tables: reverse FK
+CREATE INDEX idx_promotion_menu_types_menu_type_id ON promotion_menu_types(menu_type_id);
+CREATE INDEX idx_promotion_categories_category_id ON promotion_categories(category_id);
+CREATE INDEX idx_promotion_menu_items_menu_item_id ON promotion_menu_items(menu_item_id);
+
+-- cart_items: FK
+CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
+
+-- user_tokens: FK
+CREATE INDEX idx_user_tokens_customer_id ON user_tokens(customer_id);
+CREATE INDEX idx_user_tokens_user_id ON user_tokens(user_id);
+
+-- Functional index: case-insensitive lookups
+CREATE INDEX idx_customers_lower_email ON customers(LOWER(email));
+CREATE INDEX idx_customers_phone ON customers(phone_number);
+CREATE INDEX idx_vouchers_upper_code ON vouchers(UPPER(code));
+
+-- promotions: composite filter
+CREATE INDEX idx_promotions_active_time ON promotions(is_active, start_time, end_time);
+
+-- feedbacks: filter
+CREATE INDEX idx_feedbacks_is_read ON feedbacks(is_read);

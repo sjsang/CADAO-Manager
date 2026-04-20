@@ -39,9 +39,6 @@ const callAI = async (payload) => {
         throw createHttpError(500, "OPENAI_API_KEY chưa được cấu hình.");
     }
 
-    // Log ra prompt gửi đi
-    console.log("[AI PROMPT] payload gửi đến AI:", JSON.stringify(payload, null, 2));
-
     return Promise.race([
         client.chat.completions.create(payload),
         new Promise((_, reject) => setTimeout(() => reject(new Error("AI request timed out")), AI_TIMEOUT_MS))
