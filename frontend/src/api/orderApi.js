@@ -22,7 +22,8 @@ const orderApi = {
     cancelDelivery: (orderCode, reason) => axiosClient.patch(`/orders/${orderCode}/shipper-cancel`, { reason }),
     markTransferPaid: (orderCode) => axiosClient.patch(`/orders/${orderCode}/admin-payment`),
     markPaymentRefunded: (orderCode) => axiosClient.patch(`/orders/${orderCode}/admin-payment-refunded`),
-    reorder: (orderCode) => axiosClient.post(`/orders/${orderCode}/reorder`)
+    reorder: (orderCode) => axiosClient.post(`/orders/${orderCode}/reorder`),
+    predictDelivery: (data) => axiosClient.post('/orders/predict-delivery', data)
 };
 
 export default orderApi;

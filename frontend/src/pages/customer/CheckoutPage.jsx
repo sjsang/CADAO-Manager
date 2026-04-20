@@ -9,7 +9,7 @@ import voucherApi from "../../api/voucherApi";
 import promotionApi from "../../api/promotionApi";
 import { buildPromotionMap } from "../../utils/promotionUtils";
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { notifyCustomer } from "../../utils/customerNotify";
 
 const deliveryPhoneRegex = /^(0|\+84)\d{9,10}$/;
@@ -32,6 +32,8 @@ const CheckoutPage = () => {
     const isMountedRef = useRef(true);
     const [promotionMap, setPromotionMap] = useState({});
     const [promotionDiscount, setPromotionDiscount] = useState(0);
+    const [estimatedDelivery, setEstimatedDelivery] = useState(null);
+    const [isLoadingPrediction, setIsLoadingPrediction] = useState(false);
     const [form, setForm] = useState({
         delivery_full_name: "",
         delivery_phone: "",
@@ -63,6 +65,35 @@ const CheckoutPage = () => {
         setWards(wardList);
         return wardList;
     };
+
+    const fetchPrediction = useCallback(async (wardName, items) => {
+        if (!wardName || !items || items.length === 0) {
+            setEstimatedDelivery(null);
+            return;
+        }
+        setIsLoadingPrediction(true);
+        try {
+            const totalItems = items.reduce((s, i) => s + Number(i.quantity), 0);
+            const numDistinct = items.length;
+            const subtotal = items.reduce((s, i) => s + Number(i.price) * Number(i.quantity), 0);
+
+            const res = await orderApi.predictDelivery({
+                ward_name: wardName,
+                total_items: totalItems,
+                num_distinct: numDistinct,
+                subtotal
+            });
+            if (res.data?.data?.estimated_minutes) {
+                setEstimatedDelivery(res.data.data);
+            } else {
+                setEstimatedDelivery(null);
+            }
+        } catch {
+            setEstimatedDelivery(null);
+        } finally {
+            setIsLoadingPrediction(false);
+        }
+    }, []);
 
     useEffect(() => {
         AOS.init({ duration: 800, easing: "ease-out-cubic", once: false, offset: 80 });
@@ -124,7 +155,10 @@ const CheckoutPage = () => {
                 const matched = addrs.find(
                     a => a.address_line === order.delivery_address && a.ward_name === order.delivery_ward_name
                 );
-                if (matched) setSelectedAddressId(matched.id);
+                if (matched) {
+                    setSelectedAddressId(matched.id);
+                    fetchPrediction(matched.ward_name, order.items);
+                }
                 AOS.refresh();
             } catch (error) {
                 console.error("Failed to fetch data:", error);
@@ -154,26 +188,12 @@ const CheckoutPage = () => {
             delivery_address: addr.address_line,
             delivery_ward_name: addr.ward_name
         }));
+        fetchPrediction(addr.ward_name, orderDetails?.items);
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === "delivery_address" || name === "delivery_ward_name") {
-            setSelectedAddressId(null);
-        }
         setForm((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleWardChange = (e) => {
-        const { value } = e.target;
-        const selectedWard = wards.find((ward) => ward.name === value);
-
-        setSelectedAddressId(null);
-        setShippingFee(Number(selectedWard?.shipping_fee || 0));
-        setForm((prev) => ({
-            ...prev,
-            delivery_ward_name: value
-        }));
     };
 
     const handleApplyVoucher = async () => {
@@ -250,6 +270,16 @@ const CheckoutPage = () => {
     const handleConfirm = async (e) => {
         e.preventDefault();
 
+        const now = new Date();
+        const currentHour = now.getHours();
+        if (currentHour < 6 || currentHour >= 22) {
+            notifyCustomer({
+                message: "Nhà hàng chỉ phục vụ từ 6:00 đến 22:00. Vui lòng quay lại trong giờ hoạt động.",
+                type: "warning"
+            });
+            return;
+        }
+
         if (!form.delivery_full_name.trim()) {
             notifyCustomer({ message: "Vui lòng nhập họ tên người nhận.", type: "warning" });
             return;
@@ -298,6 +328,16 @@ const CheckoutPage = () => {
             await orderApi.confirm(orderCode, payload, form.paymentMethod);
             await cartApi.deleteAllCartItems();
             window.dispatchEvent(new Event("cartUpdated"));
+
+            if (estimatedDelivery?.estimated_time) {
+                localStorage.setItem("cadao_delivery_prediction", JSON.stringify({
+                    orderCode,
+                    estimated_time: estimatedDelivery.estimated_time,
+                    estimated_minutes: estimatedDelivery.estimated_minutes,
+                    created_at: new Date().toISOString()
+                }));
+                window.dispatchEvent(new Event("deliveryPredictionUpdated"));
+            }
 
             if (form.paymentMethod === "vnpay") {
                 const vnpayResponse = await orderApi.getVnpayUrl(orderCode);
@@ -419,6 +459,41 @@ const CheckoutPage = () => {
                             </div>
                         )}
 
+                        {/* Thời gian nhận hàng dự kiến */}
+                        {selectedAddressId && (
+                            <div data-aos="fade-up" data-aos-delay="175" className="bg-black/30 border border-white/10 rounded-xl p-8">
+                                <h3 className="text-xl font-bold text-[#e4c590] mb-4 uppercase tracking-widest flex items-center gap-3">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 6v6l4 2" />
+                                    </svg>
+                                    Thời gian nhận hàng dự kiến
+                                </h3>
+                                {isLoadingPrediction ? (
+                                    <div className="flex items-center gap-2 text-gray-400">
+                                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        <span className="text-sm">Đang tính toán...</span>
+                                    </div>
+                                ) : estimatedDelivery?.estimated_time ? (
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-[#e4c590]/10 border border-[#e4c590]/30 rounded-lg px-5 py-3">
+                                            <span className="text-2xl font-bold text-[#e4c590]">
+                                                {new Date(estimatedDelivery.estimated_time).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-gray-400">
+                                            <p>Khoảng <span className="text-white font-semibold">{Math.round(estimatedDelivery.estimated_minutes)}</span> phút từ lúc đặt hàng</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm italic">Không thể ước tính thời gian giao hàng.</p>
+                                )}
+                            </div>
+                        )}
+
                         <div data-aos="fade-up" data-aos-delay="150" className="bg-black/30 border border-white/10 rounded-xl p-8">
                             <h3 className="text-xl font-bold text-[#e4c590] mb-6 uppercase tracking-widest">Thông tin giao hàng</h3>
                             <div className="grid lg:grid-cols-2 gap-6">
@@ -456,39 +531,25 @@ const CheckoutPage = () => {
 
                                 <label className="lg:col-span-2 flex flex-col gap-1.5">
                                     <span className="text-xs tracking-widest text-gray-400 uppercase">Địa chỉ</span>
-                                    <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-black/20 border border-white/5 rounded-lg">
                                         <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
                                         </svg>
-                                        <input
-                                            type="text"
-                                            name="delivery_address"
-                                            value={form.delivery_address}
-                                            onChange={handleChange}
-                                            className="flex-1 bg-transparent text-white placeholder-gray-600 focus:outline-none text-sm"
-                                        />
+                                        <span className="flex-1 text-white text-sm">
+                                            {form.delivery_address || <span className="text-gray-500 italic">Vui lòng chọn địa chỉ ở trên</span>}
+                                        </span>
                                     </div>
                                 </label>
 
                                 <label className="flex flex-col gap-1.5">
                                     <span className="text-xs tracking-widest text-gray-400 uppercase">Phường</span>
-                                    <div className="flex items-center gap-3 px-4 py-3 bg-black/30 border border-white/10 rounded-lg focus-within:border-[#e4c590] transition-colors">
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-black/20 border border-white/5 rounded-lg">
                                         <svg className="w-4 h-4 text-[#e4c590]/60 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                                         </svg>
-                                        <select
-                                            name="delivery_ward_name"
-                                            value={form.delivery_ward_name}
-                                            onChange={handleWardChange}
-                                            className="flex-1 bg-transparent text-white focus:outline-none text-sm"
-                                        >
-                                            <option value="" className="bg-[#111] text-gray-400">-- Chọn phường --</option>
-                                            {wards.map((ward) => (
-                                                <option key={ward.id} value={ward.name} className="bg-[#111] text-white">
-                                                    {ward.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <span className="flex-1 text-white text-sm">
+                                            {form.delivery_ward_name || <span className="text-gray-500 italic">--</span>}
+                                        </span>
                                     </div>
                                 </label>
 

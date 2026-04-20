@@ -1,0 +1,17 @@
+{
+  "algorithm": "Ridge",
+  "mae_minutes": 7.59,
+  "r2_score": 0.649,
+  "features": [
+    "ward_tier",
+    "total_items",
+    "num_distinct",
+    "order_hour",
+    "day_of_week",
+    "is_peak_hour",
+    "is_weekend",
+    "subtotal"
+  ],
+  "training_samples": 421,
+  "trained_at": "2026-04-21T01:22:29.368747"
+}

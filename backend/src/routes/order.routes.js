@@ -5,6 +5,7 @@ const { authenticate, requireAnyRole, requireRole } = require("../middlewares/au
 const orderController = require("../controllers/order.controller");
 
 router.post("/", authenticate, requireRole("customer"), orderController.createOrUpdateOrder);
+router.post("/predict-delivery", authenticate, requireRole("customer"), orderController.predictDeliveryTime);
 router.get("/shippers", authenticate, requireRole("admin"), orderController.getShippers);
 router.get("/my-deliveries", authenticate, requireRole("shipper"), orderController.getMyDeliveries);
 router.get("/my-deliveries/history", authenticate, requireRole("shipper"), orderController.getMyDeliveryHistory);

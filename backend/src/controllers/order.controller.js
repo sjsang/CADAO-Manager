@@ -3,6 +3,7 @@ const orderRepository = require("../repositories/order.repository");
 const paymentRepository = require("../repositories/payment.repository");
 const { emitOrderStatusUpdate, emitNewOrder } = require("../socket/emitters");
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
+const http = require("http");
 
 const getClientIp = (req) => {
     const forwarded = req.headers['x-forwarded-for'];
@@ -356,6 +357,15 @@ const vnpayReturn = async (req, res) => {
 
 const confirmOrder = async (req, res) => {
     try {
+        const now = new Date();
+        const currentHour = now.getHours();
+        if (currentHour < 6 || currentHour >= 22) {
+            return res.status(400).json({
+                success: false,
+                message: "Nhà hàng chỉ phục vụ từ 6:00 đến 22:00. Vui lòng quay lại trong giờ hoạt động."
+            });
+        }
+
         const orderCode = req.params.orderCode;
         const orderData = req.body;
         const paymentMethod = req.body.paymentMethod;
@@ -635,6 +645,81 @@ const reorder = async (req, res) => {
     }
 };
 
+const predictDeliveryTime = async (req, res) => {
+    try {
+        const { ward_name, total_items, num_distinct, subtotal } = req.body;
+
+        if (!ward_name) {
+            return res.status(400).json({ success: false, message: "Thiếu tên phường." });
+        }
+
+        const now = new Date();
+        const payload = JSON.stringify({
+            ward_name,
+            total_items: Number(total_items) || 1,
+            num_distinct: Number(num_distinct) || 1,
+            order_hour: now.getHours(),
+            day_of_week: (now.getDay() + 6) % 7, // JS Sun=0 → Python Mon=0
+            subtotal: Number(subtotal) || 0
+        });
+
+        const result = await new Promise((resolve, reject) => {
+            const request = http.request(
+                {
+                    hostname: "127.0.0.1",
+                    port: 5050,
+                    path: "/predict",
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Content-Length": Buffer.byteLength(payload)
+                    },
+                    timeout: 5000
+                },
+                (response) => {
+                    let data = "";
+                    response.on("data", (chunk) => { data += chunk; });
+                    response.on("end", () => {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch {
+                            reject(new Error("ML_INVALID_RESPONSE"));
+                        }
+                    });
+                }
+            );
+            request.on("error", () => reject(new Error("ML_SERVICE_UNAVAILABLE")));
+            request.on("timeout", () => { request.destroy(); reject(new Error("ML_TIMEOUT")); });
+            request.write(payload);
+            request.end();
+        });
+
+        const estimatedMinutes = result.estimated_minutes || 45;
+        const estimatedTime = new Date(now.getTime() + estimatedMinutes * 60000);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                estimated_minutes: estimatedMinutes,
+                estimated_time: estimatedTime.toISOString(),
+                confidence: result.confidence || "medium",
+                model: result.model || null
+            }
+        });
+    } catch (error) {
+        console.error("Prediction error:", error.message);
+        res.status(200).json({
+            success: true,
+            data: {
+                estimated_minutes: null,
+                estimated_time: null,
+                confidence: "unavailable",
+                model: null
+            }
+        });
+    }
+};
+
 module.exports = {
     createQr,
     vnpayReturn,
@@ -652,5 +737,6 @@ module.exports = {
     cancelDeliveryByShipper,
     markTransferPaymentPaidByAdmin,
     markPaymentRefundedByAdmin,
-    reorder
+    reorder,
+    predictDeliveryTime
 };
