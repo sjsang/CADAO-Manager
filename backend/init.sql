@@ -109,7 +109,7 @@ CREATE TABLE orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. Chi tiết đơn hàng
+-- 9. Chi tiết đơn hàng
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL
@@ -121,7 +121,7 @@ CREATE TABLE order_items (
     note TEXT
 );
 
--- 8. Đánh giá đơn hàng
+-- 10. Đánh giá đơn hàng
 CREATE TABLE order_reviews (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL UNIQUE
@@ -137,7 +137,7 @@ CREATE TABLE order_reviews (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8b. Đánh giá từng món trong đơn
+-- 11. Đánh giá từng món trong đơn
 CREATE TABLE order_review_items (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -147,7 +147,7 @@ CREATE TABLE order_review_items (
     UNIQUE(order_id, menu_item_id)
 );
 
--- 9. Thanh toán
+-- 12. Thanh toán
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL UNIQUE
@@ -171,7 +171,7 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10. Vouchers
+-- 13. Vouchers
 CREATE TABLE vouchers (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -195,7 +195,7 @@ CREATE TABLE vouchers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10b. Lịch sử sử dụng voucher theo khách hàng
+-- 14. Lịch sử sử dụng voucher theo khách hàng
 CREATE TABLE customer_voucher_usage (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -204,7 +204,7 @@ CREATE TABLE customer_voucher_usage (
     UNIQUE(customer_id, voucher_id)
 );
 
--- 11. Order - Voucher
+-- 15. Order - Voucher
 CREATE TABLE order_vouchers (
     order_id INT PRIMARY KEY
         REFERENCES orders(id) ON DELETE CASCADE,
@@ -212,7 +212,7 @@ CREATE TABLE order_vouchers (
         REFERENCES vouchers(id)
 );
 
--- 13. Giỏ hàng
+-- 16. Giỏ hàng
 CREATE TABLE carts (
     id SERIAL PRIMARY KEY,
     customer_id INT UNIQUE
@@ -221,7 +221,7 @@ CREATE TABLE carts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 14. Chi tiết giỏ hàng
+-- 17. Chi tiết giỏ hàng
 CREATE TABLE cart_items (
     id SERIAL PRIMARY KEY,
     cart_id INT NOT NULL 
@@ -235,7 +235,7 @@ CREATE TABLE cart_items (
     UNIQUE(cart_id, menu_item_id)
 );
 
--- 15. Token
+-- 18. Token
 CREATE TABLE user_tokens (
     id SERIAL PRIMARY KEY,
     customer_id INT
@@ -247,7 +247,7 @@ CREATE TABLE user_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 16. Lịch sử thay đổi trạng thái đơn hàng
+-- 19. Lịch sử thay đổi trạng thái đơn hàng
 CREATE TABLE order_status_history (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -258,7 +258,7 @@ CREATE TABLE order_status_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 17. Hội thoại chat khách hàng - admin
+-- 20. Hội thoại chat khách hàng - admin
 CREATE TABLE chat_conversations (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
@@ -269,7 +269,7 @@ CREATE TABLE chat_conversations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 18. Tin nhắn chat
+-- 21. Tin nhắn chat
 CREATE TABLE chat_messages (
     id SERIAL PRIMARY KEY,
     conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
@@ -287,19 +287,7 @@ CREATE TABLE chat_messages (
     )
 );
 
-CREATE INDEX idx_chat_messages_conversation_created_at
-    ON chat_messages(conversation_id, created_at DESC);
-
-CREATE INDEX idx_chat_messages_admin_unread
-    ON chat_messages(conversation_id)
-    WHERE sender_type = 'customer' AND is_read_by_admin = FALSE;
-
-CREATE INDEX idx_chat_messages_customer_unread
-    ON chat_messages(conversation_id)
-    WHERE sender_type IN ('admin', 'bot') AND is_read_by_customer = FALSE;
-
-
--- 19. Chương trình khuyến mãi
+-- 22. Chương trình khuyến mãi
 CREATE TABLE promotions (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -326,7 +314,7 @@ CREATE TABLE promotions (
     CHECK (end_time > start_time)
 );
 
--- 19.1 Promotion - Menu type
+-- 23.1 Promotion - Menu type
 CREATE TABLE promotion_menu_types (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -335,7 +323,7 @@ CREATE TABLE promotion_menu_types (
     PRIMARY KEY (promotion_id, menu_type_id)
 );
 
--- 19.2 Promotion - Category
+-- 24 Promotion - Category
 CREATE TABLE promotion_categories (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -344,7 +332,7 @@ CREATE TABLE promotion_categories (
     PRIMARY KEY (promotion_id, category_id)
 );
 
--- 19.3 Promotion - Menu item
+-- 25 Promotion - Menu item
 CREATE TABLE promotion_menu_items (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -353,7 +341,7 @@ CREATE TABLE promotion_menu_items (
     PRIMARY KEY (promotion_id, menu_item_id)
 );
 
--- 20. Lịch sử áp dụng khuyến mãi cho đơn hàng
+-- 26. Lịch sử áp dụng khuyến mãi cho đơn hàng
 CREATE TABLE order_item_promotions (
     id SERIAL PRIMARY KEY,
 
@@ -371,7 +359,7 @@ CREATE TABLE order_item_promotions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Thông báo cho khách hàng
+-- 27. Thông báo cho khách hàng
 CREATE TABLE customer_notifications (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -383,11 +371,7 @@ CREATE TABLE customer_notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_customer_notifications_customer ON customer_notifications(customer_id, is_read, created_at DESC);
-
-
-
--- 22. Góp ý từ khách hàng (trang Liên hệ)
+-- 28. Góp ý từ khách hàng (trang Liên hệ)
 CREATE TABLE feedbacks (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -397,9 +381,22 @@ CREATE TABLE feedbacks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =============================================
--- INDEXES BỔ SUNG (FK + Performance)
--- =============================================
+-- Indexes for performance optimization
+
+CREATE INDEX idx_customer_notifications_customer 
+    ON customer_notifications(customer_id, is_read, created_at DESC);
+
+-- chat_messages: filter + sort
+CREATE INDEX idx_chat_messages_conversation_created_at
+    ON chat_messages(conversation_id, created_at DESC);
+
+CREATE INDEX idx_chat_messages_admin_unread
+    ON chat_messages(conversation_id)
+    WHERE sender_type = 'customer' AND is_read_by_admin = FALSE;
+
+CREATE INDEX idx_chat_messages_customer_unread
+    ON chat_messages(conversation_id)
+    WHERE sender_type IN ('admin', 'bot') AND is_read_by_customer = FALSE;
 
 -- orders: FK + filter + sort
 CREATE INDEX idx_orders_customer_id ON orders(customer_id);

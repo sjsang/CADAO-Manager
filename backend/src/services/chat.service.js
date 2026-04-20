@@ -913,7 +913,9 @@ const getConversationSummary = async ({ conversationId }) => {
         const response = await callAI({
             model: AI_MODEL,
             messages: [
-                { role: "system", content: "Tóm tắt cuộc hội thoại dưới đây trong 1-2 câu ngắn gọn bằng tiếng Việt. Nêu vấn đề chính khách hàng cần hỗ trợ." },
+                {
+                    role: "system", content: `Tóm tắt cuộc hội thoại dưới đây trong 1-2 câu ngắn gọn bằng tiếng Việt.
+                     Nêu vấn đề chính khách hàng cần hỗ trợ.` },
                 { role: "user", content: transcript }
             ],
             temperature: 0.3
