@@ -18,19 +18,15 @@ DB_CONFIG = {
 }
 
 # ── Ward distance tiers (từ nhà hàng Ninh Kiều) ──────
-# Tier 0: Ninh Kiều         (gần nhất)
-# Tier 1: Tân An, Cái Khế
-# Tier 2: Bình Thủy, Cái Răng
-# Tier 3: Long Tuyền, An Bình, Thới An Đông (xa nhất)
 WARD_DISTANCE_TIER = {
     "Ninh Kiều": 0,
     "Tân An": 1,
     "Cái Khế": 1,
     "Bình Thủy": 2,
-    "Cái Răng": 2,
-    "Long Tuyền": 3,
-    "An Bình": 3,
-    "Thới An Đông": 3,
+    "Cái Răng": 3,
+    "Long Tuyền": 4,
+    "An Bình": 4,
+    "Thới An Đông": 5,
 }
 
 # ── Feature names ─────────────────────────────────────

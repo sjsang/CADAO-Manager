@@ -1,7 +1,7 @@
 {
-  "algorithm": "Ridge",
-  "mae_minutes": 7.81,
-  "r2_score": 0.6414,
+  "algorithm": "Random Forest",
+  "mae_minutes": 7.89,
+  "r2_score": 0.6419,
   "features": [
     "ward_tier",
     "total_items",
@@ -13,5 +13,5 @@
     "subtotal"
   ],
   "training_samples": 424,
-  "trained_at": "2026-04-21T12:34:28.689617"
+  "trained_at": "2026-04-21T19:04:24.537126"
 }
