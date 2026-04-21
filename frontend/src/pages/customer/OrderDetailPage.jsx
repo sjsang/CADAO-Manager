@@ -8,6 +8,7 @@ import Header from "../../components/customer/Header";
 import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal";
 import { notifyCustomer } from "../../utils/customerNotify";
 import { useSocket } from "../../contexts/SocketContext";
+import { removeDeliveryPrediction } from "../../utils/deliveryPredictionStorage";
 
 const OrderDetailPage = () => {
     const { orderCode } = useParams();
@@ -109,6 +110,8 @@ const OrderDetailPage = () => {
             await orderApi.cancel(orderCode, refundInfoPayload);
             const latest = await orderApi.getByOrderCode(orderCode);
             setOrder(latest.data?.data || null);
+            removeDeliveryPrediction(orderCode);
+            window.dispatchEvent(new Event("deliveryPredictionUpdated"));
 
             if (isRefundInfoRequired) {
                 notifyCustomer({ message: "Đã hủy đơn hàng và gửi thông tin hoàn tiền cho admin.", type: "success" });

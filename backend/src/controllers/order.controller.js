@@ -1,9 +1,11 @@
 const orderService = require("../services/order.service");
 const orderRepository = require("../repositories/order.repository");
 const paymentRepository = require("../repositories/payment.repository");
-const { emitOrderStatusUpdate, emitNewOrder } = require("../socket/emitters");
+const { emitOrderStatusUpdate, emitNewOrder, emitShipperOrderAssigned } = require("../socket/emitters");
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
-const http = require("http");
+const { getDeliveryPrediction } = require("../utils/deliveryPrediction");
+
+const callMlPrediction = getDeliveryPrediction;
 
 const getClientIp = (req) => {
     const forwarded = req.headers['x-forwarded-for'];
@@ -371,10 +373,20 @@ const confirmOrder = async (req, res) => {
         const paymentMethod = req.body.paymentMethod;
         const result = await orderService.confirmOrder(orderCode, orderData, paymentMethod);
 
+        let deliveryPrediction = null;
+        try {
+            const inputs = await orderRepository.getOrderPredictionInputs(orderCode);
+            if (inputs?.ward_name) {
+                deliveryPrediction = await callMlPrediction(inputs);
+            }
+        } catch (predictionError) {
+            console.error("Predict after confirm failed:", predictionError.message || predictionError);
+        }
+
         // Thông báo admin có đơn hàng mới
         emitNewOrder({ orderCode, status: 'pending' });
 
-        res.status(200).json({ success: true, data: result });
+        res.status(200).json({ success: true, data: { ...result, deliveryPrediction } });
     } catch (error) {
         console.error("Error confirming order:", error);
         const errorMap = {
@@ -407,6 +419,9 @@ const cancelOrder = async (req, res) => {
         const refundInfo = req.body?.refundInfo || null;
         const result = await orderService.cancelOrder(orderCode, customerId, refundInfo);
         if (result) {
+            if (customerId) {
+                emitOrderStatusUpdate(customerId, { orderCode, status: "cancelled" });
+            }
             res.status(200).json({ success: true, data: result });
         } else {
             res.status(400).json({ success: false, message: "Failed to cancel order. Order may not be pending." });
@@ -459,6 +474,12 @@ const updateOrderStatusByAdmin = async (req, res) => {
         const order = await orderRepository.getOrderByOrderCode(orderCode);
         if (order?.customer_id) {
             emitOrderStatusUpdate(order.customer_id, { orderCode, status });
+        }
+
+        // Thông báo shipper khi được giao đơn
+        const assignedShipperId = shipperId || order?.shipper_id;
+        if (assignedShipperId && (status === "shipping" || status === "confirmed" || status === "preparing")) {
+            emitShipperOrderAssigned(assignedShipperId, { orderCode, status });
         }
 
         res.status(200).json({ success: true, data: result });
@@ -653,57 +674,22 @@ const predictDeliveryTime = async (req, res) => {
             return res.status(400).json({ success: false, message: "Thiếu tên phường." });
         }
 
-        const now = new Date();
-        const payload = JSON.stringify({
+        const prediction = await callMlPrediction({
             ward_name,
             total_items: Number(total_items) || 1,
             num_distinct: Number(num_distinct) || 1,
-            order_hour: now.getHours(),
-            day_of_week: (now.getDay() + 6) % 7, // JS Sun=0 → Python Mon=0
+            order_hour: new Date().getHours(),
+            day_of_week: (new Date().getDay() + 6) % 7,
             subtotal: Number(subtotal) || 0
         });
-
-        const result = await new Promise((resolve, reject) => {
-            const request = http.request(
-                {
-                    hostname: "127.0.0.1",
-                    port: 5050,
-                    path: "/predict",
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Content-Length": Buffer.byteLength(payload)
-                    },
-                    timeout: 5000
-                },
-                (response) => {
-                    let data = "";
-                    response.on("data", (chunk) => { data += chunk; });
-                    response.on("end", () => {
-                        try {
-                            resolve(JSON.parse(data));
-                        } catch {
-                            reject(new Error("ML_INVALID_RESPONSE"));
-                        }
-                    });
-                }
-            );
-            request.on("error", () => reject(new Error("ML_SERVICE_UNAVAILABLE")));
-            request.on("timeout", () => { request.destroy(); reject(new Error("ML_TIMEOUT")); });
-            request.write(payload);
-            request.end();
-        });
-
-        const estimatedMinutes = result.estimated_minutes || 45;
-        const estimatedTime = new Date(now.getTime() + estimatedMinutes * 60000);
 
         res.status(200).json({
             success: true,
             data: {
-                estimated_minutes: estimatedMinutes,
-                estimated_time: estimatedTime.toISOString(),
-                confidence: result.confidence || "medium",
-                model: result.model || null
+                estimated_minutes: prediction.estimated_minutes || null,
+                estimated_time: prediction.estimated_time || null,
+                confidence: prediction.confidence || "unavailable",
+                model: prediction.model || null
             }
         });
     } catch (error) {

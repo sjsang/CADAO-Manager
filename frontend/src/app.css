@@ -57,7 +57,7 @@ body::before {
 ::-webkit-scrollbar {
     width: 5px;
     /* chiều rộng dọc */
-    height: 10px;
+    height: 5px;
     /* chiều cao ngang */
 }
 

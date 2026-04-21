@@ -100,7 +100,7 @@ const CustomerRegis = () => {
             mode="customer"
             closeTo="/"
             closeLabel="Quay về trang chủ"
-            eyebrow="CD Account"
+            eyebrow="Ca Dao Account"
             title="Tạo tài khoản"
             subtitle="Đăng ký nhanh để đặt món, theo dõi đơn hàng và lưu thông tin giao hàng."
             footer={(

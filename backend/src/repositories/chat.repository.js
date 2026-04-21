@@ -44,7 +44,7 @@ const createConversation = async (customerId, adminUserId) => {
 const getConversationById = async (conversationId) => {
     const result = await db.query(
         `
-            SELECT cc.*, c.full_name AS customer_name, c.email AS customer_email, c.phone_number AS customer_phone
+            SELECT cc.*, c.full_name AS customer_name, c.email AS customer_email, c.phone_number AS customer_phone, c.avatar_url AS customer_avatar
             FROM chat_conversations cc
             JOIN customers c ON c.id = cc.customer_id
             WHERE cc.id = $1
@@ -115,7 +115,7 @@ const getMessagesByConversationId = async (conversationId) => {
     const result = await db.query(
         `
             SELECT
-                cm.*,
+                cm.*, c.avatar_url AS customer_avatar, u.avatar_url AS admin_avatar,
                 CASE
                     WHEN cm.sender_type = 'customer' THEN c.full_name
                     ELSE u.full_name
@@ -200,6 +200,7 @@ const getConversationsForAdmin = async () => {
             SELECT
                 cc.*,
                 c.full_name AS customer_name,
+                c.avatar_url AS avatar_url,
                 c.email AS customer_email,
                 c.phone_number AS customer_phone,
                 COALESCE(

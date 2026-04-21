@@ -1,5 +1,5 @@
 const chatService = require("../services/chat.service");
-const { emitChatMessage, emitChatUpdate, emitBotToggle } = require("../socket/emitters");
+const { emitChatMessage, emitChatUpdate, emitBotToggle, emitNewOrder } = require("../socket/emitters");
 
 const parseConversationId = (value) => {
     const id = Number(value);
@@ -68,6 +68,20 @@ const sendMessage = async (req, res) => {
             emitChatMessage(parsedConvId, result.aiMessage);
         }
         emitChatUpdate(parsedConvId, { conversationId: parsedConvId });
+
+        // Đặt hàng qua chatbot: thông báo admin + gửi dự đoán giao hàng cho customer
+        if (result.orderPlaced) {
+            const { orderCode, customerId, estimatedMinutes, estimatedTime } = result.orderPlaced;
+            emitNewOrder({ orderCode, status: "pending" });
+            if (estimatedTime) {
+                try {
+                    const { getIO } = require("../socket");
+                    getIO().to(`customer:${customerId}`).emit("order:deliveryPrediction", {
+                        orderCode, estimatedMinutes, estimatedTime
+                    });
+                } catch { /* socket chưa sẵn sàng */ }
+            }
+        }
 
         return res.status(201).json({ success: true, data: result });
     } catch (error) {

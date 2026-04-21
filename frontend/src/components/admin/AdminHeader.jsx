@@ -60,7 +60,7 @@ const AdminHeader = ({ title, subtitle }) => {
                 <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold tracking-wide">CD ADMIN</span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold tracking-wide">CA DAO ADMIN</span>
                             <span>{today}</span>
                         </div>
                         <h1 className="mt-1 truncate text-xl font-semibold text-slate-800">{title}</h1>

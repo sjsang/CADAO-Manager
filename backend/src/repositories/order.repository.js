@@ -1065,6 +1065,30 @@ const getOrderItemsForReorder = async (orderCode, customerId) => {
     return result.rows;
 };
 
+const getOrderPredictionInputs = async (orderCode) => {
+    const result = await db.query(
+        `
+            SELECT
+                o.order_code,
+                o.customer_id,
+                o.delivery_ward_name AS ward_name,
+                o.subtotal,
+                EXTRACT(HOUR FROM o.created_at)::INT AS order_hour,
+                ((EXTRACT(DOW FROM o.created_at)::INT + 6) % 7) AS day_of_week,
+                COALESCE(SUM(oi.quantity), 1)::INT AS total_items,
+                COALESCE(COUNT(DISTINCT oi.menu_item_id), 1)::INT AS num_distinct
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.id
+            WHERE o.order_code = $1
+            GROUP BY o.id
+            LIMIT 1
+        `,
+        [orderCode]
+    );
+
+    return result.rows[0] || null;
+};
+
 module.exports = {
     getAllOrders,
     getOrdersByCustomerId,
@@ -1079,5 +1103,6 @@ module.exports = {
     getDeliveryHistoryByShipperId,
     completeDelivery,
     cancelDeliveryByShipper,
-    getOrderItemsForReorder
+    getOrderItemsForReorder,
+    getOrderPredictionInputs
 };

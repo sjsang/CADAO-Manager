@@ -202,9 +202,9 @@ const Header = ({ activePage }) => {
                     <img
                         src="/logo.png"
                         className="w-10 h-10 object-cover drop-shadow-[0_6px_16px_rgba(234,179,8,0.25)]"
-                        alt="Logo CD"
+                        alt="Logo Ca Dao"
                     />
-                    <p className="font-bold text-xl tracking-wide">CD</p>
+                    <p className="font-bold text-xl tracking-wide">CA DAO</p>
                 </button>
 
                 <nav className="hidden md:block" aria-label="Điều hướng chính">
@@ -292,7 +292,7 @@ const Header = ({ activePage }) => {
                     aria-label="Menu di động"
                 >
                     <div className="flex items-center justify-between mb-5">
-                        <p className="text-lg font-semibold tracking-wide text-yellow-300">Khám phá CD</p>
+                        <p className="text-lg font-semibold tracking-wide text-yellow-300">Khám phá Ca Dao</p>
                         <button
                             type="button"
                             className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"

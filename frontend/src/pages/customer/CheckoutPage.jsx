@@ -11,6 +11,7 @@ import { buildPromotionMap } from "../../utils/promotionUtils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { notifyCustomer } from "../../utils/customerNotify";
+import { saveDeliveryPrediction } from "../../utils/deliveryPredictionStorage";
 
 const deliveryPhoneRegex = /^(0|\+84)\d{9,10}$/;
 
@@ -325,17 +326,19 @@ const CheckoutPage = () => {
                 total_amount: computedTotal,
                 voucher_id: appliedVoucher?.id || null
             };
-            await orderApi.confirm(orderCode, payload, form.paymentMethod);
+            const confirmResponse = await orderApi.confirm(orderCode, payload, form.paymentMethod);
             await cartApi.deleteAllCartItems();
             window.dispatchEvent(new Event("cartUpdated"));
 
-            if (estimatedDelivery?.estimated_time) {
-                localStorage.setItem("cadao_delivery_prediction", JSON.stringify({
+            const confirmedPrediction = confirmResponse.data?.data?.deliveryPrediction || estimatedDelivery;
+            if (confirmedPrediction?.estimated_time) {
+                saveDeliveryPrediction({
                     orderCode,
-                    estimated_time: estimatedDelivery.estimated_time,
-                    estimated_minutes: estimatedDelivery.estimated_minutes,
+                    status: "pending",
+                    estimated_time: confirmedPrediction.estimated_time,
+                    estimated_minutes: confirmedPrediction.estimated_minutes,
                     created_at: new Date().toISOString()
-                }));
+                });
                 window.dispatchEvent(new Event("deliveryPredictionUpdated"));
             }
 

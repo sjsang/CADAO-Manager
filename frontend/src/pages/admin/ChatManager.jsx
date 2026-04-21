@@ -5,6 +5,14 @@ import AdminHeader from "../../components/admin/AdminHeader";
 import chatApi from "../../api/chatApi";
 import { useSocket } from "../../contexts/SocketContext";
 
+const buildCloudinaryUrl = (publicId) => {
+    if (!publicId) {
+        return "";
+    }
+
+    return `https://res.cloudinary.com/${import.meta.env.VITE_CLOUDINARY_NAME}/image/upload/${publicId}`;
+};
+
 const formatDateTime = (value) => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
@@ -38,12 +46,10 @@ const formatTime = (value) => {
     return date.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 };
 
-const SenderIcon = ({ type }) => {
+const SenderIcon = ({ type, customer_avatar, admin_avatar }) => {
     if (type === "customer") {
         return (
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-600">
-                <i className="fa-solid fa-user" />
-            </span>
+            <img src={customer_avatar || ""} alt="" className="h-7 w-7 rounded-full shrink-0" />
         );
     }
     if (type === "bot") {
@@ -54,9 +60,7 @@ const SenderIcon = ({ type }) => {
         );
     }
     return (
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-600">
-            <i className="fa-solid fa-headset" />
-        </span>
+        <img src={admin_avatar || ""} alt="" className="h-7 w-7 rounded-full shrink-0" />
     );
 };
 
@@ -112,6 +116,7 @@ const ChatManager = () => {
         return conversations.filter(
             (c) =>
                 (c.customer_name || "").toLowerCase().includes(q) ||
+                (c.avatar_url || "").toLowerCase().includes(q) ||
                 (c.customer_phone || "").includes(q) ||
                 (c.last_message || "").toLowerCase().includes(q)
         );
@@ -354,9 +359,7 @@ const ChatManager = () => {
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${active ? "bg-sky-500" : "bg-slate-400"}`}>
-                                                        {(conv.customer_name || "K")[0].toUpperCase()}
-                                                    </span>
+                                                    <img src={buildCloudinaryUrl(conv.avatar_url) || ""} alt="" className="h-9 w-9 rounded-full" />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center justify-between gap-2">
                                                             <p className={`truncate text-sm ${hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
@@ -395,9 +398,7 @@ const ChatManager = () => {
                                     {/* Header */}
                                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3">
                                         <div className="flex items-center gap-3">
-                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">
-                                                {(selectedConversation.customer_name || "K")[0].toUpperCase()}
-                                            </span>
+                                            <img src={buildCloudinaryUrl(selectedConversation.avatar_url) || ""} alt="" className="h-10 w-10 rounded-full" />
                                             <div>
                                                 <p className="font-semibold text-slate-800">{selectedConversation.customer_name}</p>
                                                 <p className="text-xs text-slate-400">{selectedConversation.customer_phone || "Không có SĐT"}</p>
@@ -478,7 +479,7 @@ const ChatManager = () => {
 
                                                 return (
                                                     <div key={item.key} className={`flex items-end gap-2 ${isCustomer ? "justify-start" : "justify-end"}`}>
-                                                        {isCustomer && <SenderIcon type="customer" />}
+                                                        {isCustomer && <SenderIcon type="customer" customer_avatar={buildCloudinaryUrl(msg.customer_avatar)} />}
                                                         <div className={`max-w-[70%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${isCustomer
                                                             ? "rounded-bl-sm bg-white border border-slate-200 text-slate-800"
                                                             : msg.sender_type === "bot"
@@ -490,7 +491,7 @@ const ChatManager = () => {
                                                                 {formatTime(msg.created_at)}
                                                             </p>
                                                         </div>
-                                                        {!isCustomer && <SenderIcon type={msg.sender_type} />}
+                                                        {!isCustomer && <SenderIcon type={msg.sender_type} admin_avatar={buildCloudinaryUrl(msg.admin_avatar)} />}
                                                     </div>
                                                 );
                                             })}

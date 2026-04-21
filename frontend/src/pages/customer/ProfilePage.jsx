@@ -295,32 +295,34 @@ const ProfilePage = () => {
                                             )}
                                         </div>
 
-                                        <label className="group cursor-pointer relative overflow-hidden px-8 py-2.5 border border-[#e4c590]/60 text-[#e4c590] rounded-lg">
-                                            <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
-                                            <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">
-                                                {uploadingAvatar ? "Đang tải..." : "Thay ảnh"}
-                                            </span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleAvatarChange}
-                                                disabled={uploadingAvatar}
-                                                className="hidden"
-                                            />
-                                        </label>
-                                        {profile.avatar_url && profile.avatar_url !== 'no-avatar_hblnf5' && (
-                                            <button
-                                                type="button"
-                                                onClick={handleDeleteAvatar}
-                                                disabled={uploadingAvatar}
-                                                className="group cursor-pointer relative overflow-hidden px-8 py-2.5 border border-red-500/40 text-red-400 rounded-lg"
-                                            >
-                                                <span className="absolute inset-0 bg-red-500 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
-                                                <span className="relative z-10 text-sm font-semibold group-hover:text-black transition-colors">
-                                                    Xóa ảnh
+                                        <div className="flex gap-1">
+                                            <label className="group cursor-pointer relative overflow-hidden px-3 py-1 border border-[#e4c590]/60 text-[#e4c590] rounded-lg">
+                                                <span className="absolute inset-0 bg-[#e4c590] origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                                <span className="relative z-10 text-xs font-semibold group-hover:text-black transition-colors">
+                                                    {uploadingAvatar ? "Đang tải..." : "Thay ảnh"}
                                                 </span>
-                                            </button>
-                                        )}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleAvatarChange}
+                                                    disabled={uploadingAvatar}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                            {profile.avatar_url && profile.avatar_url !== 'no-avatar_hblnf5' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDeleteAvatar}
+                                                    disabled={uploadingAvatar}
+                                                    className="group cursor-pointer relative overflow-hidden px-3 py-1 border border-red-500/40 text-red-400 rounded-lg"
+                                                >
+                                                    <span className="absolute inset-0 bg-red-500 origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100" />
+                                                    <span className="relative z-10 text-xs font-semibold group-hover:text-black transition-colors">
+                                                        Xóa ảnh
+                                                    </span>
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="lg:col-span-2">

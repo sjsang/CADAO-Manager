@@ -19,8 +19,8 @@ const Footer = () => {
             <div className="relative mx-auto grid w-7xl gap-10 px-4 py-14 md:grid-cols-2 lg:grid-cols-4 lg:px-0">
                 <div className="lg:col-span-2">
                     <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-[#e4c590]/35 bg-black/35 px-4 py-2">
-                        <img src="/logo.png" alt="Logo CD" className="h-9 w-9 rounded-full object-cover" />
-                        <p className="text-base font-bold tracking-[0.2em] text-[#e4c590]">CD</p>
+                        <img src="/logo.png" alt="Logo Ca Dao" className="h-9 w-9 rounded-full object-cover" />
+                        <p className="text-base font-bold tracking-[0.2em] text-[#e4c590]">CA DAO</p>
                     </div>
 
                     <h3 className="max-w-xl text-2xl font-semibold leading-snug text-white">
@@ -28,7 +28,7 @@ const Footer = () => {
                     </h3>
 
                     <p className="mt-4 max-w-xl text-sm leading-relaxed text-gray-400">
-                        Chúng tôi chọn nguyên liệu tươi mỗi ngày, chế biến chỉn chu và giao món nhanh chóng để mỗi trải nghiệm tại CD luôn trọn vẹn.
+                        Chúng tôi chọn nguyên liệu tươi mỗi ngày, chế biến chỉn chu và giao món nhanh chóng để mỗi trải nghiệm tại Ca Dao luôn trọn vẹn.
                     </p>
 
                     <div className="mt-6 flex items-center gap-3">

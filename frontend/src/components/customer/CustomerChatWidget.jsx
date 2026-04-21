@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import chatApi from "../../api/chatApi";
 import { notifyCustomer } from "../../utils/customerNotify";
 import { useSocket } from "../../contexts/SocketContext";
+import DeliveryPredictionWidget from "./DeliveryPredictionWidget";
 
 const parseTokenPayload = () => {
     const token = sessionStorage.getItem("token");
@@ -67,8 +68,6 @@ const CustomerChatWidget = () => {
     const [text, setText] = useState("");
     const [errorText, setErrorText] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
-    const [deliveryPrediction, setDeliveryPrediction] = useState(null);
-    const [countdown, setCountdown] = useState("");
     const listRef = useRef(null);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -226,53 +225,6 @@ const CustomerChatWidget = () => {
         }
     }, [isOpen, isLoading]);
 
-    // Load delivery prediction from localStorage
-    useEffect(() => {
-        const loadPrediction = () => {
-            try {
-                const raw = localStorage.getItem("cadao_delivery_prediction");
-                if (!raw) { setDeliveryPrediction(null); return; }
-                const data = JSON.parse(raw);
-                const eta = new Date(data.estimated_time);
-                if (eta.getTime() <= Date.now()) {
-                    localStorage.removeItem("cadao_delivery_prediction");
-                    setDeliveryPrediction(null);
-                } else {
-                    setDeliveryPrediction(data);
-                }
-            } catch {
-                setDeliveryPrediction(null);
-            }
-        };
-
-        loadPrediction();
-        window.addEventListener("deliveryPredictionUpdated", loadPrediction);
-        return () => window.removeEventListener("deliveryPredictionUpdated", loadPrediction);
-    }, []);
-
-    // Countdown timer for delivery prediction
-    useEffect(() => {
-        if (!deliveryPrediction?.estimated_time) { setCountdown(""); return; }
-
-        const tick = () => {
-            const diff = new Date(deliveryPrediction.estimated_time).getTime() - Date.now();
-            if (diff <= 0) {
-                setCountdown("");
-                setDeliveryPrediction(null);
-                localStorage.removeItem("cadao_delivery_prediction");
-                return false;
-            }
-            const mins = Math.floor(diff / 60000);
-            const secs = Math.floor((diff % 60000) / 1000);
-            setCountdown(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
-            return true;
-        };
-
-        if (!tick()) return;
-        const id = setInterval(() => { if (!tick()) clearInterval(id); }, 1000);
-        return () => clearInterval(id);
-    }, [deliveryPrediction]);
-
     const conversationTitle = useMemo(() => {
         if (!conversation?.is_bot_active) {
             return "Nhân viên hỗ trợ";
@@ -392,6 +344,7 @@ const CustomerChatWidget = () => {
 
     return (
         <div className="fixed bottom-6 right-6 z-70">
+            <DeliveryPredictionWidget />
             {isOpen ? (
                 <div className="mb-3 flex flex-col w-95 max-w-[92vw] h-140 max-h-[80vh] rounded-2xl border border-[#e4c590]/20 bg-gray-950/97 text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-200">
                     {/* Header */}
@@ -432,30 +385,6 @@ const CustomerChatWidget = () => {
                             </button>
                         </div>
                     </div>
-
-                    {/* Delivery prediction floating banner */}
-                    {deliveryPrediction && countdown && (
-                        <div className="mx-4 mt-2 flex items-center gap-3 rounded-xl bg-gradient-to-r from-[#e4c590]/15 to-[#e4c590]/5 border border-[#e4c590]/25 px-4 py-3 animate-in slide-in-from-top-2 fade-in duration-300">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e4c590]/20">
-                                <i className="fa-solid fa-truck-fast text-[#e4c590] text-sm" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[11px] text-white/50 leading-tight">Dự đoán đơn hàng <span className="font-semibold text-[#e4c590]">{deliveryPrediction.orderCode}</span></p>
-                                <p className="text-xs text-white/80 mt-0.5">sẽ đến trong <span className="font-bold text-[#e4c590] text-sm tabular-nums">{countdown}</span></p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setDeliveryPrediction(null);
-                                    localStorage.removeItem("cadao_delivery_prediction");
-                                }}
-                                className="shrink-0 rounded-lg p-1 text-white/30 hover:text-white/60 hover:bg-white/5 transition"
-                                title="Đóng"
-                            >
-                                <i className="fa-solid fa-xmark text-xs" />
-                            </button>
-                        </div>
-                    )}
 
                     {/* Messages */}
                     <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">

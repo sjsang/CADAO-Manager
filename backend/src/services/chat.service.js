@@ -2,6 +2,7 @@ const OpenAI = require("openai");
 const chatRepository = require("../repositories/chat.repository");
 const cartRepository = require("../repositories/cart.repository");
 const orderRepository = require("../repositories/order.repository");
+const { getDeliveryPrediction } = require("../utils/deliveryPrediction");
 
 const AI_MODEL = process.env.AI_CHAT_MODEL || "openai/gpt-4o-mini";
 const AI_TIMEOUT_MS = 15_000;
@@ -622,6 +623,25 @@ const executePlaceOrder = async (customerId, voucherCode = null, notes = null) =
     // 7. Xóa giỏ hàng
     await cartRepository.deleteAllCartItems(customerId);
 
+    // 8. Tạo ETA giao hàng để client lưu vào localStorage qua socket/update response
+    let estimatedMinutes = null;
+    let estimatedTime = null;
+    try {
+        const now = new Date();
+        const totalItems = items.reduce((sum, i) => sum + Number(i.quantity), 0);
+        const numDistinct = items.length;
+        const prediction = await getDeliveryPrediction({
+            ward_name: address.ward_name,
+            total_items: totalItems,
+            num_distinct: numDistinct,
+            order_hour: now.getHours(),
+            day_of_week: (now.getDay() + 6) % 7,
+            subtotal: Number(totalCart)
+        });
+        estimatedMinutes = prediction.estimated_minutes;
+        estimatedTime = prediction.estimated_time;
+    } catch { /* ML không sẵn sàng — bỏ qua */ }
+
     return JSON.stringify({
         success: true,
         orderCode,
@@ -634,7 +654,9 @@ const executePlaceOrder = async (customerId, voucherCode = null, notes = null) =
         deliveryAddress: `${address.address_line}, ${address.ward_name}`,
         paymentMethod: "Thanh toán khi nhận hàng (COD)",
         voucherCode: result.voucherCode || null,
-        voucherWarning: voucherWarning || null
+        voucherWarning: voucherWarning || null,
+        estimatedMinutes,
+        estimatedTime
     });
 };
 
@@ -742,6 +764,7 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
 
         let aiResponseMsg = response.choices[0]?.message || { content: "" };
         let cartUpdated = false;
+        let orderPlacedData = null;
         let toolRounds = 0;
         const MAX_TOOL_ROUNDS = 3;
 
@@ -788,7 +811,18 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
 
                 if (toolCall.function.name === "place_order") {
                     dbResult = await executePlaceOrder(conversation.customer_id, args.voucherCode, args.notes);
-                    try { if (JSON.parse(dbResult).success) cartUpdated = true; } catch { /* silent */ }
+                    try {
+                        const parsed = JSON.parse(dbResult);
+                        if (parsed.success) {
+                            cartUpdated = true;
+                            orderPlacedData = {
+                                orderCode: parsed.orderCode,
+                                customerId: conversation.customer_id,
+                                estimatedMinutes: parsed.estimatedMinutes,
+                                estimatedTime: parsed.estimatedTime
+                            };
+                        }
+                    } catch { /* silent */ }
                 }
 
                 if (toolCall.function.name === "filter_menu_items") {
@@ -836,7 +870,8 @@ const sendMessage = async ({ currentUser, conversationId, text }) => {
             userMessage,
             aiMessage,
             isBotActive: true,
-            cartUpdated
+            cartUpdated,
+            orderPlaced: orderPlacedData
         };
     } catch (error) {
         console.error("AI chat error:", error.message || error);

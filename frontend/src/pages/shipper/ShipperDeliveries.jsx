@@ -6,6 +6,7 @@ import CustomerConfirmModal from "../../components/customer/CustomerConfirmModal
 import orderApi from "../../api/orderApi";
 import { formatDateDDMMYYYY, formatElapsedTime } from "../../functions/formatDate";
 import { notifyCustomer } from "../../utils/customerNotify";
+import { useSocket } from "../../contexts/SocketContext";
 
 const formatDateTime = (value) => {
     if (!value) {
@@ -29,6 +30,7 @@ const formatDateTime = (value) => {
 
 const ShipperDeliveries = () => {
     const navigate = useNavigate();
+    const socket = useSocket();
     const [orders, setOrders] = useState([]);
     const [historyOrders, setHistoryOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +74,14 @@ const ShipperDeliveries = () => {
 
         return () => clearInterval(intervalId);
     }, []);
+
+    // Nhận đơn real-time khi admin giao đơn cho shipper
+    useEffect(() => {
+        if (!socket) return;
+        const handleAssigned = () => { loadOrders(); };
+        socket.on("order:assigned", handleAssigned);
+        return () => socket.off("order:assigned", handleAssigned);
+    }, [socket, loadOrders]);
 
     const getProcessingDuration = (order) => {
         if (order.status === "completed" || order.status === "cancelled") {

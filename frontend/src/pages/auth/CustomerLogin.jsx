@@ -72,7 +72,7 @@ const CustomerLogin = () => {
             mode="customer"
             closeTo="/"
             closeLabel="Quay về trang chủ"
-            eyebrow="CD Account"
+            eyebrow="Ca Dao Account"
             title="Đăng nhập"
             subtitle="Truy cập lịch sử đơn hàng, giỏ hàng và ưu đãi dành riêng cho bạn."
             footer={(

@@ -75,6 +75,15 @@ const emitNewOrder = (orderData) => {
     }
 };
 
+// Order: thông báo cho shipper khi được giao đơn
+const emitShipperOrderAssigned = (shipperId, orderData) => {
+    try {
+        getIO().to(`shipper:${shipperId}`).emit("order:assigned", orderData);
+    } catch {
+        // Socket chưa sẵn sàng
+    }
+};
+
 module.exports = {
     emitNotification,
     emitNotificationBroadcast,
@@ -82,5 +91,6 @@ module.exports = {
     emitChatUpdate,
     emitBotToggle,
     emitOrderStatusUpdate,
-    emitNewOrder
+    emitNewOrder,
+    emitShipperOrderAssigned
 };
