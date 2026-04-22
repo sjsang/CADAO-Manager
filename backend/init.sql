@@ -1,17 +1,17 @@
--- 1. Phân loại Menu (Đồ ăn/Đồ uống)
+-- 1. Loại menu (Đồ ăn/Đồ uống)
 CREATE TABLE menu_types (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- 2. Danh mục (Món kho, món chiên,...)
+-- 2. Danh mục món theo loại menu
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     menu_type_id INT NOT NULL REFERENCES menu_types(id) ON DELETE CASCADE
 );
 
--- 3. Món ăn
+-- 3. Món ăn / đồ uống
 CREATE TABLE menu_items (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE menu_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Người dùng nội bộ
+-- 4. Người dùng hệ thống nội bộ
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. Khách hàng 
+-- 5. Khách hàng
 CREATE TABLE customers (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -53,14 +53,14 @@ CREATE TABLE customers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Phường
+-- 6. Phường giao hàng
 CREATE TABLE wards (
     id SERIAL PRIMARY KEY,
     name VARCHAR(150) UNIQUE NOT NULL,
     shipping_fee NUMERIC(12,2) NOT NULL CHECK (shipping_fee >= 0)
 );
 
--- 7. Địa chỉ khách hàng
+-- 7. Địa chỉ giao hàng của khách
 CREATE TABLE customer_addresses (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL
@@ -109,7 +109,7 @@ CREATE TABLE orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 9. Chi tiết đơn hàng
+-- 9. Chi tiết món trong đơn hàng
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL
@@ -121,7 +121,7 @@ CREATE TABLE order_items (
     note TEXT
 );
 
--- 10. Đánh giá đơn hàng
+-- 10. Đánh giá tổng thể đơn hàng
 CREATE TABLE order_reviews (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL UNIQUE
@@ -137,7 +137,7 @@ CREATE TABLE order_reviews (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 11. Đánh giá từng món trong đơn
+-- 11. Đánh giá từng món trong đơn hàng
 CREATE TABLE order_review_items (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -147,7 +147,7 @@ CREATE TABLE order_review_items (
     UNIQUE(order_id, menu_item_id)
 );
 
--- 12. Thanh toán
+-- 12. Thanh toán đơn hàng
 CREATE TABLE payments (
     id SERIAL PRIMARY KEY,
     order_id INT NOT NULL UNIQUE
@@ -171,7 +171,7 @@ CREATE TABLE payments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 13. Vouchers
+-- 13. Mã giảm giá (voucher)
 CREATE TABLE vouchers (
     id SERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -204,7 +204,7 @@ CREATE TABLE customer_voucher_usage (
     UNIQUE(customer_id, voucher_id)
 );
 
--- 15. Order - Voucher
+-- 15. Liên kết đơn hàng - voucher áp dụng
 CREATE TABLE order_vouchers (
     order_id INT PRIMARY KEY
         REFERENCES orders(id) ON DELETE CASCADE,
@@ -212,7 +212,7 @@ CREATE TABLE order_vouchers (
         REFERENCES vouchers(id)
 );
 
--- 16. Giỏ hàng
+-- 16. Giỏ hàng của khách
 CREATE TABLE carts (
     id SERIAL PRIMARY KEY,
     customer_id INT UNIQUE
@@ -221,7 +221,7 @@ CREATE TABLE carts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 17. Chi tiết giỏ hàng
+-- 17. Chi tiết món trong giỏ hàng
 CREATE TABLE cart_items (
     id SERIAL PRIMARY KEY,
     cart_id INT NOT NULL 
@@ -235,7 +235,7 @@ CREATE TABLE cart_items (
     UNIQUE(cart_id, menu_item_id)
 );
 
--- 18. Token
+-- 18. Token đăng nhập
 CREATE TABLE user_tokens (
     id SERIAL PRIMARY KEY,
     customer_id INT
@@ -269,7 +269,7 @@ CREATE TABLE chat_conversations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 21. Tin nhắn chat
+-- 21. Tin nhắn trong hội thoại chat
 CREATE TABLE chat_messages (
     id SERIAL PRIMARY KEY,
     conversation_id INT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
@@ -314,7 +314,7 @@ CREATE TABLE promotions (
     CHECK (end_time > start_time)
 );
 
--- 23.1 Promotion - Menu type
+-- 23. Liên kết khuyến mãi - loại menu
 CREATE TABLE promotion_menu_types (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -323,7 +323,7 @@ CREATE TABLE promotion_menu_types (
     PRIMARY KEY (promotion_id, menu_type_id)
 );
 
--- 24 Promotion - Category
+-- 24. Liên kết khuyến mãi - danh mục
 CREATE TABLE promotion_categories (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -332,7 +332,7 @@ CREATE TABLE promotion_categories (
     PRIMARY KEY (promotion_id, category_id)
 );
 
--- 25 Promotion - Menu item
+-- 25. Liên kết khuyến mãi - món ăn
 CREATE TABLE promotion_menu_items (
     promotion_id INT 
         REFERENCES promotions(id) ON DELETE CASCADE,
@@ -341,7 +341,7 @@ CREATE TABLE promotion_menu_items (
     PRIMARY KEY (promotion_id, menu_item_id)
 );
 
--- 26. Lịch sử áp dụng khuyến mãi cho đơn hàng
+-- 26. Lịch sử áp dụng khuyến mãi cho từng món trong đơn
 CREATE TABLE order_item_promotions (
     id SERIAL PRIMARY KEY,
 
@@ -359,7 +359,7 @@ CREATE TABLE order_item_promotions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 27. Thông báo cho khách hàng
+-- 27. Thông báo gửi cho khách hàng
 CREATE TABLE customer_notifications (
     id SERIAL PRIMARY KEY,
     customer_id INT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
@@ -381,12 +381,12 @@ CREATE TABLE feedbacks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance optimization
+-- 29. Indexes tối ưu truy vấn
 
 CREATE INDEX idx_customer_notifications_customer 
     ON customer_notifications(customer_id, is_read, created_at DESC);
 
--- chat_messages: filter + sort
+-- chat_messages: lọc + sắp xếp
 CREATE INDEX idx_chat_messages_conversation_created_at
     ON chat_messages(conversation_id, created_at DESC);
 
@@ -398,7 +398,7 @@ CREATE INDEX idx_chat_messages_customer_unread
     ON chat_messages(conversation_id)
     WHERE sender_type IN ('admin', 'bot') AND is_read_by_customer = FALSE;
 
--- orders: FK + filter + sort
+-- orders: FK + lọc + sắp xếp
 CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX idx_orders_shipper_id ON orders(shipper_id);
 CREATE INDEX idx_orders_status ON orders(status);
@@ -406,52 +406,52 @@ CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);
 CREATE INDEX idx_orders_delivery_ward ON orders(delivery_ward_name);
 
--- order_items: FK
+-- order_items: chỉ mục khóa ngoại
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_order_items_menu_item_id ON order_items(menu_item_id);
 
--- menu_items: FK + partial
+-- menu_items: khóa ngoại + partial index
 CREATE INDEX idx_menu_items_category_id ON menu_items(category_id);
 CREATE INDEX idx_menu_items_available ON menu_items(is_available) WHERE is_available = TRUE;
 CREATE INDEX idx_menu_items_featured ON menu_items(is_featured) WHERE is_featured = TRUE;
 
--- categories: FK
+-- categories: chỉ mục khóa ngoại
 CREATE INDEX idx_categories_menu_type_id ON categories(menu_type_id);
 
--- customer_addresses: FK
+-- customer_addresses: chỉ mục khóa ngoại
 CREATE INDEX idx_customer_addresses_customer_id ON customer_addresses(customer_id);
 CREATE INDEX idx_customer_addresses_ward_id ON customer_addresses(ward_id);
 
--- order_status_history: FK
+-- order_status_history: chỉ mục khóa ngoại
 CREATE INDEX idx_order_status_history_order_id ON order_status_history(order_id);
 
--- order_reviews: FK + partial
+-- order_reviews: khóa ngoại + partial index
 CREATE INDEX idx_order_reviews_customer_id ON order_reviews(customer_id);
 CREATE INDEX idx_order_reviews_featured ON order_reviews(is_featured) WHERE is_featured = TRUE;
 
--- order_item_promotions: FK
+-- order_item_promotions: chỉ mục khóa ngoại
 CREATE INDEX idx_order_item_promotions_order_item_id ON order_item_promotions(order_item_id);
 CREATE INDEX idx_order_item_promotions_promotion_id ON order_item_promotions(promotion_id);
 
--- promotion junction tables: reverse FK
+-- bảng liên kết promotion: reverse FK
 CREATE INDEX idx_promotion_menu_types_menu_type_id ON promotion_menu_types(menu_type_id);
 CREATE INDEX idx_promotion_categories_category_id ON promotion_categories(category_id);
 CREATE INDEX idx_promotion_menu_items_menu_item_id ON promotion_menu_items(menu_item_id);
 
--- cart_items: FK
+-- cart_items: chỉ mục khóa ngoại
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 
--- user_tokens: FK
+-- user_tokens: chỉ mục khóa ngoại
 CREATE INDEX idx_user_tokens_customer_id ON user_tokens(customer_id);
 CREATE INDEX idx_user_tokens_user_id ON user_tokens(user_id);
 
--- Functional index: case-insensitive lookups
+-- functional index: tìm kiếm không phân biệt hoa thường
 CREATE INDEX idx_customers_lower_email ON customers(LOWER(email));
 CREATE INDEX idx_customers_phone ON customers(phone_number);
 CREATE INDEX idx_vouchers_upper_code ON vouchers(UPPER(code));
 
--- promotions: composite filter
+-- promotions: composite index cho lọc theo trạng thái + thời gian
 CREATE INDEX idx_promotions_active_time ON promotions(is_active, start_time, end_time);
 
--- feedbacks: filter
+-- feedbacks: chỉ mục lọc theo trạng thái đọc
 CREATE INDEX idx_feedbacks_is_read ON feedbacks(is_read);

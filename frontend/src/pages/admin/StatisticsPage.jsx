@@ -1164,7 +1164,7 @@ const ChatbotTab = ({ loading, chatStats }) => {
                             <div key={idx} className="flex items-start gap-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
                                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">{idx + 1}</span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-slate-800 leading-relaxed break-words">{q.text}</p>
+                                    <p className="text-sm text-slate-800 leading-relaxed wrap-break-word">{q.text}</p>
                                 </div>
                                 <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{q.count} lần</span>
                             </div>
