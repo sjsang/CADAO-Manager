@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
 const menuRoutes = require("./routes/menu.routes");
 const categoryRoutes = require("./routes/category.routes");
 const menuTypeRoutes = require("./routes/menu_type.routes");
@@ -38,5 +40,11 @@ app.use("/api/chats", chatRoutes);
 app.use("/api/promotions", promotionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/feedbacks", feedbackRoutes);
+
+app.use(express.static(path.join(__dirname, "dist")));
+
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
 
 module.exports = app;

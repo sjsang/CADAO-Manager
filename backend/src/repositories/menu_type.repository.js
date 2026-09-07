@@ -7,6 +7,20 @@ const getMenuTypes = async () => {
     return result.rows;
 };
 
+const createMenuType = async (name) => {
+    const result = await db.query(
+        `
+            INSERT INTO menu_types (name)
+            VALUES ($1)
+            RETURNING id, name
+        `,
+        [name]
+    );
+
+    return result.rows[0];
+};
+
 module.exports = {
-    getMenuTypes
+    getMenuTypes,
+    createMenuType
 };
