@@ -31,8 +31,6 @@ Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán onlin
 | Quản trị viên | [`/admin/login`](https://ca-dao.onrender.com/admin/login) | `admin` | `Admin@123` |
 | Khách hàng | [`/auth/login`](https://ca-dao.onrender.com/auth/login) | `user@gmail.com` | `User@123` |
 
-> Demo chạy trên gói miễn phí của Render. Server sẽ ngủ khi không có truy cập, nên lần mở đầu tiên có thể mất 30–60 giây để khởi động.
-
 <p align="center">
   <img src="docs/screenshots/home.png" alt="Trang chủ" width="100%" />
   <br/><em>Trang chủ</em>
