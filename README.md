@@ -4,7 +4,7 @@
 
 # Ca Dao: Hệ thống đặt món & quản lý nhà hàng
 
-Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán online, nhân viên xử lý đơn theo thời gian thực, chatbot AI hỗ trợ đặt món và mô hình Machine Learning dự đoán thời gian giao hàng.
+Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán online, nhân viên xử lý đơn theo thời gian thực và chatbot AI hỗ trợ đặt món.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-ca--dao.onrender.com-c2410c?style=for-the-badge)](https://ca-dao.onrender.com/)
 
@@ -15,8 +15,6 @@ Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán onlin
 ![Express](https://img.shields.io/badge/Express_5-000000?logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?logo=socketdotio&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)
 
 </div>
 
@@ -50,7 +48,6 @@ Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán onlin
 - Giỏ hàng, mã giảm giá (voucher) và chương trình khuyến mãi áp dụng theo món, danh mục hoặc loại thực đơn.
 - Thanh toán online qua **VNPAY** hoặc thanh toán khi nhận hàng (COD).
 - Theo dõi trạng thái đơn **theo thời gian thực**: `pending → confirmed → preparing → shipping → completed`.
-- Xem **thời gian giao hàng dự kiến** do mô hình ML dự đoán.
 - Đánh giá đơn hàng và từng món, gửi góp ý, nhận thông báo đẩy.
 - **Chatbot AI** có thể tìm món, xem khuyến mãi, thêm/sửa/xoá món trong giỏ, tra cứu đơn và đặt hàng ngay trong khung chat.
 
@@ -79,26 +76,14 @@ Bộ đánh giá tự động ([backend/evaluation](backend/evaluation)) chạy 
 | Độ trễ trung bình / P90 | 2.0 s / 3.0 s |
 | Độ liên quan / chính xác của câu trả lời (thang 5) | 4.6 / 4.72 |
 
-### Dự đoán thời gian giao hàng bằng Machine Learning
-Pipeline Python trong [backend/ml](backend/ml):
-1. `extract_data.py`: lấy dữ liệu đơn đã hoàn thành từ PostgreSQL, tính thời gian giao thực tế dựa trên lịch sử trạng thái đơn.
-2. Đặc trưng (feature): mức khoảng cách theo phường, số lượng món, số món khác nhau, giờ đặt, thứ trong tuần, giờ cao điểm, cuối tuần, giá trị đơn.
-3. `train.py`: so sánh 5 thuật toán bằng cross-validation và lưu mô hình tốt nhất.
-4. `serve.py`: HTTP service nhỏ (`:5050/predict`). Backend Node.js gọi service này khi đơn được xác nhận.
-
-| Thuật toán | MAE (phút) | RMSE (phút) | R² |
-|---|---|---|---|
-| **Random Forest** | **7.89** | **9.80** | **0.642** |
-| XGBoost | 8.07 | 10.18 | 0.613 |
-| Ridge | 8.11 | 10.12 | 0.618 |
-| Linear Regression | 8.11 | 10.12 | 0.618 |
-| Decision Tree | 8.65 | 10.77 | 0.565 |
-
 ### Realtime với Socket.IO
 Mỗi khách hàng, shipper, cuộc hội thoại và nhóm admin có room riêng. Các sự kiện `order:new`, `order:statusUpdated`, `order:assigned`, `notification:new` và `chat:newMessage` được đẩy ngay tới đúng người nhận, không cần tải lại trang.
 
 ### Kiến trúc backend phân lớp
 `routes → controllers → services → repositories → PostgreSQL`, dùng SQL thuần qua `pg` (không ORM). Xác thực bằng JWT, mật khẩu băm bằng bcrypt, middleware phân quyền theo vai trò.
+
+### Thử nghiệm: dự đoán thời gian giao hàng
+Một module Python nhỏ trong [backend/ml](backend/ml) ước tính thời gian giao hàng từ các đặc trưng của đơn (khu vực, số món, giờ đặt, giá trị đơn). Mô hình Random Forest được huấn luyện trên dữ liệu đơn mẫu, sai số trung bình khoảng 8 phút. Đây là tính năng thử nghiệm; ứng dụng vẫn hoạt động đầy đủ khi không bật module này.
 
 ---
 
@@ -114,8 +99,8 @@ Mỗi khách hàng, shipper, cuộc hội thoại và nhóm admin có room riên
                                         └─────────────┬─────────────┘
                                                       │ HTTP :5050
                                         ┌─────────────▼─────────────┐
-                                        │  Python ML service        │
-                                        │  scikit-learn / XGBoost   │
+                                        │  ML service (thử nghiệm)  │
+                                        │  Python / scikit-learn    │
                                         └───────────────────────────┘
 ```
 
@@ -137,7 +122,7 @@ CADAO-Manager/
 │   │   ├── repositories/      # Truy vấn SQL
 │   │   ├── middlewares/       # Xác thực JWT, phân quyền
 │   │   └── socket/            # Sự kiện realtime
-│   ├── ml/                    # Pipeline dự đoán thời gian giao hàng
+│   ├── ml/                    # Thử nghiệm dự đoán thời gian giao hàng
 │   ├── evaluation/            # Bộ đánh giá chatbot
 │   └── scripts/               # Sinh dữ liệu đơn hàng mẫu
 └── frontend/
@@ -157,5 +142,4 @@ CADAO-Manager/
 | Frontend | React 19, React Router 7, Vite 7, Tailwind CSS 4, Axios, Recharts, Socket.IO Client, jsPDF / pdfmake, AOS |
 | Backend | Node.js, Express 5, PostgreSQL (`pg`), Socket.IO, JWT, bcrypt, Multer, Cloudinary |
 | Tích hợp | VNPAY, OpenAI SDK (function calling) |
-| Machine Learning | Python, pandas, scikit-learn, XGBoost, joblib |
 | Triển khai | Render |
