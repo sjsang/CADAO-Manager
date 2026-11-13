@@ -24,7 +24,7 @@ Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán onlin
 
 ## Demo
 
-**🔗 https://ca-dao.onrender.com/**
+**https://ca-dao.onrender.com/**
 
 | Vai trò | Trang đăng nhập | Tài khoản | Mật khẩu |
 |---|---|---|---|
@@ -66,7 +66,7 @@ Nền tảng full-stack cho nhà hàng: khách đặt món và thanh toán onlin
 
 ## Điểm nhấn kỹ thuật
 
-### 🤖 Chatbot AI dùng function calling
+### Chatbot AI dùng function calling
 Chatbot dùng OpenAI SDK (tương thích các nhà cung cấp OpenAI-compatible qua `OPENAI_BASE_URL`), với **12 tool** gọi thẳng vào tầng service của backend: `search_menu_items`, `filter_menu_items`, `get_menu_items_by_price`, `get_promotions`, `add_to_cart_item`, `update_cart_item`, `remove_cart_item`, `view_cart`, `get_delivery_info`, `place_order`, `get_order_history`, `track_orders`.
 
 Bộ đánh giá tự động ([backend/evaluation](backend/evaluation)) chạy 50 test case với `gpt-4o-mini`:
@@ -79,7 +79,7 @@ Bộ đánh giá tự động ([backend/evaluation](backend/evaluation)) chạy 
 | Độ trễ trung bình / P90 | 2.0 s / 3.0 s |
 | Độ liên quan / chính xác của câu trả lời (thang 5) | 4.6 / 4.72 |
 
-### 📈 Dự đoán thời gian giao hàng bằng Machine Learning
+### Dự đoán thời gian giao hàng bằng Machine Learning
 Pipeline Python trong [backend/ml](backend/ml):
 1. `extract_data.py`: lấy dữ liệu đơn đã hoàn thành từ PostgreSQL, tính thời gian giao thực tế dựa trên lịch sử trạng thái đơn.
 2. Đặc trưng (feature): mức khoảng cách theo phường, số lượng món, số món khác nhau, giờ đặt, thứ trong tuần, giờ cao điểm, cuối tuần, giá trị đơn.
@@ -88,16 +88,16 @@ Pipeline Python trong [backend/ml](backend/ml):
 
 | Thuật toán | MAE (phút) | RMSE (phút) | R² |
 |---|---|---|---|
-| **Random Forest** ✅ | **7.89** | **9.80** | **0.642** |
+| **Random Forest** | **7.89** | **9.80** | **0.642** |
 | XGBoost | 8.07 | 10.18 | 0.613 |
 | Ridge | 8.11 | 10.12 | 0.618 |
 | Linear Regression | 8.11 | 10.12 | 0.618 |
 | Decision Tree | 8.65 | 10.77 | 0.565 |
 
-### ⚡ Realtime với Socket.IO
+### Realtime với Socket.IO
 Mỗi khách hàng, shipper, cuộc hội thoại và nhóm admin có room riêng. Các sự kiện `order:new`, `order:statusUpdated`, `order:assigned`, `notification:new` và `chat:newMessage` được đẩy ngay tới đúng người nhận, không cần tải lại trang.
 
-### 🏗️ Kiến trúc backend phân lớp
+### Kiến trúc backend phân lớp
 `routes → controllers → services → repositories → PostgreSQL`, dùng SQL thuần qua `pg` (không ORM). Xác thực bằng JWT, mật khẩu băm bằng bcrypt, middleware phân quyền theo vai trò.
 
 ---
